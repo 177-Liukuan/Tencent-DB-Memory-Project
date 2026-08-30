@@ -1,0 +1,32 @@
+version: 1
+
+superproject:
+  repository: https://github.com/177-Liukuan/Tencent-DB-Memory-Project.git
+  branch: main
+
+submodules:
+  - name: upstream
+    path: TencentDB-Agent-Memory
+    role: upstream reference source
+    repository: https://github.com/TencentCloud/TencentDB-Agent-Memory.git
+    branch: feat/server_team
+    commit: 97f94654280b2932c35ba4806a491999ed244cc9
+  - name: baseline
+    path: TencentDB-Agent-Memory-Baseline
+    role: frozen Fake Tool A/B baseline
+    repository: https://github.com/177-Liukuan/TencentDB-Agent-Memory-Baseline.git
+    branch: baseline/bugfix-sync
+    commit: 41306b1dd64b30792fa7b8234bf23a5bf7d01553
+  - name: native
+    path: TencentDB-Agent-Memory-Native
+    role: Native Proxy Tool implementation
+    repository: https://github.com/177-Liukuan/TencentDB-Agent-Memory-Native.git
+    branch: research/native-tool
+    commit: 67288102d1e5a30b650104135a6e983d7d3635d8
+
+lab:
+  path: tencentdb-memory-lab
+  symlink_target: /storage1/liukuan/tencentdb-memory-lab
+  repository: https://github.com/177-Liukuan/TencentDB-Memory-Lab.git
+  branch: main
+  commit: e0e0d74d8c3b2e52dd3509bf0e4fab5c13103b11

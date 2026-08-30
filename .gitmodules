@@ -1,0 +1,9 @@
+[submodule "upstream"]
+	path = TencentDB-Agent-Memory
+	url = https://github.com/TencentCloud/TencentDB-Agent-Memory.git
+[submodule "baseline"]
+	path = TencentDB-Agent-Memory-Baseline
+	url = https://github.com/177-Liukuan/TencentDB-Agent-Memory-Baseline.git
+[submodule "native"]
+	path = TencentDB-Agent-Memory-Native
+	url = https://github.com/177-Liukuan/TencentDB-Agent-Memory-Native.git
