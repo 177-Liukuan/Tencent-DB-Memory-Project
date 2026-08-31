@@ -25,3 +25,11 @@ Thumbs.db
 *.swo
 .idea/
 .vscode/
+
+# Evaluation harness dependencies and generated artifacts
+eval/node_modules/
+eval/coverage/
+eval/.work/
+eval/tmp/
+eval/results/**
+!eval/results/.gitkeep

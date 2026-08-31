@@ -1,0 +1,70 @@
+schema_version: 1
+experiment_id: native-proxy-tool-smoke-v3-20260831
+calibration_only: true
+
+dataset:
+  name: memory_eval_v1
+  version: v1
+  path: ../datasets/memory_eval_v1.jsonl
+
+results_dir: ../results
+root_repo: ../..
+random_seed: 20260831
+run_timeout_ms: 300000
+trace_poll_interval_ms: 2000
+trace_wait_timeout_ms: 60000
+
+prompt_version: v5
+tool_schema_version: v3
+
+model:
+  provider: deepseek
+  name: deepseek-v4-flash[1m]
+
+claude:
+  binary: /home/liukuan/.npm-global/bin/claude
+
+lab:
+  root: ../../tencentdb-memory-lab
+  health_check: ../../tencentdb-memory-lab/bin/health-check
+  preflight: ../../tencentdb-memory-lab/bin/preflight
+  restore_seed: ../../tencentdb-memory-lab/bin/restore-seed
+  seed_workspace: ../../tencentdb-memory-lab/seed/agent-workspace
+  seed_manifest: ../../tencentdb-memory-lab/seed/manifest/seed-identities.json
+
+identity:
+  service_id: rhino-ab
+  team_id: team-f7jadamhk3
+  agent_id: agt-f7jq1rrl7h
+  task_id: task-f7kadawgsr
+
+langfuse:
+  base_url: http://127.0.0.1:3000
+  project_id: null
+  credentials_file: /storage1/liukuan/langfuse/tdam-bootstrap.env
+
+clickhouse:
+  enabled: true
+  config_file: ../../tencentdb-memory-lab/native/secrets/proxy.yaml
+  database: tdai_native_tools
+
+content_sources:
+  - ../../TencentDB-Agent-Memory-Baseline/MemoryProxy/src/injection/injectors/tdai-tools-injector.ts
+  - ../../TencentDB-Agent-Memory-Baseline/MemoryProxy/src/injection/injectors/skill-tools-injector.ts
+  - ../../TencentDB-Agent-Memory-Baseline/MemoryProxy/src/injection/injectors/knowledge-tools-injector.ts
+  - ../../TencentDB-Agent-Memory-Native/MemoryProxy/src/anthropicHandler.ts
+  - ../../TencentDB-Agent-Memory-Native/MemoryProxy/src/injection/registry.ts
+
+variants:
+  baseline:
+    repo_path: ../../TencentDB-Agent-Memory-Baseline
+    expected_commit: 41306b1dd64b30792fa7b8234bf23a5bf7d01553
+    proxy_base_url: http://127.0.0.1:8096/claude-code/rhino-ab
+    env_file: ../../tencentdb-memory-lab/baseline/secrets/claude.env
+    auth_key_file: ../../tencentdb-memory-lab/baseline/secrets/memory-user.key
+  native:
+    repo_path: ../../TencentDB-Agent-Memory-Native
+    expected_branch: research/native-tool
+    proxy_base_url: http://127.0.0.1:18096/claude-code/rhino-ab
+    env_file: ../../tencentdb-memory-lab/native/secrets/claude.env
+    auth_key_file: ../../tencentdb-memory-lab/native/secrets/memory-user.key

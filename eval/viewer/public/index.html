@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="color-scheme" content="dark">
+    <title>Native Proxy Tool · Case Viewer</title>
+    <link rel="stylesheet" href="/assets/styles.css">
+  </head>
+  <body>
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">TENCENTDB AGENT MEMORY</p>
+        <h1>Case Viewer</h1>
+      </div>
+      <label class="experiment-picker">
+        <span>Experiment</span>
+        <select id="experiment"></select>
+      </label>
+    </header>
+
+    <main>
+      <section id="empty" class="empty" hidden></section>
+      <section id="dashboard" hidden>
+        <div id="headline" class="headline"></div>
+        <div class="panel metric-panel">
+          <div class="panel-heading">
+            <div><p class="eyebrow">COMPARISON</p><h2>Baseline / Native</h2></div>
+            <p>Δ = Native − Baseline</p>
+          </div>
+          <div class="table-scroll"><table id="metrics"></table></div>
+        </div>
+
+        <div class="panel failure-panel">
+          <div class="panel-heading">
+            <div><p class="eyebrow">ATTRIBUTION</p><h2>Failure distribution</h2></div>
+          </div>
+          <div id="failure-distribution" class="failure-grid"></div>
+        </div>
+
+        <div class="workspace">
+          <section class="panel cases-panel">
+            <div class="panel-heading">
+              <div><p class="eyebrow">RUN INDEX</p><h2>Cases</h2></div>
+              <span id="case-count" class="counter"></span>
+            </div>
+            <form id="filters" class="filters">
+              <label class="toggle"><input id="failed" type="checkbox"><span>Fail only</span></label>
+              <label><span>Variant</span><select id="variant"><option value="">All</option><option value="baseline">Baseline</option><option value="native">Native</option></select></label>
+              <label><span>Status</span><select id="status-filter"><option value="">All</option><option value="completed">Completed</option><option value="timeout">Timeout</option><option value="infra_error">Infra error</option></select></label>
+              <label><span>Tool family</span><select id="family"><option value="">All</option><option value="memory">Memory</option><option value="skill">Skill</option><option value="knowledge">Knowledge</option><option value="none">None</option></select></label>
+              <label><span>Failure</span><select id="failure"><option value="">All</option></select></label>
+            </form>
+            <div id="case-list" class="case-list"></div>
+          </section>
+
+          <aside class="panel detail-panel">
+            <div id="detail-placeholder" class="detail-placeholder">选择一个 Run 查看完整轨迹</div>
+            <div id="detail" hidden></div>
+          </aside>
+        </div>
+      </section>
+    </main>
+    <script type="module" src="/assets/app.js"></script>
+  </body>
+</html>
