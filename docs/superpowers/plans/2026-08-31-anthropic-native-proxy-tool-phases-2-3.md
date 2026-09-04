@@ -22,7 +22,7 @@
 - ClickHouse lease CAS requires Lightweight UPDATE plus `update_parallel_mode='sync'` and `update_sequential_consistency=1`.
 - Read-only execution is at-least-once across lease expiry; result acceptance is exactly once.
 - New backend filenames use `kebab-case.ts`.
-- Preserve the user's existing root staged files, `eval/`, and `docs/superpowers/plans/2026-08-31-native-proxy-tool-dataset-construction.md`.
+- Preserve the user's existing root staged files, `eval_kit/`, and `docs/superpowers/plans/2026-08-31-native-proxy-tool-dataset-construction.md`.
 - Execute inline in this session unless a genuinely independent review later justifies a subagent; no subagent may spawn descendants.
 
 ## File Map
@@ -1025,7 +1025,7 @@ git add TencentDB-Agent-Memory-Native
 git commit --only -m "feat: advance native proxy tool implementation" -- TencentDB-Agent-Memory-Native
 ```
 
-Confirm that the user's pre-existing staged documentation and untracked `eval/` tree remain unchanged.
+Confirm that the user's pre-existing staged documentation and untracked `eval_kit/` tree remain unchanged.
 
 ## Execution Checkpoints
 

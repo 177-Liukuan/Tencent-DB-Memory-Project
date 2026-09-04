@@ -26,10 +26,14 @@ Thumbs.db
 .idea/
 .vscode/
 
-# Evaluation harness dependencies and generated artifacts
-eval/node_modules/
-eval/coverage/
-eval/.work/
-eval/tmp/
-eval/results/**
-!eval/results/.gitkeep
+# Eval Kit dependencies and generated artifacts
+eval_kit/node_modules/
+eval_kit/coverage/
+eval_kit/.work/
+eval_kit/tmp/
+eval_kit/results/**
+!eval_kit/results/.gitkeep
+
+# Optional local Eval Kit configuration.
+eval_kit/configs/*.local.yaml
+eval_kit/configs/experiments/*.local.yaml

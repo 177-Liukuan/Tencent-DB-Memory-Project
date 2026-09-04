@@ -4,7 +4,7 @@
 
 **Goal:** Add one configuration file and one command that builds Skill and Memory once, then installs the same completed MemoryCore data into Baseline and Native.
 
-**Architecture:** The existing `eval` package owns validation, imports, orchestration, and tests. A small `TencentDB-Agent-Memory-Data-Builder` directory provides the editable YAML configuration and shell entry point. The builder runs Baseline MemoryCore/MemoryPanel source against an isolated runtime directory, freezes completed Core data, and performs recoverable target replacement.
+**Architecture:** The `eval_kit` package owns validation, imports, orchestration, configuration, documentation, and tests. The builder runs Baseline MemoryCore/MemoryPanel source against an isolated runtime directory, freezes completed Core data, and performs recoverable target replacement.
 
 **Tech Stack:** TypeScript, Node.js 22, js-yaml, Zod, Vitest, user systemd, existing MemoryCore HTTP APIs.
 
@@ -17,7 +17,7 @@
 - Existing Baseline/Native data is moved to a timestamped backup before replacement.
 - A failed build never modifies target data; a failed install restores both targets.
 - Data Builder includes MemoryCore, MemoryPanel backend, and MemoryPanel web only.
-- Existing `eval/skills` and `eval/memories` import behavior remains compatible.
+- Existing `eval_kit/importers/skills` and `eval_kit/importers/memories` import behavior remains compatible.
 - No Knowledge Tool or MemoryProxy behavior changes are in scope.
 
 ---
@@ -25,8 +25,8 @@
 ### Task 1: Configuration and input validation
 
 **Files:**
-- Create: `eval/data-builder/config.ts`
-- Test: `eval/tests/data-builder-config.test.ts`
+- Create: `eval_kit/data-preparation/config.ts`
+- Test: `eval_kit/tests/data-builder-config.test.ts`
 
 **Interfaces:**
 - Produces: `loadDataBuilderConfig(path): Promise<DataBuilderConfig>` and `inspectDataBuilderInputs(config): Promise<InputInspection>`.
@@ -40,8 +40,8 @@
 ### Task 2: Runtime configuration and service control
 
 **Files:**
-- Create: `eval/data-builder/runtime.ts`
-- Test: `eval/tests/data-builder-runtime.test.ts`
+- Create: `eval_kit/data-preparation/runtime.ts`
+- Test: `eval_kit/tests/data-builder-runtime.test.ts`
 
 **Interfaces:**
 - Produces: `prepareBuilderRuntime()`, `startBuilderServices()`, `stopBuilderServices()`, `waitForCore()`, `resetBuilderData()`.
@@ -55,8 +55,8 @@
 ### Task 3: Completion waiting and frozen data versions
 
 **Files:**
-- Create: `eval/data-builder/release.ts`
-- Test: `eval/tests/data-builder-release.test.ts`
+- Create: `eval_kit/data-preparation/release.ts`
+- Test: `eval_kit/tests/data-builder-release.test.ts`
 
 **Interfaces:**
 - Produces: `computeInputDigest()`, `waitForMemoryProcessing()`, `createRelease()`, `readReusableRelease()`.
@@ -69,11 +69,11 @@
 ### Task 4: Recoverable installation and verification
 
 **Files:**
-- Create: `eval/data-builder/install.ts`
-- Test: `eval/tests/data-builder-install.test.ts`
+- Create: `eval_kit/data-preparation/install.ts`
+- Test: `eval_kit/tests/data-builder-install.test.ts`
 
 **Interfaces:**
-- Produces: `installReleaseToTargets()` and `verifyInstalledDataset()`.
+- Produces: `installReleaseToTargets()` and `verifyPreparedTarget()`.
 
 - [ ] Write tests proving both old target directories are retained, both targets receive the same release, a second-target failure restores the first target, and no path outside configured Core directories is moved.
 - [ ] Run the focused test and confirm failure.
@@ -83,11 +83,11 @@
 ### Task 5: One-command orchestration
 
 **Files:**
-- Create: `eval/data-builder/prepare.ts`
-- Create: `eval/data-builder/command.ts`
-- Modify: `eval/cli.ts`
-- Modify: `eval/package.json`
-- Test: `eval/tests/data-builder-prepare.test.ts`
+- Create: `eval_kit/data-preparation/prepare.ts`
+- Create: `eval_kit/data-preparation/command.ts`
+- Modify: `eval_kit/cli.ts`
+- Modify: `eval_kit/package.json`
+- Test: `eval_kit/tests/data-builder-prepare.test.ts`
 
 **Interfaces:**
 - Produces CLI: `npm run data:prepare -- --config FILE [--check]`.
@@ -95,31 +95,31 @@
 - [ ] Write an orchestration test proving the build path calls Skill import once, Memory import once, waits, creates a release, installs once, and the reusable-release path skips imports and LLM work.
 - [ ] Run the focused test and confirm failure.
 - [ ] Implement the coordinator and CLI output with phase/progress reporting.
-- [ ] Run focused and full eval tests plus typecheck.
+- [ ] Run focused and full Eval Kit tests plus typecheck.
 
-### Task 6: Data Builder project entry point and documentation
+### Task 6: Eval Kit data preparation entry point and documentation
 
 **Files:**
-- Create: `TencentDB-Agent-Memory-Data-Builder/config.yaml`
-- Create: `TencentDB-Agent-Memory-Data-Builder/prepare.sh`
-- Create: `TencentDB-Agent-Memory-Data-Builder/README.md`
+- Create: `eval_kit/configs/data-preparation.yaml`
+- Create: `eval_kit/prepare-data.sh`
+- Create: `eval_kit/docs/data-preparation.md`
 - Modify: `.gitignore`
 
 **Interfaces:**
-- Produces one user command: `./prepare.sh`; Memory Hub: `http://127.0.0.1:25173`.
+- Produces one user command: `./prepare-data.sh`; Memory Hub: `http://127.0.0.1:25173`.
 
 - [ ] Add the current project/dataset paths to the sample configuration without credentials.
-- [ ] Add a wrapper that locates the root reliably and calls the eval command.
+- [ ] Add a wrapper that locates Eval Kit reliably and calls its data preparation command.
 - [ ] Document first run, check-only mode, progress viewing, backups, release reuse, and Windows SSH forwarding.
-- [ ] Run `./prepare.sh --check` against the current environment and confirm it performs no writes.
+- [ ] Run `./prepare-data.sh --check` against the current environment and confirm it performs no writes.
 
 ### Task 7: Final verification
 
 **Files:**
 - Verify only; update documentation for any observed difference.
 
-- [ ] Run `npm run typecheck` in `eval`.
-- [ ] Run `npm test` in `eval`.
+- [ ] Run `npm run typecheck` in `eval_kit`.
+- [ ] Run `npm test` in `eval_kit`.
 - [ ] Run Data Builder check-only mode.
 - [ ] Inspect `git diff --check` and confirm unrelated dirty files are unchanged.
 - [ ] Report that the live destructive preparation was not run automatically; provide the exact one-command handoff.

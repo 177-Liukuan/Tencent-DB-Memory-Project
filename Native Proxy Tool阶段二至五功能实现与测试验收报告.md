@@ -202,7 +202,7 @@ npx vitest run scripts/qa/__tests__/clickhouse-native-tool-state.integration.tes
 
 ### 5.4 Eval Harness 自检
 
-在根仓库 `eval` 目录运行：
+在根仓库 `eval_kit` 目录运行：
 
 ```bash
 npm test -- --reporter=verbose
@@ -285,7 +285,7 @@ Langfuse Trace 保留，作为本报告的可追溯观测证据。未删除或�
 
 ### P1：功能分支未进入根仓库 Native 指针与实验服务
 
-根仓库、`eval/configs/smoke.yaml` 和 `tencentdb-memory-lab` 当前仍指向 `TencentDB-Agent-Memory-Native` 的 `research/native-tool`/18096 服务，而实现位于独立 worktree 的 `codex/anthropic-native-proxy-tools`。在合并、更新 gitlink、部署并健康检查之前，任何标为 `native` 的正式实验都可能实际上没有 Native Schema。
+根仓库、`eval_kit/configs/experiments/smoke.yaml` 和 `tencentdb-memory-lab` 当前仍指向 `TencentDB-Agent-Memory-Native` 的 `research/native-tool`/18096 服务，而实现位于独立 worktree 的 `codex/anthropic-native-proxy-tools`。在合并、更新 gitlink、部署并健康检查之前，任何标为 `native` 的正式实验都可能实际上没有 Native Schema。
 
 需要先把 `30dfa53` 的 debug trace 改动与 `641c2bc` 的功能分支合并，解决分叉后再更新根仓库 gitlink；不要仅修改 Eval 的 `expected_branch` 来掩盖代码未部署。
 

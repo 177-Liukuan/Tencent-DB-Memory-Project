@@ -15,17 +15,17 @@
 
 ## 使用方式
 
-项目目录为 `TencentDB-Agent-Memory-Data-Builder`，默认入口为：
+数据准备功能位于 `eval_kit`，默认入口为：
 
 ```bash
-cd /home/liukuan/Tencent-DB-Memory-Project/TencentDB-Agent-Memory-Data-Builder
-./prepare.sh
+cd /home/liukuan/Tencent-DB-Memory-Project/eval_kit
+./prepare-data.sh
 ```
 
-`prepare.sh` 默认读取同目录的 `config.yaml`。只检查配置、不改动服务和数据时使用：
+`prepare-data.sh` 默认读取 `configs/data-preparation.yaml`。只检查配置、不改动服务和数据时使用：
 
 ```bash
-./prepare.sh --check
+./prepare-data.sh --check
 ```
 
 ## 配置
@@ -38,10 +38,10 @@ version: 1
 datasetName: proxy-tool-eval-v1
 
 paths:
-  baselineProject: ../TencentDB-Agent-Memory-Baseline
-  nativeProject: ../TencentDB-Agent-Memory-Native
-  skillDataset: ../eval/dataset_templates/skills/examples
-  memoryDataset: ../eval/dataset_templates/memories/examples
+  baselineProject: ../../TencentDB-Agent-Memory-Baseline
+  nativeProject: ../../TencentDB-Agent-Memory-Native
+  skillDataset: ../dataset/skills
+  memoryDataset: ../dataset/template4AI/memories/examples
   labRoot: /storage1/liukuan/tencentdb-memory-lab
   initialCoreData: /storage1/liukuan/tencentdb-memory-lab/seed/core
 
@@ -56,9 +56,15 @@ builder:
   panelPort: 28124
   webPort: 25173
 
+targets:
+  baselineCorePort: 8420
+  nativeCorePort: 18420
+
 processing:
   timeoutMinutes: 120
   l2WaitSeconds: 95
+  pollIntervalMs: 1000
+  idleConfirmations: 3
 ```
 
 相对路径以配置文件所在目录为起点。凭据不写入配置文件；Data Builder 从 `labRoot/baseline/secrets` 复制当前环境已经使用的凭据，并把副本保存为 `0600`。
@@ -97,7 +103,7 @@ Memory Hub 地址为 `http://127.0.0.1:25173`。它只用于查看 Memory 和 Sk
 - Memory 数据能够被现有 `discoverMemorySessions()` 完整读取；
 - 数据集中 Skill 名称和会话 ID 没有重复；
 - 初始 Core 数据和 Baseline 凭据存在；
-- Data Builder 和目标端口没有被其他程序占用。
+- Baseline 与 Native 的 MemoryCore 源码树相同，并且两边的 `MemoryCore` 没有未提交修改。
 
 任何一项失败都在改动服务前结束。
 
@@ -109,7 +115,8 @@ Memory Hub 地址为 `http://127.0.0.1:25173`。它只用于查看 Memory 和 Sk
 - Memory 数据集所有 JSON/JSONL 的路径和内容；
 - 初始 Core 数据；
 - 身份配置；
-- Baseline MemoryCore 当前 Git commit。
+- 两边共同的 MemoryCore Git tree；
+- Baseline 当前 MemoryCore 运行配置（凭据字段不写入 manifest）。
 
 如果相同摘要的完整数据版本已经存在，直接复用，不再调用 LLM。否则执行：
 
@@ -143,8 +150,8 @@ Native 中已有 Knowledge 资产引用的端口会从 Baseline 端口改为 Nat
 自动校验包括：
 
 - 每个输入会话在 Data Builder、Baseline、Native 中的 L0 数量等于输入数量；
-- 三边 Skill 名称集合一致；
-- Baseline 与 Native 都能读取目标 Agent 的 L1、L2、L3；
+- 三边都包含输入数据集中的 Skill；
+- Data Builder 完成 L1/L2/L3 后才保存底稿，三边最终均无等待或运行中的处理任务；
 - 两边安装记录引用同一个数据版本 ID 和输入摘要；
 - 三套 `/v2/pipeline/status` 最终均无等待或运行中的任务。
 
