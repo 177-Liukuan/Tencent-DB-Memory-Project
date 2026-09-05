@@ -20,6 +20,31 @@ const base = {
 };
 
 describe("loadDataset", () => {
+  it("accepts the task metadata accompanying generated evaluation labels", async () => {
+    const loaded = await loadDataset(await datasetFile([{
+      ...base, suite: "probe", case_id: "skill-generated", should_call: true, expected_tool_sequence: ["skill_search", "skill_view"],
+      scenario_id: "api", asset_path: "dataset/assets/api", source_memory_sessions: ["api-history"], candidate_skills: ["api-guide"],
+      expected_skills: ["api-guide"], expected_skill_files: ["references/guide.md"], target_memory_refs: [{ fact_id: "f", session_id: "s", user_message_index: 0, assistant_message_index: 1 }],
+    }]));
+    expect(loaded.cases[0]?.expected_tool_sequence).toEqual(["skill_search", "skill_view"]);
+    expect(loaded.cases[0]?.suite).toBe("probe");
+  });
+  it("loads first-tool alternatives and ordered sequences without losing their order", async () => {
+    const path = await datasetFile([
+      { ...base, case_id: "alternatives", should_call: true, allowed_first_tools: ["skill_search", "skill_view"] },
+      { ...base, case_id: "sequence", should_call: true, expected_tool_sequence: ["skill_search", "skill_view", "skill_view"] },
+      { ...base, case_id: "sequences", should_call: true, allowed_sequences: [["skill_view"], ["skill_search", "skill_view"]] },
+    ]);
+    const loaded = await loadDataset(path);
+    expect(loaded.cases[0]?.allowed_first_tools).toEqual(["skill_search", "skill_view"]);
+    expect(loaded.cases[1]?.expected_tool_sequence).toEqual(["skill_search", "skill_view", "skill_view"]);
+    expect(loaded.cases[2]?.expected_tools).toEqual(["skill_view", "skill_search"]);
+  });
+
+  it("rejects ambiguous selection rules and required calls on a negative case", async () => {
+    await expect(loadDataset(await datasetFile([{ ...base, case_id: "ambiguous", should_call: true, allowed_first_tools: ["skill_view"], expected_tool_sequence: ["skill_view"] }]))).rejects.toThrow(/selection rule/i);
+    await expect(loadDataset(await datasetFile([{ ...base, case_id: "negative", should_call: false, expected_tool_sequence: ["skill_view"] }]))).rejects.toThrow(/negative.*must not declare/i);
+  });
   it("normalizes expected_tool and returns a stable content hash", async () => {
     const path = await datasetFile([
       { ...base, case_id: "positive", should_call: true, expected_tool: "tdai_memory_search" },

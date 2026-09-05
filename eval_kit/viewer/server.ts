@@ -3,6 +3,8 @@ import { dirname, isAbsolute, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { Hono } from "hono";
+import { HTTPException } from "hono/http-exception";
+import { readManifest, readOverview, readRun, viewerConfigSchema } from "./results.js";
 
 export function resolveWithin(root: string, child: string): string {
   if (child.includes("\0") || isAbsolute(child)) throw new Error("Path points outside the results root");
@@ -23,10 +25,6 @@ async function jsonFile(root: string, child: string): Promise<unknown> {
   return JSON.parse(await readFile(await resolveExistingWithin(root, child), "utf8"));
 }
 
-async function jsonLines(root: string, child: string): Promise<Record<string, unknown>[]> {
-  return (await readFile(await resolveExistingWithin(root, child), "utf8")).split(/\r?\n/u).filter(Boolean).map((line) => JSON.parse(line) as Record<string, unknown>);
-}
-
 export function createViewerApp(options: { resultsRoot: string }): Hono {
   const app = new Hono();
   const publicRoot = resolve(dirname(fileURLToPath(import.meta.url)), "public");
@@ -36,44 +34,61 @@ export function createViewerApp(options: { resultsRoot: string }): Hono {
     c.header("content-security-policy", "default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self' data:; object-src 'none'; base-uri 'none'; frame-ancestors 'none'");
     c.header("referrer-policy", "no-referrer");
     c.header("x-content-type-options", "nosniff");
+    c.header("cache-control", "no-store");
   });
-  app.onError((error, c) => c.json({ error: error.message }, 400));
+  app.onError((error, c) => c.json({ error: error instanceof HTTPException ? error.message : "无法读取结果，请检查目录权限或文件是否完整。" }, error instanceof HTTPException ? error.status : 500));
+  function identifier(value: string) {
+    if (!/^[A-Za-z0-9][A-Za-z0-9_.-]{0,150}$/u.test(value)) throw new HTTPException(400, { message: "无效的实验或运行编号。" });
+    return value;
+  }
+  function reader(experiment: string) {
+    identifier(experiment);
+    return async (child: string) => {
+      try { return await jsonFile(options.resultsRoot, `${experiment}/${child}`); }
+      catch (error) {
+        if ((error as NodeJS.ErrnoException).code === "ENOENT") throw new HTTPException(404, { message: "结果尚未生成或不存在。" });
+        if (error instanceof SyntaxError) throw new HTTPException(422, { message: "结果文件不是有效 JSON。" });
+        throw error;
+      }
+    };
+  }
+  async function config(experiment: string) {
+    const parsed = viewerConfigSchema.safeParse(await reader(experiment)("config.json"));
+    if (!parsed.success) throw new HTTPException(422, { message: "Viewer 只读取当前 Bridge 观测格式（version: 2）。" });
+    // 准备目录也可能保存一份配置，但它不是配置所指的正式结果目录。
+    if (parsed.data.experiment_id !== experiment) throw new HTTPException(422, { message: "该目录不是配置对应的实验结果目录。" });
+    return parsed.data;
+  }
   app.get("/api/experiments", async (c) => {
-    const entries = await readdir(options.resultsRoot, { withFileTypes: true }).catch(() => []);
-    const experiments: unknown[] = [];
+    const entries = await readdir(options.resultsRoot, { withFileTypes: true }).catch((error: NodeJS.ErrnoException) => {
+      if (error.code === "ENOENT") return [];
+      throw error;
+    });
+    const experiments: Array<{ experiment_id: string; model: string; updated_at: string }> = [];
     for (const entry of entries) {
       if (!entry.isDirectory() || entry.name.startsWith(".")) continue;
       try {
-        const summary = await jsonFile(options.resultsRoot, `${entry.name}/summary.json`) as Record<string, unknown>;
-        experiments.push({ experiment_id: entry.name, ...summary });
-      } catch { /* incomplete experiment */ }
+        const current = await config(entry.name);
+        const info = await stat(await resolveExistingWithin(options.resultsRoot, `${entry.name}/config.json`));
+        experiments.push({ experiment_id: entry.name, model: current.model, updated_at: info.mtime.toISOString() });
+      } catch { /* 结果目录也存放准备材料和旧实验，只列出有效的新格式配置。 */ }
     }
-    return c.json(experiments);
+    return c.json(experiments.sort((a, b) => b.updated_at.localeCompare(a.updated_at) || a.experiment_id.localeCompare(b.experiment_id)));
   });
-  app.get("/api/experiments/:experiment/summary", async (c) => {
+  app.get("/api/experiments/:experiment/overview", async (c) => {
     const experiment = c.req.param("experiment");
-    return c.json(await jsonFile(options.resultsRoot, `${experiment}/summary.json`));
-  });
-  app.get("/api/experiments/:experiment/cases", async (c) => {
-    const experiment = c.req.param("experiment");
-    let items = await jsonLines(options.resultsRoot, `${experiment}/cases.jsonl`);
-    const variant = c.req.query("variant");
-    const status = c.req.query("status");
-    const family = c.req.query("family");
-    const failure = c.req.query("failure");
-    const failedOnly = c.req.query("failed") === "true";
-    if (variant) items = items.filter((item) => item.variant === variant);
-    if (status) items = items.filter((item) => item.status === status);
-    if (family) items = items.filter((item) => item.tool_family === family);
-    if (failure) items = items.filter((item) => Array.isArray(item.failure_tags) && item.failure_tags.includes(failure));
-    if (failedOnly) items = items.filter((item) => !(item.metrics as Record<string, unknown> | undefined)?.case_pass);
-    return c.json({ items, total: items.length });
+    const current = await config(experiment);
+    return c.json({ experiment_id: experiment, model: current.model, ...await readOverview(reader(experiment), c.req.query("suite")) });
   });
   app.get("/api/experiments/:experiment/runs/:run", async (c) => {
     const experiment = c.req.param("experiment");
     const run = c.req.param("run");
-    if (!/^[A-Za-z0-9._-]+$/u.test(experiment) || !/^[A-Za-z0-9._-]+$/u.test(run)) return c.json({ error: "Invalid identifier" }, 400);
-    return c.json(await jsonFile(options.resultsRoot, `${experiment}/runs/${run}.json`));
+    identifier(run);
+    await config(experiment);
+    const read = reader(experiment);
+    const row = (await readManifest(read)).find(r => r.run_id === run);
+    if (!row) return c.json({ error: "该运行不在实验清单中。" }, 404);
+    return c.json(await readRun(read, row));
   });
   app.get("/assets/:name", async (c) => {
     const name = c.req.param("name");
@@ -85,6 +100,6 @@ export function createViewerApp(options: { resultsRoot: string }): Hono {
     return c.body(await readFile(path), 200, { "content-type": type, "cache-control": "no-store" });
   });
   app.all("/api/*", (c) => c.json({ error: "API route not found" }, 404));
-  app.get("*", async (c) => c.html(await readFile(resolveWithin(publicRoot, "index.html"), "utf8")));
+  app.get("/", async (c) => c.html(await readFile(resolveWithin(publicRoot, "index.html"), "utf8")));
   return app;
 }

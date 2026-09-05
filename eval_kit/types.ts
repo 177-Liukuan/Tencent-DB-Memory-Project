@@ -1,5 +1,5 @@
 export type Variant = "baseline" | "native";
-export type Suite = "smoke" | "main" | "reliability";
+export type Suite = "smoke" | "main" | "reliability" | "probe";
 export type ToolFamily = "memory" | "skill" | "knowledge" | "none";
 export type Difficulty = "easy" | "medium" | "hard";
 
@@ -27,11 +27,21 @@ export type EvalCase = {
   should_call: boolean;
   expected_tool?: string | null;
   expected_tools: string[];
+  // 单步允许集合与多步顺序分开声明，避免把“任选其一”误算成“必须全部调用”。
+  allowed_first_tools?: string[];
+  expected_tool_sequence?: string[];
+  allowed_sequences?: string[][];
   argument_assertions?: ArgumentAssertion[];
   answer_assertions?: AnswerAssertion[];
   tool_family?: ToolFamily;
   difficulty?: Difficulty;
   tags?: string[];
+  scenario_id?: string;
+  asset_path?: string | null;
+  source_memory_sessions?: string[];
+  candidate_skills?: string[];
+  expected_skills?: string[];
+  expected_skill_files?: string[];
 };
 
 export type RawRequest = {
@@ -130,6 +140,9 @@ export type CaseRun = {
     query: string;
     should_call: boolean;
     expected_tools: string[];
+    allowed_first_tools?: string[];
+    expected_tool_sequence?: string[];
+    allowed_sequences?: string[][];
     argument_assertions: ArgumentAssertion[];
     answer_assertions: AnswerAssertion[];
   };
@@ -178,6 +191,12 @@ export type AggregateMetrics = {
   task_pass_rate: number | null;
   effective_call_rate: number | null;
   false_call_rate: number | null;
+  positive_cases: number;
+  called_positive_cases: number;
+  correct_tool_cases: number;
+  negative_cases: number;
+  false_call_cases: number;
+  by_tool_family: Record<"memory" | "skill", ToolFamilyMetrics>;
   tool_micro_precision: number | null;
   tool_micro_recall: number | null;
   tool_selection_accuracy: number | null;
@@ -187,10 +206,37 @@ export type AggregateMetrics = {
   provider_output_tokens: Distribution;
   provider_total_tokens: Distribution;
   definition_tokens: Distribution;
+  static_definition: StaticDefinitionSummary;
   llm_calls: Distribution;
   tool_calls: Distribution;
   internal_reentry_rounds: Distribution;
   ttft_ms: Distribution;
   end_to_end_ms: Distribution;
   tool_latency_ms: Distribution;
+};
+
+export type ToolFamilyMetrics = {
+  positive_cases: number;
+  called_positive_cases: number;
+  correct_tool_cases: number;
+  negative_cases: number;
+  false_call_cases: number;
+  effective_call_rate: number | null;
+  false_call_rate: number | null;
+  tool_selection_accuracy: number | null;
+};
+
+export type StaticDefinitionSummary = {
+  tokenizer: string;
+  samples_checked: number;
+  warnings: string[];
+  // 不同固定配置不能取平均后冒充某个版本的静态成本。
+  tokens: number | null;
+  configurations: Array<{
+    source_run_id: string;
+    variant: Variant;
+    system_tokens: number;
+    schema_tokens: number;
+    total_tokens: number;
+  }>;
 };

@@ -11,6 +11,10 @@ export type ParsedSkillImportCommand = {
   options: { directory: string; onConflict: ConflictMode; dryRun: boolean };
 };
 
+export function defaultSkillImportLabRoot(): string {
+  return resolve(dirname(fileURLToPath(import.meta.url)), "../../../tencentdb-memory-lab");
+}
+
 type ParsedArgs = { values: Map<string, string>; flags: Set<string> };
 
 function parseArgs(args: string[]): ParsedArgs {
@@ -83,7 +87,7 @@ export async function parseSkillImportCommand(
   const teamId = required(parsed, "team-id");
   const agentId = required(parsed, "agent-id");
   const serviceId = parsed.values.get("service-id")?.trim() || "rhino-ab";
-  const defaultLabRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../tencentdb-memory-lab");
+  const defaultLabRoot = defaultSkillImportLabRoot();
   const labRoot = resolve(parsed.values.get("lab-root") ?? env.TDAI_LAB_ROOT ?? defaultLabRoot);
   const variants: Array<"baseline" | "native"> = variant === "both" ? ["baseline", "native"] : [variant];
   const targets: SkillImportTarget[] = [];

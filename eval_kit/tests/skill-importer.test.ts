@@ -74,6 +74,17 @@ function target(url: string): SkillImportTarget {
 }
 
 describe("discoverSkillPackages", () => {
+  test("导入标准 Skill 的 references/scripts/assets，不漏掉正文引用的资源", async () => {
+    const root = await fixtureDirectory();
+    for (const directory of ["references", "scripts", "assets"]) {
+      await mkdir(join(root, "alpha", directory));
+      await writeFile(join(root, "alpha", directory, "example.txt"), directory);
+    }
+    const [skill] = await discoverSkillPackages(root);
+    expect(skill!.resources.map(r => r.path).sort()).toEqual([
+      "assets/example.txt", "guide.txt", "references/example.txt", "scripts/example.txt",
+    ]);
+  });
   test("recursively reads SKILL.md files and only their files/ resources", async () => {
     const root = await fixtureDirectory();
     await writeFile(join(root, "alpha", "notes.md"), "not a resource");

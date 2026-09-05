@@ -3,64 +3,63 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
-    <meta name="color-scheme" content="dark">
-    <title>Native Proxy Tool · Case Viewer</title>
+    <meta name="color-scheme" content="light">
+    <title>工具调用评测 · TencentDB Agent Memory</title>
+    <link rel="icon" href="data:,">
     <link rel="stylesheet" href="/assets/styles.css">
   </head>
   <body>
     <header class="topbar">
-      <div>
-        <p class="eyebrow">TENCENTDB AGENT MEMORY</p>
-        <h1>Case Viewer</h1>
-      </div>
-      <label class="experiment-picker">
-        <span>Experiment</span>
-        <select id="experiment"></select>
-      </label>
+      <a class="brand" href="/" aria-label="评测首页"><span class="brand-mark" aria-hidden="true"></span>TencentDB <span>Agent Memory</span></a>
+      <span class="readonly">只读结果查看器</span>
     </header>
-
     <main>
-      <section id="empty" class="empty" hidden></section>
-      <section id="dashboard" hidden>
-        <div id="headline" class="headline"></div>
-        <div class="panel metric-panel">
-          <div class="panel-heading">
-            <div><p class="eyebrow">COMPARISON</p><h2>Baseline / Native</h2></div>
-            <p>Δ = Native − Baseline</p>
-          </div>
-          <div class="table-scroll"><table id="metrics"></table></div>
-        </div>
-
-        <div class="panel failure-panel">
-          <div class="panel-heading">
-            <div><p class="eyebrow">ATTRIBUTION</p><h2>Failure distribution</h2></div>
-          </div>
-          <div id="failure-distribution" class="failure-grid"></div>
-        </div>
-
-        <div class="workspace">
-          <section class="panel cases-panel">
-            <div class="panel-heading">
-              <div><p class="eyebrow">RUN INDEX</p><h2>Cases</h2></div>
-              <span id="case-count" class="counter"></span>
-            </div>
-            <form id="filters" class="filters">
-              <label class="toggle"><input id="failed" type="checkbox"><span>Fail only</span></label>
-              <label><span>Variant</span><select id="variant"><option value="">All</option><option value="baseline">Baseline</option><option value="native">Native</option></select></label>
-              <label><span>Status</span><select id="status-filter"><option value="">All</option><option value="completed">Completed</option><option value="timeout">Timeout</option><option value="infra_error">Infra error</option></select></label>
-              <label><span>Tool family</span><select id="family"><option value="">All</option><option value="memory">Memory</option><option value="skill">Skill</option><option value="knowledge">Knowledge</option><option value="none">None</option></select></label>
-              <label><span>Failure</span><select id="failure"><option value="">All</option></select></label>
-            </form>
-            <div id="case-list" class="case-list"></div>
-          </section>
-
-          <aside class="panel detail-panel">
-            <div id="detail-placeholder" class="detail-placeholder">选择一个 Run 查看完整轨迹</div>
-            <div id="detail" hidden></div>
-          </aside>
+      <section class="page-heading">
+        <div><p class="eyebrow">PROXY TOOL EVALUATION</p><h1>工具调用评测</h1><p class="muted">同一个任务，比较两种工具调用方式。</p></div>
+        <div class="experiment-controls">
+          <label><span>实验</span><select id="experiment" aria-label="选择实验"><option>正在读取…</option></select></label>
+          <button id="refresh" type="button" class="secondary">刷新结果</button>
         </div>
       </section>
+      <p id="notice" class="notice" role="alert" hidden></p>
+      <p id="loading" class="loading" role="status">正在读取实验…</p>
+      <section id="empty" class="empty" hidden></section>
+      <section id="dashboard" hidden>
+        <div class="overview-heading">
+          <div><span id="model" class="model"></span><span id="progress" class="muted"></span></div>
+          <label class="suite-control"><span>评测分组</span><select id="suite" aria-label="评测分组"></select></label>
+        </div>
+        <div id="metrics" class="metrics-grid"></div>
+        <details class="breakdown panel">
+          <summary>Memory / Skill 分项与样本数量<span class="muted">展开查看</span></summary>
+          <div class="table-scroll"><table id="breakdown"></table></div>
+        </details>
+        <section class="panel cases-panel" aria-labelledby="cases-title">
+          <div class="section-heading"><div><h2 id="cases-title">案例对比</h2><p class="muted">点击一行，查看两组调用和最终回答。列表筛选不改变上方指标。</p></div><span id="case-count" class="counter" role="status"></span></div>
+          <form id="filters" class="filters">
+            <label class="search"><span class="sr-only">搜索案例</span><input id="search" type="search" placeholder="搜索案例、问题或工具名" autocomplete="off"></label>
+            <label><span class="sr-only">工具类别</span><select id="family" aria-label="工具类别"><option value="">全部类别</option><option value="memory">Memory</option><option value="skill">Skill</option><option value="none">无 / 混合</option></select></label>
+            <label><span class="sr-only">调用情况</span><select id="outcome" aria-label="调用情况"><option value="">全部情况</option><option value="attention">需要关注</option><option value="correct">符合预期</option><option value="missed">未调用</option><option value="wrong_tool">选择不符</option><option value="false_call">误调用</option><option value="invalid">采集异常</option><option value="damaged">文件异常</option><option value="pending">待运行</option></select></label>
+            <button id="clear" type="button" class="text-button">清空筛选</button>
+          </form>
+          <div class="case-columns" aria-hidden="true"><span>案例 / 预期</span><span class="baseline-label">Baseline · Fake Tool</span><span class="native-label">Native · 真工具</span><span>耗时变化</span></div>
+          <div id="case-list" class="case-list"></div>
+          <div class="pagination"><span id="page-label" class="muted"></span><div><button id="prev" type="button" class="secondary">上一页</button><button id="next" type="button" class="secondary">下一页</button></div></div>
+        </section>
+        <details class="methodology">
+          <summary>这些数据如何理解？</summary>
+          <p>调用记录来自 Memory / Skill Bridge 入口，表示请求已到达 Bridge，不代表后端执行成功。展示顺序为 Bridge 接收顺序；并发时不一定等于模型生成顺序。</p>
+          <p>“符合预期”只评价是否调用及工具选择，不评价答案质量。采集异常不进入调用指标或延迟统计。分母为零的指标显示“—”，不是 0%。</p>
+          <p>端到端延迟从 Claude Code 启动提交输入起，到成功返回最终回答为止。对比只使用同一案例、同一重复编号的有效配对；先对每个案例的重复运行取均值，再汇总。Memory / Skill 的误调用率均以全部负样本为分母。</p>
+          <p>本观测格式不采集工具参数、业务返回值或静态注入 Token，因此不在此展示这些指标。</p>
+        </details>
+      </section>
     </main>
+    <dialog id="case-dialog" aria-labelledby="detail-title">
+      <div class="dialog-heading"><div><p class="eyebrow">CASE COMPARISON</p><h2 id="detail-title"></h2></div><button id="close-detail" type="button" class="secondary" aria-label="关闭详情">关闭 ×</button></div>
+      <div id="detail-body"></div>
+    </dialog>
+    <footer>Memory / Skill Bridge 观测 · 不使用 Mock 返回 · Baseline & Native</footer>
     <script type="module" src="/assets/app.js"></script>
   </body>
 </html>

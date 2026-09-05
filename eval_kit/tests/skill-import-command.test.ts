@@ -1,6 +1,6 @@
 import { mkdtemp, mkdir, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 
 import { describe, expect, test } from "vitest";
 
@@ -16,6 +16,16 @@ async function labFixture(): Promise<string> {
 }
 
 describe("parseSkillImportCommand", () => {
+  test("resolves the default lab root beside eval_kit", async () => {
+    const command = await import("../importers/skills/command.js");
+    const defaultLabRoot = (command as typeof command & {
+      defaultSkillImportLabRoot?: () => string;
+    }).defaultSkillImportLabRoot;
+
+    expect(defaultLabRoot).toBeTypeOf("function");
+    expect(defaultLabRoot?.()).toBe(resolve(process.cwd(), "../tencentdb-memory-lab"));
+  });
+
   test("builds both targets from the lab key files without putting secrets in CLI arguments", async () => {
     const labRoot = await labFixture();
 

@@ -45,16 +45,27 @@ const argumentAssertionSchema = z.object({
 const caseSchema = z.object({
   schema_version: z.literal(1),
   case_id: z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._-]*$/u, "case_id must be a safe identifier"),
-  suite: z.enum(["smoke", "main", "reliability"]),
+  suite: z.enum(["smoke", "main", "reliability", "probe"]),
   query: z.string().min(1),
   should_call: z.boolean(),
   expected_tool: z.string().min(1).nullable().optional(),
   expected_tools: z.array(z.string().min(1)).optional(),
+  allowed_first_tools: z.array(z.string().min(1)).min(1).optional(),
+  expected_tool_sequence: z.array(z.string().min(1)).optional(),
+  allowed_sequences: z.array(z.array(z.string().min(1)).min(1)).min(1).optional(),
   argument_assertions: z.array(argumentAssertionSchema).optional(),
   answer_assertions: z.array(answerAssertionSchema).optional(),
   tool_family: z.enum(["memory", "skill", "knowledge", "none"]).optional(),
   difficulty: z.enum(["easy", "medium", "hard"]).optional(),
   tags: z.array(z.string()).optional(),
+  // 数据构建器附带的素材来源只作为元数据保留，不参与工具选择计分。
+  scenario_id: z.string().optional(),
+  asset_path: z.string().nullable().optional(),
+  source_memory_sessions: z.array(z.string()).optional(),
+  candidate_skills: z.array(z.string()).optional(),
+  expected_skills: z.array(z.string()).optional(),
+  expected_skill_files: z.array(z.string()).optional(),
+  target_memory_refs: z.array(z.object({ fact_id: z.string(), session_id: z.string(), user_message_index: z.number().int().nonnegative(), assistant_message_index: z.number().int().nonnegative() })).optional(),
 }).strict();
 
 export type LoadedDataset = {
@@ -78,9 +89,14 @@ export async function loadDataset(path: string): Promise<LoadedDataset> {
     const value = caseSchema.parse(parsed);
     if (seen.has(value.case_id)) throw new Error(`Duplicate case_id: ${value.case_id}`);
     seen.add(value.case_id);
+    const selectionRules = [value.allowed_first_tools, value.expected_tool_sequence?.length ? value.expected_tool_sequence : undefined, value.allowed_sequences].filter(Boolean);
+    if (selectionRules.length > 1) throw new Error(`Case ${value.case_id}: declare only one selection rule`);
     const expectedTools = [...new Set([
       ...(value.expected_tools ?? []),
       ...(value.expected_tool ? [value.expected_tool] : []),
+      ...(value.allowed_first_tools ?? []),
+      ...(value.expected_tool_sequence ?? []),
+      ...(value.allowed_sequences?.flat() ?? []),
     ])];
     if (value.should_call && expectedTools.length === 0) {
       throw new Error(`Case ${value.case_id}: a positive case requires at least one expected tool`);

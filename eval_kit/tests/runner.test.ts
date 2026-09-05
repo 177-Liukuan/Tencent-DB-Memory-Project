@@ -5,9 +5,22 @@ import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 
 import { runExperiment, scoreExperiment, type RunnerDependencies } from "../runner/runner.js";
-import { timeToFirstAssistantMs } from "../runner/client.js";
+import { runClaudeClient, timeToFirstAssistantMs } from "../runner/client.js";
 
 describe("client timing", () => {
+  it.each([true, false])("stops end-to-end timing on the final result, with trailing newline=%s", async (newline) => {
+    const dir = await mkdtemp(join(tmpdir(), "eval-client-timing-"));
+    const binary = join(dir, "fake-claude");
+    // 真实子进程先输出最终结果，再等待一个可观察的收尾阶段。
+    await writeFile(binary, `#!/usr/bin/env node\nprocess.stdout.write('{"type":"result","result":"done"}${newline ? "\\n" : ""}');\nsetTimeout(() => process.exit(0), 300);\n`, { mode: 0o700 });
+    const envFile = join(dir, "env");
+    const authKeyFile = join(dir, "key");
+    await writeFile(envFile, "");
+    await writeFile(authKeyFile, "test-key");
+    const client = await runClaudeClient({ binary, variant: "native", testCase: { schema_version: 1, case_id: "timing", suite: "smoke", query: "q", should_call: false, expected_tools: [] }, sessionId: "s", workDirectory: dir, claudeConfigDirectory: dir, envFile, authKeyFile, baseUrl: "http://127.0.0.1:1", identity: { service_id: "i", team_id: "t", agent_id: "a", task_id: "k" }, timeoutMs: 3000, streamPath: join(dir, "stream.jsonl") });
+    expect(typeof client.completedAt).toBe("string");
+    expect(Date.parse(client.endedAt) - Date.parse(client.completedAt!)).toBeGreaterThanOrEqual(200);
+  });
   it("measures TTFT from the first assistant event rather than CLI init output", () => {
     expect(timeToFirstAssistantMs([
       { type: "system", subtype: "init" },
@@ -117,6 +130,18 @@ function dependencies(overrides: Partial<RunnerDependencies> = {}): RunnerDepend
 }
 
 describe("experiment runner integration", () => {
+  it("does not report a successful fast task when Claude emits an error result with exit code zero", async () => {
+    const { config } = await fixture();
+    const base = dependencies();
+    const completed = await runExperiment(config, {}, dependencies({ runClient: async (input) => {
+      const client = await base.runClient(input);
+      const events = [{ type: "result", subtype: "error_max_turns", is_error: true, result: "turn limit" }];
+      await writeFile(input.streamPath, JSON.stringify(events[0]) + "\n");
+      return { ...client, events };
+    } }));
+    expect(completed.runs.every((item) => item.status === "infra_error")).toBe(true);
+    expect((completed.summary.overall as { end_to_end_ms: { count: number } }).end_to_end_ms.count).toBe(0);
+  });
   it("writes a complete 2×2 experiment with private permissions and can resume without rerunning", async () => {
     const { config, results } = await fixture();
     const deps = dependencies();

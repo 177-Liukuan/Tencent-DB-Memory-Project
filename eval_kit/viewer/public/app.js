@@ -1,311 +1,257 @@
-const state = { experiment: null, summary: null, cases: [], selected: null };
-
+const state = { experiment: "", suite: "", data: null, pairs: [], page: 1, load: 0, detail: 0 };
+const PAGE_SIZE = 25;
+const labels = { correct: "符合预期", missed: "未调用", wrong_tool: "选择不符", false_call: "误调用", invalid: "采集异常", damaged: "文件异常", pending: "待运行" };
+const suites = { main: "主评测", smoke: "冒烟测试", probe: "探针测试", reliability: "可靠性测试" };
 const byId = (id) => document.getElementById(id);
-
-function node(tag, className, text) {
-  const element = document.createElement(tag);
-  if (className) element.className = className;
-  if (text !== undefined && text !== null) element.textContent = String(text);
-  return element;
+function node(tag, className = "", text) {
+  const el = document.createElement(tag);
+  if (className) el.className = className;
+  // Query、模型回答及工具名一律当文本展示，不能让实验内容变成页面脚本。
+  if (text !== undefined && text !== null) el.textContent = String(text);
+  return el;
 }
-
-function format(value, style = "number") {
-  if (value === null || value === undefined || Number.isNaN(value)) return "—";
-  if (style === "percent") return `${(Number(value) * 100).toFixed(1)}%`;
-  if (style === "ms") return `${Math.round(Number(value))} ms`;
-  if (typeof value === "number") return Number.isInteger(value) ? String(value) : value.toFixed(2);
-  return String(value);
+const finite = (value) => typeof value === "number" && Number.isFinite(value);
+function format(value, unit = "number") {
+  if (!finite(value)) return "—";
+  if (unit === "rate") return `${(value * 100).toFixed(1)}%`;
+  if (unit === "time") return `${(value / 1000).toFixed(2)} s`;
+  return Number.isInteger(value) ? String(value) : value.toFixed(1);
 }
-
+function delta(value, unit, lowerIsBetter) {
+  const el = node("span", "delta", "—");
+  if (!finite(value)) return el;
+  el.textContent = `${value > 0 ? "+" : ""}${value.toFixed(1)}${unit}`;
+  if (value !== 0) el.classList.add((lowerIsBetter ? value < 0 : value > 0) ? "good" : "bad");
+  return el;
+}
+function badge(outcome) { return node("span", `badge ${outcome}`, labels[outcome] ?? "未安排"); }
 async function api(path) {
-  const response = await fetch(path, { headers: { accept: "application/json" } });
-  if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
-  return response.json();
+  const response = await fetch(path, { headers: { accept: "application/json" }, signal: AbortSignal.timeout(15000) });
+  const body = await response.json();
+  if (!response.ok) throw new Error(body.error || `读取失败（${response.status}）`);
+  return body;
 }
-
-function card(label, value, tone) {
-  const element = node("article", `metric-card ${tone ?? ""}`);
-  element.append(node("span", "metric-label", label), node("strong", "metric-value", value));
-  return element;
+function address(suffix) { return `/api/experiments/${encodeURIComponent(state.experiment)}/${suffix}`; }
+function notice(message) {
+  byId("notice").hidden = !message;
+  byId("notice").textContent = message;
 }
-
-function renderHeadline() {
-  const target = byId("headline");
-  target.replaceChildren();
-  const overall = state.summary?.overall ?? {};
-  target.append(
-    card("Total Runs", format(state.summary?.total_runs)),
-    card("Case Pass", format(overall.case_pass_rate, "percent"), "good"),
-    card("Tool Precision", format(overall.tool_micro_precision, "percent")),
-    card("Tool Recall", format(overall.tool_micro_recall, "percent")),
-    card("Trace Complete", `${format(overall.trace_complete_runs)} / ${format(overall.runs)}`),
-  );
-}
-
-const metricRows = [
-  ["Case Pass Rate", "case_pass_rate", "percent", false],
-  ["Task Pass Rate", "task_pass_rate", "percent", false],
-  ["Effective Call Rate", "effective_call_rate", "percent", false],
-  ["False Call Rate", "false_call_rate", "percent", true],
-  ["Tool Micro Precision", "tool_micro_precision", "percent", false],
-  ["Tool Micro Recall", "tool_micro_recall", "percent", false],
-  ["Selection Accuracy", "tool_selection_accuracy", "percent", false],
-  ["Argument Accuracy", "argument_accuracy", "percent", false],
-  ["Provider Input Tokens · mean", "provider_input_tokens", "number", true],
-  ["Provider Output Tokens · mean", "provider_output_tokens", "number", true],
-  ["Provider Total Tokens · mean", "provider_total_tokens", "number", true],
-  ["Definition Tokens · mean", "definition_tokens", "number", true],
-  ["LLM Calls · mean", "llm_calls", "number", true],
-  ["Tool Calls · mean", "tool_calls", "number", true],
-  ["Duplicate Tool Calls", "duplicate_tool_calls", "number", true],
-  ["Internal Re-entry · mean", "internal_reentry_rounds", "number", true],
-  ["TTFT · mean", "ttft_ms", "ms", true],
-  ["End-to-End · mean", "end_to_end_ms", "ms", true],
-  ["Tool Latency · mean", "tool_latency_ms", "ms", true],
-];
-
-function scalar(metrics, key) {
-  const value = metrics?.[key];
-  return value && typeof value === "object" ? value.mean : value;
+function updateUrl(pair) {
+  const params = new URLSearchParams();
+  if (state.experiment) params.set("experiment", state.experiment);
+  if (state.suite) params.set("suite", state.suite);
+  if (pair) { params.set("case", pair.case_id); params.set("repeat", pair.repeat); }
+  history.replaceState(null, "", `${location.pathname}?${params}`);
 }
 
 function renderMetrics() {
-  const table = byId("metrics");
-  table.replaceChildren();
-  const head = node("thead");
-  const row = node("tr");
-  for (const title of ["Metric", "Baseline", "Native", "Δ"]) row.append(node("th", "", title));
-  head.append(row);
+  const { baseline: b, native: n, paired_latency: p } = state.data.summary;
+  const target = byId("metrics"); target.replaceChildren();
+  for (const [label, key, lower] of [["有效调用率", "effective_call_rate", false], ["误调用率", "false_call_rate", true], ["工具选择正确率", "tool_selection_accuracy", false], ["端到端延迟", "latency", true]]) {
+    const latency = key === "latency";
+    const base = latency ? p.baseline_mean_ms : b[key];
+    const native = latency ? p.native_mean_ms : n[key];
+    const card = node("article", "metric-card");
+    const title = node("div", "metric-label", label); title.append(node("small", "", latency ? "有效配对均值" : lower ? "越低越好" : "越高越好"));
+    const values = node("div", "metric-values");
+    for (const [name, value] of [["Baseline", base], ["Native", native]]) {
+      const cell = node("div", `${name.toLowerCase()}-label`);
+      cell.append(node("small", "", name), node("strong", "", format(value, latency ? "time" : "rate"))); values.append(cell);
+    }
+    const foot = node("div", "metric-foot");
+    const change = latency ? p.native_change_percent : finite(base) && finite(native) ? (native - base) * 100 : null;
+    foot.append(delta(change, latency ? "%" : " 个百分点", lower), node("span", "", " · Native 相对 Baseline"));
+    card.append(title, values, foot);
+    card.append(node("p", "metric-foot", latency ? `${p.cases} 个配对案例 · ${p.pairs} 对运行` : key === "effective_call_rate" ? `正样本 B ${b.positive_samples} / N ${n.positive_samples}` : key === "false_call_rate" ? `负样本 B ${b.negative_samples} / N ${n.negative_samples}` : `已调用正样本 B ${b.called_positive_samples} / N ${n.called_positive_samples}`));
+    target.append(card);
+  }
+  const table = byId("breakdown"); table.replaceChildren();
+  const head = node("thead"); const hr = node("tr");
+  for (const title of ["指标", "Baseline", "Native"]) hr.append(node("th", "", title)); head.append(hr); table.append(head);
   const body = node("tbody");
-  const baseline = state.summary?.variants?.baseline ?? {};
-  const native = state.summary?.variants?.native ?? {};
-  for (const [label, key, style, lowerIsBetter] of metricRows) {
-    const baseValue = scalar(baseline, key);
-    const nativeValue = scalar(native, key);
-    const delta = baseValue === null || baseValue === undefined || nativeValue === null || nativeValue === undefined ? null : Number(nativeValue) - Number(baseValue);
-    const tr = node("tr");
-    tr.append(node("td", "metric-name", label), node("td", "", format(baseValue, style)), node("td", "", format(nativeValue, style)));
-    const deltaCell = node("td", "delta", delta === null ? "—" : `${delta > 0 ? "+" : ""}${format(delta, style)}`);
-    if (delta !== null && delta !== 0) deltaCell.classList.add((lowerIsBetter ? delta < 0 : delta > 0) ? "positive" : "negative");
-    tr.append(deltaCell);
-    body.append(tr);
+  const row = (label, base, native, unit) => {
+    const tr = node("tr"); tr.append(node("td", "", label), node("td", "", format(base, unit)), node("td", "", format(native, unit))); body.append(tr);
+  };
+  row("有效运行数", b.valid_samples, n.valid_samples);
+  row("采集异常（不计入指标）", b.invalid_runs, n.invalid_runs);
+  row("未完成最终回答（不计延迟）", b.incomplete_runs, n.incomplete_runs);
+  for (const family of ["memory", "skill"]) {
+    for (const [label, key, unit] of [["正样本数", "positive_samples"], ["有效调用率", "effective_call_rate", "rate"], ["误调用率", "false_call_rate", "rate"], ["工具选择正确率", "tool_selection_accuracy", "rate"]]) {
+      row(`${family === "memory" ? "Memory" : "Skill"} · ${label}`, b.by_tool_family[family][key], n.by_tool_family[family][key], unit);
+    }
   }
-  table.append(head, body);
+  row("全部有效案例 · 平均耗时（非配对）", b.end_to_end_ms.mean, n.end_to_end_ms.mean, "time");
+  row("全部有效案例 · 中位耗时", b.end_to_end_ms.median, n.end_to_end_ms.median, "time");
+  row("全部有效案例 · P95 耗时", b.end_to_end_ms.p95, n.end_to_end_ms.p95, "time");
+  table.append(body);
 }
 
-function renderFailureDistribution() {
-  const target = byId("failure-distribution");
-  target.replaceChildren();
-  const entries = Object.entries(state.summary?.failure_distribution ?? {}).sort((left, right) => Number(right[1]) - Number(left[1]));
-  if (entries.length === 0) {
-    target.append(node("p", "failure-empty", "No failures in this experiment."));
-    return;
+function makePairs(items) {
+  const pairs = new Map();
+  for (const item of items) {
+    const key = JSON.stringify([item.case_id, item.repeat]);
+    if (!pairs.has(key)) pairs.set(key, { case_id: item.case_id, repeat: item.repeat });
+    pairs.get(key)[item.variant] = item;
   }
-  const maximum = Math.max(...entries.map(([, count]) => Number(count)), 1);
-  for (const [label, count] of entries) {
-    const item = node("div", "failure-bar");
-    const meter = node("progress", "failure-meter");
-    meter.max = maximum;
-    meter.value = Math.max(0, Number(count));
-    item.append(node("span", "", label), node("strong", "", count), meter);
-    target.append(item);
-  }
+  return [...pairs.values()].sort((a, b) => a.case_id.localeCompare(b.case_id) || a.repeat - b.repeat);
 }
-
-function setFailureOptions() {
-  const select = byId("failure");
-  const current = select.value;
-  select.replaceChildren(new Option("All", ""));
-  const failures = [...new Set(state.cases.flatMap((item) => item.failure_tags ?? []))].sort();
-  for (const failure of failures) select.append(new Option(failure, failure));
-  select.value = failures.includes(current) ? current : "";
-}
-
-function filteredCases() {
-  const failed = byId("failed").checked;
-  const variant = byId("variant").value;
-  const status = byId("status-filter").value;
+function filteredPairs() {
+  const search = byId("search").value.trim().toLocaleLowerCase();
   const family = byId("family").value;
-  const failure = byId("failure").value;
-  return state.cases.filter((item) => {
-    if (failed && item.metrics?.case_pass) return false;
-    if (variant && item.variant !== variant) return false;
-    if (status && item.status !== status) return false;
-    if (family && item.tool_family !== family) return false;
-    if (failure && !(item.failure_tags ?? []).includes(failure)) return false;
+  const outcome = byId("outcome").value;
+  return state.pairs.filter(pair => {
+    const runs = [pair.baseline, pair.native].filter(Boolean);
+    if (search && !runs.some(r => [r.case_id, r.run_id, r.query, ...r.actual_tools].join(" ").toLocaleLowerCase().includes(search))) return false;
+    if (family && !runs.some(r => r.tool_family === family)) return false;
+    if (outcome && !runs.some(r => outcome === "attention" ? ["missed", "wrong_tool", "false_call", "invalid", "damaged"].includes(r.outcome) : r.outcome === outcome)) return false;
     return true;
   });
 }
-
-function badge(text, tone) { return node("span", `badge ${tone ?? ""}`, text); }
-
+function runCell(run, variant) {
+  const cell = node("span", "run-cell");
+  cell.append(node("span", `mobile-label ${variant}-label`, variant === "native" ? "Native" : "Baseline"));
+  if (!run) { cell.append(node("span", "muted", "未安排")); return cell; }
+  const top = node("span", "run-top");
+  top.append(badge(run.outcome), node("span", "run-time", format(run.end_to_end_ms, "time")));
+  const tools = node("span", "tool-preview", run.actual_tools.join(" → ") || (["pending", "damaged", "invalid"].includes(run.outcome) ? "无有效观测结果" : "未观测到工具调用"));
+  tools.title = tools.textContent;
+  cell.append(top, tools); return cell;
+}
 function renderCases() {
-  const items = filteredCases();
-  byId("case-count").textContent = `${items.length} / ${state.cases.length}`;
-  const list = byId("case-list");
-  list.replaceChildren();
-  if (items.length === 0) {
-    list.append(node("p", "empty-list", "没有符合当前筛选条件的 Run"));
-    return;
-  }
-  for (const item of items) {
-    const button = node("button", `case-row ${state.selected === item.run_id ? "selected" : ""}`);
-    button.type = "button";
-    const status = node("span", `status ${item.metrics?.case_pass ? "pass" : "fail"}`, item.metrics?.case_pass ? "✓" : "×");
+  const pairs = filteredPairs();
+  const pages = Math.max(1, Math.ceil(pairs.length / PAGE_SIZE)); state.page = Math.min(state.page, pages);
+  byId("case-count").textContent = `${pairs.length} / ${state.pairs.length} 个案例 × 重复编号`;
+  byId("page-label").textContent = `${state.page} / ${pages} 页`;
+  byId("prev").disabled = state.page <= 1; byId("next").disabled = state.page >= pages;
+  const list = byId("case-list"); list.replaceChildren();
+  if (!pairs.length) { list.append(node("p", "empty-list", "没有符合筛选条件的案例")); return; }
+  for (const pair of pairs.slice((state.page - 1) * PAGE_SIZE, state.page * PAGE_SIZE)) {
+    const row = node("button", "case-row"); row.type = "button";
+    row.setAttribute("aria-label", `${pair.case_id} · 第 ${pair.repeat} 次 · 查看对比`);
+    const sample = pair.baseline?.query ? pair.baseline : pair.native ?? pair.baseline;
     const copy = node("span", "case-copy");
-    copy.append(node("strong", "", item.case_id), node("small", "", item.run_id));
-    const tags = node("span", "case-tags");
-    tags.append(badge(item.variant, item.variant));
-    for (const failure of (item.failure_tags ?? []).slice(0, 2)) tags.append(badge(failure, "failure"));
-    button.append(status, copy, tags);
-    button.addEventListener("click", () => showRun(item.run_id));
-    list.append(button);
+    copy.append(node("strong", "", pair.case_id), node("span", "query-preview", sample.query || "结果尚未就绪"), node("small", "muted", `第 ${pair.repeat} 次 · ${sample.should_call === undefined ? "预期待结果生成" : sample.should_call ? "应调用工具" : "不应调用工具"}`));
+    const b = pair.baseline; const n = pair.native;
+    const change = b?.observation_valid && n?.observation_valid && b.end_to_end_ms > 0 && finite(n.end_to_end_ms) ? (n.end_to_end_ms - b.end_to_end_ms) / b.end_to_end_ms * 100 : null;
+    const diff = delta(change, "%", true); diff.prepend(node("span", "mobile-label", "耗时变化 "));
+    row.append(copy, runCell(b, "baseline"), runCell(n, "native"), diff);
+    row.addEventListener("click", () => showPair(pair)); list.append(row);
   }
 }
 
-function section(title, value, folded = false) {
-  const details = node("details", "trace-section");
-  details.open = !folded;
-  details.append(node("summary", "", title));
-  const pre = node("pre");
-  pre.textContent = typeof value === "string" ? value : JSON.stringify(value, null, 2);
-  details.append(pre);
-  return details;
+function section(title, value, folded = true, className = "") {
+  const el = node("details", "detail-section"); el.open = !folded;
+  el.append(node("summary", "", title), node("pre", className, typeof value === "string" ? value : JSON.stringify(value, null, 2)));
+  return el;
 }
-
-function safeHttpUrl(value) {
-  if (typeof value !== "string") return null;
-  try {
-    const parsed = new URL(value, window.location.origin);
-    return parsed.protocol === "http:" || parsed.protocol === "https:" ? parsed.href : null;
-  } catch {
-    return null;
+function detailColumn(run, variant, error) {
+  const el = node("article", "variant-detail");
+  const header = node("div", "variant-header"); header.append(node("h3", `${variant}-label`, variant === "native" ? "Native · 真工具" : "Baseline · Fake Tool"), badge(run?.outcome)); el.append(header);
+  if (error) { el.append(node("p", "error", error)); return el; }
+  if (!run || ["pending", "damaged"].includes(run.outcome)) {
+    el.append(node("p", "muted", run?.outcome === "damaged" ? "结果文件损坏或与清单不符，请检查后刷新。" : run ? "该运行尚未生成结果。" : "实验清单中未安排这一组。")); return el;
   }
-}
-
-function renderTimeline(run) {
-  const timeline = node("div", "timeline");
-  timeline.append(
-    section("Input", run.case?.query ?? "", false),
-    section("Expected", {
-      should_call: run.case?.should_call,
-      expected_tools: run.case?.expected_tools ?? [],
-      argument_assertions: run.case?.argument_assertions ?? [],
-      answer_assertions: run.case?.answer_assertions ?? [],
-    }, false),
-    section("Raw client request", run.raw_request, true),
-  );
-  const events = [
-    ...(run.model_calls ?? []).map((call, index) => ({ type: "model", call, index, time: Date.parse(call.started_at ?? ""), fallback: index * 2 })),
-    ...(run.tool_calls ?? []).map((call, index) => ({ type: "tool", call, index, time: Date.parse(call.started_at ?? ""), fallback: index * 2 + 1 })),
-  ].sort((left, right) => {
-    if (Number.isFinite(left.time) && Number.isFinite(right.time)) return left.time - right.time;
-    if (Number.isFinite(left.time)) return -1;
-    if (Number.isFinite(right.time)) return 1;
-    return left.fallback - right.fallback;
+  const stats = node("div", "detail-stats"); stats.append(node("span", "", `端到端 ${format(run.end_to_end_ms, "time")}`), node("span", "", `${run.actual_tools.length} 次调用`), node("span", "", run.completed ? "已完成回答" : "未完成回答")); el.append(stats);
+  if (!run.observation_valid) el.append(node("p", "error", `本次采集无效，不计入指标。${run.error ?? ""}`));
+  else if (!run.completed) el.append(node("p", "muted", `工具调用记录有效；最终任务未完成，不计入端到端延迟。${run.error ?? ""}`));
+  el.append(node("p", "muted", "Bridge 接收顺序 · 不代表业务执行成功"));
+  const calls = node("ol", "call-list");
+  run.actual_tools.forEach((tool, index) => {
+    const call = run.tool_calls?.[index]; const item = node("li");
+    item.append(node("strong", "", `${index + 1}. ${tool}`));
+    if (call) {
+      item.append(node("small", "", `${new Date(call.timestamp).toISOString().slice(11, 23)} UTC · ${call.tool_family}`));
+      item.append(node("small", "", `Call ID：${call.call_id ?? "Baseline 未提供"}`));
+    } else item.append(node("small", "", "此记录未包含事件明细"));
+    calls.append(item);
   });
-  for (const event of events) {
-    const { call, index } = event;
-    if (event.type === "model") {
-      const item = node("article", "timeline-item");
-      item.append(node("span", "timeline-index", String(index + 1)), node("h3", "", `Model Call #${index + 1}`));
-      item.append(section("Injected request", call.input, true));
-      if (call.thinking) item.append(section("Thinking metadata", call.thinking, true));
-      item.append(section("Model output", call.output, false));
-      timeline.append(item);
-      continue;
-    }
-    const item = node("article", "timeline-item tool");
-    item.append(node("span", "timeline-index", `T${index + 1}`), node("h3", "", call.logical_name));
-    item.append(section("Arguments", call.arguments, false), section("Tool result", call.result, true));
-    if (call.error) item.append(section("Tool error", call.error, false));
-    timeline.append(item);
+  if (!run.actual_tools.length) el.append(node("p", "muted", run.observation_valid ? "未观测到 Memory / Skill 调用。" : "无有效调用记录；不能据此判定模型未调用。"));
+  else el.append(calls);
+  el.append(section("最终回答", run.final_answer ?? "未记录最终回答", false, "answer"));
+  el.append(section("本次运行信息", { run_id: run.run_id, session_id: run.session_id, seed_version: run.seed_version, ...run.identity, started_at: run.started_at, ended_at: run.ended_at }));
+  if (run.tool_calls) el.append(section("Bridge 事件 JSON", run.tool_calls));
+  return el;
+}
+async function showPair(pair) {
+  const ticket = ++state.detail;
+  const dialog = byId("case-dialog"); const body = byId("detail-body");
+  byId("detail-title").textContent = `${pair.case_id} · 第 ${pair.repeat} 次`;
+  body.replaceChildren(node("p", "loading", "正在读取调用详情…"));
+  if (!dialog.open) dialog.showModal(); updateUrl(pair);
+  // 详情与实验切换分别编号，慢响应不能覆盖后来选中的案例，也不能重新打开已关闭的窗口。
+  const results = await Promise.all(["baseline", "native"].map(async variant => {
+    const run = pair[variant];
+    if (!run || ["pending", "damaged"].includes(run.outcome)) return { variant, run };
+    try { return { variant, run: await api(address(`runs/${encodeURIComponent(run.run_id)}`)) }; }
+    catch (error) { return { variant, run, error: error.message }; }
+  }));
+  if (ticket !== state.detail || !dialog.open) return;
+  body.replaceChildren();
+  const sample = results.find(r => r.run?.query)?.run;
+  if (sample) {
+    const input = node("div", "case-input"); input.append(node("h3", "", "任务与预期"), node("p", "", sample.query));
+    const rule = sample.allowed_sequences ? { allowed_sequences: sample.allowed_sequences } : sample.expected_tool_sequence ? { expected_tool_sequence: sample.expected_tool_sequence } : sample.allowed_first_tools ? { allowed_first_tools: sample.allowed_first_tools } : { expected_tools: sample.expected_tools };
+    input.append(section(sample.should_call ? "应调用工具 · 选择规则" : "不应调用 Memory / Skill 工具", { should_call: sample.should_call, ...rule })); body.append(input);
   }
-  timeline.append(section("Final answer", run.final_answer ?? "", false));
-  return timeline;
+  const grid = node("div", "detail-grid"); for (const result of results) grid.append(detailColumn(result.run, result.variant, result.error)); body.append(grid);
 }
 
-async function showRun(runId) {
-  state.selected = runId;
-  renderCases();
-  const placeholder = byId("detail-placeholder");
-  const detail = byId("detail");
-  placeholder.hidden = true;
-  detail.hidden = false;
-  detail.replaceChildren(node("p", "loading", "Loading trace…"));
+async function loadExperiment(id, suite = "") {
+  const ticket = ++state.load;
+  byId("case-dialog").close(); ++state.detail;
+  state.experiment = id; state.suite = suite; state.data = null; state.page = 1;
+  byId("loading").hidden = false; byId("loading").textContent = "正在读取实验…";
+  byId("dashboard").hidden = true; byId("empty").hidden = true; notice("");
   try {
-    const run = await api(`/api/experiments/${encodeURIComponent(state.experiment)}/runs/${encodeURIComponent(runId)}`);
-    detail.replaceChildren();
-    const header = node("div", "detail-heading");
-    const title = node("div");
-    title.append(node("p", "eyebrow", run.variant), node("h2", "", run.case_id));
-    const badges = node("div", "detail-badges");
-    badges.append(badge(run.status, run.status));
-    for (const failure of run.failure_tags ?? []) badges.append(badge(failure, "failure"));
-    header.append(title, badges);
-    detail.append(header);
-    const langfuseUrl = safeHttpUrl(run.trace?.langfuse_url);
-    if (langfuseUrl) {
-      const link = node("a", "langfuse-link", "Open Langfuse trace ↗");
-      link.href = langfuseUrl;
-      link.target = "_blank";
-      link.rel = "noopener noreferrer";
-      detail.append(link);
-    }
-    const score = node("div", "score-grid");
-    score.append(card("Case Pass", run.metrics?.case_pass ? "PASS" : "FAIL", run.metrics?.case_pass ? "good" : "bad"));
-    score.append(card("Task", format(run.metrics?.task_pass, "percent")));
-    score.append(card("Tools", `${(run.metrics?.actual_tools ?? []).join(", ") || "none"}`));
-    score.append(card("Re-entry", format(run.metrics?.internal_reentry_rounds)));
-    score.append(card("E2E", format(run.latency?.end_to_end_ms, "ms")));
-    detail.append(score, renderTimeline(run));
-    if (run.error) detail.append(section("Run error", run.error, false));
-    detail.append(section("Metrics", run.metrics, true), section("Artifact references", run.trace?.artifacts ?? {}, true));
+    const data = await api(address(`overview${suite ? `?suite=${encodeURIComponent(suite)}` : ""}`));
+    if (ticket !== state.load) return;
+    state.data = data; state.suite = data.selected_suite; state.pairs = makePairs(data.items);
+    byId("suite").replaceChildren(...data.suites.map(s => new Option(suites[s] ?? s, s)));
+    byId("suite").value = data.selected_suite; byId("model").textContent = data.model;
+    const p = data.progress;
+    byId("progress").textContent = `全实验：${p.recorded} / ${p.planned} 次运行已记录${p.pending ? ` · ${p.pending} 次待运行` : ""}`;
+    if (p.invalid || p.damaged) notice(`${p.invalid} 次采集异常，${p.damaged} 个结果文件异常。它们未计入指标；缺失或损坏文件的分组尚无法确定，暂列在每个分组中供检查。`);
+    else if (p.pending) notice("评测尚未全部完成，当前指标是已有结果的阶段统计。待运行项目尚无分组信息，暂列在每个分组中。");
+    byId("dashboard").hidden = false; renderMetrics(); renderCases(); updateUrl();
   } catch (error) {
-    detail.replaceChildren(node("p", "error", error.message));
-  }
+    if (ticket !== state.load) return;
+    notice(`加载失败：${error.message} 可点击“刷新结果”重试。`);
+  } finally { if (ticket === state.load) byId("loading").hidden = true; }
 }
-
-async function loadExperiment(id) {
-  state.experiment = id;
-  state.selected = null;
-  const [summary, cases] = await Promise.all([
-    api(`/api/experiments/${encodeURIComponent(id)}/summary`),
-    api(`/api/experiments/${encodeURIComponent(id)}/cases`),
-  ]);
-  state.summary = summary;
-  state.cases = cases.items ?? [];
-  byId("dashboard").hidden = false;
-  byId("empty").hidden = true;
-  byId("detail").hidden = true;
-  byId("detail-placeholder").hidden = false;
-  setFailureOptions();
-  renderHeadline();
-  renderMetrics();
-  renderFailureDistribution();
-  renderCases();
-}
-
-async function boot() {
+async function refresh() {
+  byId("refresh").disabled = true;
   try {
     const experiments = await api("/api/experiments");
-    const picker = byId("experiment");
-    picker.replaceChildren();
-    if (experiments.length === 0) {
-      const empty = byId("empty");
-      empty.hidden = false;
-      empty.textContent = "results 目录中还没有完整实验。";
-      return;
+    const picker = byId("experiment"); picker.replaceChildren(...experiments.map(e => new Option(e.experiment_id, e.experiment_id)));
+    if (!experiments.length) {
+      ++state.load; state.data = null; state.experiment = ""; state.suite = ""; byId("case-dialog").close();
+      byId("dashboard").hidden = true; byId("empty").hidden = false; byId("loading").hidden = true; notice("");
+      byId("empty").textContent = "还没有 Bridge 观测实验。完成数据准备并运行评测后，点击刷新即可查看。"; return;
     }
-    for (const experiment of experiments) picker.append(new Option(experiment.experiment_id, experiment.experiment_id));
-    picker.addEventListener("change", () => loadExperiment(picker.value));
-    byId("filters").addEventListener("change", renderCases);
-    await loadExperiment(picker.value);
-  } catch (error) {
-    const empty = byId("empty");
-    empty.hidden = false;
-    empty.textContent = `Viewer failed: ${error.message}`;
-  }
+    const id = experiments.some(e => e.experiment_id === state.experiment) ? state.experiment : experiments[0].experiment_id;
+    picker.value = id; await loadExperiment(id, id === state.experiment ? state.suite : "");
+  } catch (error) { ++state.load; byId("dashboard").hidden = true; byId("loading").hidden = true; notice(`加载失败：${error.message}`); }
+  finally { byId("refresh").disabled = false; }
 }
-
-boot();
+function clearFilters() {
+  byId("filters").reset(); state.page = 1; if (state.data) renderCases();
+}
+byId("experiment").addEventListener("change", () => { clearFilters(); void loadExperiment(byId("experiment").value); });
+byId("suite").addEventListener("change", () => { clearFilters(); void loadExperiment(state.experiment, byId("suite").value); });
+byId("refresh").addEventListener("click", refresh);
+byId("filters").addEventListener("submit", e => e.preventDefault());
+byId("filters").addEventListener("input", () => { state.page = 1; if (state.data) renderCases(); });
+byId("clear").addEventListener("click", clearFilters);
+byId("prev").addEventListener("click", () => { state.page--; renderCases(); });
+byId("next").addEventListener("click", () => { state.page++; renderCases(); });
+byId("close-detail").addEventListener("click", () => byId("case-dialog").close());
+byId("case-dialog").addEventListener("close", () => { ++state.detail; updateUrl(); });
+byId("case-dialog").addEventListener("click", e => {
+  const box = e.currentTarget.getBoundingClientRect();
+  if (e.clientX < box.left || e.clientX > box.right || e.clientY < box.top || e.clientY > box.bottom) e.currentTarget.close();
+});
+const initial = new URLSearchParams(location.search);
+state.experiment = initial.get("experiment") ?? ""; state.suite = initial.get("suite") ?? "";
+await refresh();
+const initialPair = state.pairs.find(p => p.case_id === initial.get("case") && String(p.repeat) === (initial.get("repeat") ?? "1"));
+if (state.data && initialPair) await showPair(initialPair);

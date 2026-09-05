@@ -119,17 +119,28 @@ export async function discoverSkillPackages(directory: string): Promise<SkillPac
     names.set(parsed.name, filePath);
 
     const packageDirectory = resolve(filePath, "..");
-    const resourcesDirectory = join(packageDirectory, "files");
-    const resourceFiles = await stat(resourcesDirectory).then((value) => value.isDirectory() ? walk(resourcesDirectory) : []).catch(() => []);
+    // 数据集采用标准 Skill 目录；只读取旧 files/ 会让正文中的 references 路径变成空目录。
+    const resourceFiles: Array<{ file: string; root: string }> = [];
+    for (const name of ["files", "references", "scripts", "assets"]) {
+      const directory = join(packageDirectory, name);
+      const info = await stat(directory).catch(error => {
+        if ((error as NodeJS.ErrnoException).code === "ENOENT") return null;
+        throw error;
+      });
+      if (info?.isDirectory()) for (const file of await walk(directory)) {
+        resourceFiles.push({ file, root: name === "files" ? directory : packageDirectory });
+      }
+    }
     if (resourceFiles.length > 100) throw new Error(`${filePath}: resources exceed 100 files`);
     const resources: SkillResource[] = [];
     let totalBytes = 0;
-    for (const resourceFile of resourceFiles) {
+    for (const { file: resourceFile, root: resourcesDirectory } of resourceFiles) {
       const bytes = await readFile(resourceFile);
       if (bytes.byteLength > 5_000_000) throw new Error(`${resourceFile}: resource exceeds 5000000 bytes`);
       totalBytes += bytes.byteLength;
       if (totalBytes > 50 * 1024 * 1024) throw new Error(`${filePath}: resources exceed 50 MiB total`);
       const resourcePath = relative(resourcesDirectory, resourceFile).split(sep).join("/");
+      if (resources.some(resource => resource.path === resourcePath)) throw new Error(`${filePath}: duplicate resource ${resourcePath}`);
       resources.push(asResource(resourcePath, bytes));
     }
     packages.push({ filePath, name: parsed.name, description: parsed.description, content, resources });

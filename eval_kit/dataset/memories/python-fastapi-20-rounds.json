@@ -1,0 +1,205 @@
+{
+  "session_id": "python-fastapi-20-rounds",
+  "messages": [
+    {
+      "role": "user",
+      "content": "这次 Python / FastAPI 服务 评审定下了一条长期规则：服务固定使用 Python 3.12 和 uv，依赖变化后必须提交 uv.lock。 后续相关改动按这个决定执行。",
+      "timestamp": "2026-01-14T09:00:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录这项项目约定：服务固定使用 Python 3.12 和 uv，依赖变化后必须提交 uv.lock。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
+      "timestamp": "2026-01-14T09:01:00Z"
+    },
+    {
+      "role": "user",
+      "content": "上次联调后我们把下面内容作为固定约定：所有业务路由统一挂在 /api/v2 下，旧的 /api/v1 只保留兼容读取。 之后发现不一致时先说明再修改。",
+      "timestamp": "2026-01-14T09:05:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录这项项目约定：所有业务路由统一挂在 /api/v2 下，旧的 /api/v1 只保留兼容读取。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
+      "timestamp": "2026-01-14T09:06:00Z"
+    },
+    {
+      "role": "user",
+      "content": "请把这项 Python / FastAPI 服务 项目约定保留下来：Pydantic v2 模型启用 strict 校验并禁止多余字段，不能静默接受未知输入。 后续实现不要偏离。",
+      "timestamp": "2026-01-14T09:10:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录这项项目约定：Pydantic v2 模型启用 strict 校验并禁止多余字段，不能静默接受未知输入。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
+      "timestamp": "2026-01-14T09:11:00Z"
+    },
+    {
+      "role": "user",
+      "content": "故障复盘已经确认：数据库 Session 只能通过 get_db 依赖注入，service 不得自行创建或关闭 Session。 以后同类任务都按这条处理。",
+      "timestamp": "2026-01-14T09:15:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录这项项目约定：数据库 Session 只能通过 get_db 依赖注入，service 不得自行创建或关闭 Session。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
+      "timestamp": "2026-01-14T09:16:00Z"
+    },
+    {
+      "role": "user",
+      "content": "这次 Python / FastAPI 服务 评审定下了一条长期规则：2 月 8 日阻塞事故后决定：外部 HTTP 必须使用注入的 httpx.AsyncClient，默认总超时 2.5 秒。 后续相关改动按这个决定执行。",
+      "timestamp": "2026-01-14T09:20:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录这项项目约定：2 月 8 日阻塞事故后决定：外部 HTTP 必须使用注入的 httpx.AsyncClient，默认总超时 2.5 秒。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
+      "timestamp": "2026-01-14T09:21:00Z"
+    },
+    {
+      "role": "user",
+      "content": "上次联调后我们把下面内容作为固定约定：2 月 10 日评审确定：业务异常返回 detail.code、detail.message，并在响应头携带 X-Request-ID。 之后发现不一致时先说明再修改。",
+      "timestamp": "2026-01-14T09:25:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录这项项目约定：2 月 10 日评审确定：业务异常返回 detail.code、detail.message，并在响应头携带 X-Request-ID。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
+      "timestamp": "2026-01-14T09:26:00Z"
+    },
+    {
+      "role": "user",
+      "content": "请把这项 Python / FastAPI 服务 项目约定保留下来：合并前固定运行 uv run pytest -m \"not slow\"，随后执行 ruff check 和 pyright。 后续实现不要偏离。",
+      "timestamp": "2026-01-14T09:30:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录这项项目约定：合并前固定运行 uv run pytest -m \"not slow\"，随后执行 ruff check 和 pyright。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
+      "timestamp": "2026-01-14T09:31:00Z"
+    },
+    {
+      "role": "user",
+      "content": "故障复盘已经确认：模块 `worker` 的默认超时为 350 毫秒，修改前必须评估调用链。 以后同类任务都按这条处理。",
+      "timestamp": "2026-01-14T09:35:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录这项项目约定：模块 `worker` 的默认超时为 350 毫秒，修改前必须评估调用链。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
+      "timestamp": "2026-01-14T09:36:00Z"
+    },
+    {
+      "role": "user",
+      "content": "这次 Python / FastAPI 服务 评审定下了一条长期规则：测试夹具统一放在 `build/output`，不得从其他测试目录跨用可变数据。 后续相关改动按这个决定执行。",
+      "timestamp": "2026-01-14T09:40:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录这项项目约定：测试夹具统一放在 `build/output`，不得从其他测试目录跨用可变数据。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
+      "timestamp": "2026-01-14T09:41:00Z"
+    },
+    {
+      "role": "user",
+      "content": "上次联调后我们把下面内容作为固定约定：环境变量使用 `PYTHON_FASTAPI_ASYNC_EXPORT` 命名，并在示例文件中只放占位值。 之后发现不一致时先说明再修改。",
+      "timestamp": "2026-01-14T09:45:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录这项项目约定：环境变量使用 `PYTHON_FASTAPI_ASYNC_EXPORT` 命名，并在示例文件中只放占位值。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
+      "timestamp": "2026-01-14T09:46:00Z"
+    },
+    {
+      "role": "user",
+      "content": "请把这项 Python / FastAPI 服务 项目约定保留下来：批处理默认批大小为 461，只能通过显式配置覆盖。 后续实现不要偏离。",
+      "timestamp": "2026-01-14T09:50:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录这项项目约定：批处理默认批大小为 461，只能通过显式配置覆盖。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
+      "timestamp": "2026-01-14T09:51:00Z"
+    },
+    {
+      "role": "user",
+      "content": "故障复盘已经确认：临时资源名称以 `PYTHON_FASTAPI-tmp-` 开头，任务结束后必须清理。 以后同类任务都按这条处理。",
+      "timestamp": "2026-01-14T09:55:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录这项项目约定：临时资源名称以 `PYTHON_FASTAPI-tmp-` 开头，任务结束后必须清理。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
+      "timestamp": "2026-01-14T09:56:00Z"
+    },
+    {
+      "role": "user",
+      "content": "这次 Python / FastAPI 服务 评审定下了一条长期规则：审计日志必须包含 `event_id` 字段，但不得记录敏感原文。 后续相关改动按这个决定执行。",
+      "timestamp": "2026-01-14T10:00:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录这项项目约定：审计日志必须包含 `event_id` 字段，但不得记录敏感原文。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
+      "timestamp": "2026-01-14T10:01:00Z"
+    },
+    {
+      "role": "user",
+      "content": "上次联调后我们把下面内容作为固定约定：后台任务的最大并发数为 8，超过时进入等待队列。 之后发现不一致时先说明再修改。",
+      "timestamp": "2026-01-14T10:05:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录这项项目约定：后台任务的最大并发数为 8，超过时进入等待队列。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
+      "timestamp": "2026-01-14T10:06:00Z"
+    },
+    {
+      "role": "user",
+      "content": "请把这项 Python / FastAPI 服务 项目约定保留下来：失败重试的基础退避为 609 毫秒，并加入随机抖动。 后续实现不要偏离。",
+      "timestamp": "2026-01-14T10:10:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录这项项目约定：失败重试的基础退避为 609 毫秒，并加入随机抖动。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
+      "timestamp": "2026-01-14T10:11:00Z"
+    },
+    {
+      "role": "user",
+      "content": "故障复盘已经确认：配置文件路径固定为 `docs/runbook.md`，旧路径只读兼容一个版本。 以后同类任务都按这条处理。",
+      "timestamp": "2026-01-14T10:15:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录这项项目约定：配置文件路径固定为 `docs/runbook.md`，旧路径只读兼容一个版本。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
+      "timestamp": "2026-01-14T10:16:00Z"
+    },
+    {
+      "role": "user",
+      "content": "这次 Python / FastAPI 服务 评审定下了一条长期规则：生成文件必须写入 `tests/fixtures`，禁止污染源码目录。 后续相关改动按这个决定执行。",
+      "timestamp": "2026-01-14T10:20:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录这项项目约定：生成文件必须写入 `tests/fixtures`，禁止污染源码目录。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
+      "timestamp": "2026-01-14T10:21:00Z"
+    },
+    {
+      "role": "user",
+      "content": "上次联调后我们把下面内容作为固定约定：功能开关 `ASYNC_EXPORT` 默认关闭，只有 staging 验证后才能开启。 之后发现不一致时先说明再修改。",
+      "timestamp": "2026-01-14T10:25:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录这项项目约定：功能开关 `ASYNC_EXPORT` 默认关闭，只有 staging 验证后才能开启。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
+      "timestamp": "2026-01-14T10:26:00Z"
+    },
+    {
+      "role": "user",
+      "content": "请把这项 Python / FastAPI 服务 项目约定保留下来：内部事件字段 `operation` 缺失时按兼容分支处理，不能直接崩溃。 后续实现不要偏离。",
+      "timestamp": "2026-01-14T10:30:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录这项项目约定：内部事件字段 `operation` 缺失时按兼容分支处理，不能直接崩溃。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
+      "timestamp": "2026-01-14T10:31:00Z"
+    },
+    {
+      "role": "user",
+      "content": "故障复盘已经确认：本地开发端口固定为 4112，测试端口由进程动态分配。 以后同类任务都按这条处理。",
+      "timestamp": "2026-01-14T10:35:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录这项项目约定：本地开发端口固定为 4112，测试端口由进程动态分配。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
+      "timestamp": "2026-01-14T10:36:00Z"
+    }
+  ]
+}

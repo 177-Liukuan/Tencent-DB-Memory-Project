@@ -3,6 +3,27 @@ import { describe, expect, it } from "vitest";
 import { normalizeTrace } from "../recorder/trace-recorder.js";
 
 describe("trace recorder normalization", () => {
+  it("recognizes Baseline calls from model observations even when the CLI record is missing", () => {
+    const normalized = normalizeTrace({
+      variant: "baseline", tapEvents: [], clientEvents: [], clickhouseRows: [], traceComplete: true, langfuseBaseUrl: "", langfuseProjectId: null,
+      observations: [{ type: "GENERATION", name: "model", metadata: { protocol: "anthropic" }, output: { role: "assistant", content: [{ type: "tool_use", id: "b1", name: "Bash", input: { command: "curl http://127.0.0.1/memory-bridge/v3/atomic/search -d '{\"query\":\"history\"}'" } }] } }],
+    });
+    expect(normalized.tool_calls).toEqual([expect.objectContaining({ logical_name: "tdai_memory_search", kind: "managed", arguments: { query: "history" } })]);
+  });
+
+  it("does not borrow a same-name or positional Bridge result for a different call ID", () => {
+    const normalized = normalizeTrace({
+      variant: "native", tapEvents: [], clientEvents: [], traceComplete: true, langfuseBaseUrl: "", langfuseProjectId: null,
+      observations: [{ type: "GENERATION", name: "model", metadata: { protocol: "anthropic" }, output: { role: "assistant", content: [
+        { type: "tool_use", id: "a", name: "skill_view", input: {} },
+        { type: "tool_use", id: "b", name: "skill_view", input: {} },
+      ] } }],
+      clickhouseRows: [{ call_id: "a", initiated_tool: "skill_view", kind: "bridge_call", executed_endpoint: "/skill/get-by-name", upstream_status: 500, elapsed_ms: 12 }],
+    });
+    expect(normalized.tool_calls[0]?.error).toBe("Upstream HTTP 500");
+    expect(normalized.tool_calls[1]?.error).toBeNull();
+    expect(normalized.tool_calls[1]?.latency_ms).toBeNull();
+  });
   it("merges tap, Claude stream, Langfuse and ClickHouse without duplicating a tool call", () => {
     const normalized = normalizeTrace({
       variant: "native",

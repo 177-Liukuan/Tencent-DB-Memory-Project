@@ -1,0 +1,605 @@
+{
+  "session_id": "memory-proxy-evaluation-60-rounds",
+  "messages": [
+    {
+      "role": "user",
+      "content": "这次 MemoryProxy 工具调用评测 评审定下了一条长期规则：Baseline 与 Native 的任务输入、模型、资产和权限必须完全一致，只改变工具呈现与执行机制。 后续相关改动按这个决定执行。",
+      "timestamp": "2026-05-11T09:00:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录这项项目约定：Baseline 与 Native 的任务输入、模型、资产和权限必须完全一致，只改变工具呈现与执行机制。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
+      "timestamp": "2026-05-11T09:01:00Z"
+    },
+    {
+      "role": "user",
+      "content": "上次联调后我们把下面内容作为固定约定：Native 工具定义以 MemoryProxy 的 tool-registry.ts 为唯一来源，评测不得另写一套 Schema。 之后发现不一致时先说明再修改。",
+      "timestamp": "2026-05-11T09:05:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录这项项目约定：Native 工具定义以 MemoryProxy 的 tool-registry.ts 为唯一来源，评测不得另写一套 Schema。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
+      "timestamp": "2026-05-11T09:06:00Z"
+    },
+    {
+      "role": "user",
+      "content": "请把这项 MemoryProxy 工具调用评测 项目约定保留下来：Baseline 原始工具名通常为 Bash，Recorder 必须从 curl URL 还原统一业务工具名。 后续实现不要偏离。",
+      "timestamp": "2026-05-11T09:10:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录这项项目约定：Baseline 原始工具名通常为 Bash，Recorder 必须从 curl URL 还原统一业务工具名。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
+      "timestamp": "2026-05-11T09:11:00Z"
+    },
+    {
+      "role": "user",
+      "content": "故障复盘已经确认：主指标包括 valid tool-call rate、wrong-tool rate、false-positive call 和 injected token count。 以后同类任务都按这条处理。",
+      "timestamp": "2026-05-11T09:15:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录这项项目约定：主指标包括 valid tool-call rate、wrong-tool rate、false-positive call 和 injected token count。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
+      "timestamp": "2026-05-11T09:16:00Z"
+    },
+    {
+      "role": "user",
+      "content": "这次 MemoryProxy 工具调用评测 评审定下了一条长期规则：8 月 20 日混合工具归属故障后决定：同一 assistant content block 必须保留完整顺序再做归属拆分。 后续相关改动按这个决定执行。",
+      "timestamp": "2026-05-11T09:20:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录这项项目约定：8 月 20 日混合工具归属故障后决定：同一 assistant content block 必须保留完整顺序再做归属拆分。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
+      "timestamp": "2026-05-11T09:21:00Z"
+    },
+    {
+      "role": "user",
+      "content": "上次联调后我们把下面内容作为固定约定：8 月 22 日评审确定：Skill 写权限关闭，skill_extract 不对 Baseline 和 Native 开放。 之后发现不一致时先说明再修改。",
+      "timestamp": "2026-05-11T09:25:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录这项项目约定：8 月 22 日评审确定：Skill 写权限关闭，skill_extract 不对 Baseline 和 Native 开放。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
+      "timestamp": "2026-05-11T09:26:00Z"
+    },
+    {
+      "role": "user",
+      "content": "请把这项 MemoryProxy 工具调用评测 项目约定保留下来：Claude Code 发生 Context Compression 后，旧锚点前的 Proxy 历史停止补全，从新锚点重新记录。 后续实现不要偏离。",
+      "timestamp": "2026-05-11T09:30:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录这项项目约定：Claude Code 发生 Context Compression 后，旧锚点前的 Proxy 历史停止补全，从新锚点重新记录。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
+      "timestamp": "2026-05-11T09:31:00Z"
+    },
+    {
+      "role": "user",
+      "content": "故障复盘已经确认：模块 `billing` 的默认超时为 350 毫秒，修改前必须评估调用链。 以后同类任务都按这条处理。",
+      "timestamp": "2026-05-11T09:35:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录这项项目约定：模块 `billing` 的默认超时为 350 毫秒，修改前必须评估调用链。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
+      "timestamp": "2026-05-11T09:36:00Z"
+    },
+    {
+      "role": "user",
+      "content": "这次 MemoryProxy 工具调用评测 评审定下了一条长期规则：测试夹具统一放在 `tests/fixtures`，不得从其他测试目录跨用可变数据。 后续相关改动按这个决定执行。",
+      "timestamp": "2026-05-11T09:40:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录这项项目约定：测试夹具统一放在 `tests/fixtures`，不得从其他测试目录跨用可变数据。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
+      "timestamp": "2026-05-11T09:41:00Z"
+    },
+    {
+      "role": "user",
+      "content": "上次联调后我们把下面内容作为固定约定：环境变量使用 `MEMORY_PROXY_EVALU_ASYNC_EXPORT` 命名，并在示例文件中只放占位值。 之后发现不一致时先说明再修改。",
+      "timestamp": "2026-05-11T09:45:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录这项项目约定：环境变量使用 `MEMORY_PROXY_EVALU_ASYNC_EXPORT` 命名，并在示例文件中只放占位值。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
+      "timestamp": "2026-05-11T09:46:00Z"
+    },
+    {
+      "role": "user",
+      "content": "请把这项 MemoryProxy 工具调用评测 项目约定保留下来：批处理默认批大小为 461，只能通过显式配置覆盖。 后续实现不要偏离。",
+      "timestamp": "2026-05-11T09:50:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录这项项目约定：批处理默认批大小为 461，只能通过显式配置覆盖。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
+      "timestamp": "2026-05-11T09:51:00Z"
+    },
+    {
+      "role": "user",
+      "content": "故障复盘已经确认：临时资源名称以 `MEMORY_PROXY_EVALU-tmp-` 开头，任务结束后必须清理。 以后同类任务都按这条处理。",
+      "timestamp": "2026-05-11T09:55:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录这项项目约定：临时资源名称以 `MEMORY_PROXY_EVALU-tmp-` 开头，任务结束后必须清理。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
+      "timestamp": "2026-05-11T09:56:00Z"
+    },
+    {
+      "role": "user",
+      "content": "这次 MemoryProxy 工具调用评测 评审定下了一条长期规则：审计日志必须包含 `event_id` 字段，但不得记录敏感原文。 后续相关改动按这个决定执行。",
+      "timestamp": "2026-05-11T10:00:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录这项项目约定：审计日志必须包含 `event_id` 字段，但不得记录敏感原文。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
+      "timestamp": "2026-05-11T10:01:00Z"
+    },
+    {
+      "role": "user",
+      "content": "上次联调后我们把下面内容作为固定约定：后台任务的最大并发数为 8，超过时进入等待队列。 之后发现不一致时先说明再修改。",
+      "timestamp": "2026-05-11T10:05:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录这项项目约定：后台任务的最大并发数为 8，超过时进入等待队列。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
+      "timestamp": "2026-05-11T10:06:00Z"
+    },
+    {
+      "role": "user",
+      "content": "请把这项 MemoryProxy 工具调用评测 项目约定保留下来：失败重试的基础退避为 609 毫秒，并加入随机抖动。 后续实现不要偏离。",
+      "timestamp": "2026-05-11T10:10:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录这项项目约定：失败重试的基础退避为 609 毫秒，并加入随机抖动。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
+      "timestamp": "2026-05-11T10:11:00Z"
+    },
+    {
+      "role": "user",
+      "content": "故障复盘已经确认：配置文件路径固定为 `build/output`，旧路径只读兼容一个版本。 以后同类任务都按这条处理。",
+      "timestamp": "2026-05-11T10:15:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录这项项目约定：配置文件路径固定为 `build/output`，旧路径只读兼容一个版本。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
+      "timestamp": "2026-05-11T10:16:00Z"
+    },
+    {
+      "role": "user",
+      "content": "这次 MemoryProxy 工具调用评测 评审定下了一条长期规则：生成文件必须写入 `config/project.yml`，禁止污染源码目录。 后续相关改动按这个决定执行。",
+      "timestamp": "2026-05-11T10:20:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录这项项目约定：生成文件必须写入 `config/project.yml`，禁止污染源码目录。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
+      "timestamp": "2026-05-11T10:21:00Z"
+    },
+    {
+      "role": "user",
+      "content": "上次联调后我们把下面内容作为固定约定：功能开关 `ASYNC_EXPORT` 默认关闭，只有 staging 验证后才能开启。 之后发现不一致时先说明再修改。",
+      "timestamp": "2026-05-11T10:25:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录这项项目约定：功能开关 `ASYNC_EXPORT` 默认关闭，只有 staging 验证后才能开启。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
+      "timestamp": "2026-05-11T10:26:00Z"
+    },
+    {
+      "role": "user",
+      "content": "请把这项 MemoryProxy 工具调用评测 项目约定保留下来：内部事件字段 `operation` 缺失时按兼容分支处理，不能直接崩溃。 后续实现不要偏离。",
+      "timestamp": "2026-05-11T10:30:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录这项项目约定：内部事件字段 `operation` 缺失时按兼容分支处理，不能直接崩溃。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
+      "timestamp": "2026-05-11T10:31:00Z"
+    },
+    {
+      "role": "user",
+      "content": "故障复盘已经确认：本地开发端口固定为 4112，测试端口由进程动态分配。 以后同类任务都按这条处理。",
+      "timestamp": "2026-05-11T10:35:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录这项项目约定：本地开发端口固定为 4112，测试端口由进程动态分配。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
+      "timestamp": "2026-05-11T10:36:00Z"
+    },
+    {
+      "role": "user",
+      "content": "这次 MemoryProxy 工具调用评测 评审定下了一条长期规则：归档文件保留 7 天，清理任务必须支持 dry-run。 后续相关改动按这个决定执行。",
+      "timestamp": "2026-05-11T10:40:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录这项项目约定：归档文件保留 7 天，清理任务必须支持 dry-run。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
+      "timestamp": "2026-05-11T10:41:00Z"
+    },
+    {
+      "role": "user",
+      "content": "上次联调后我们把下面内容作为固定约定：请求关联标识字段为 `request_id`，跨服务调用必须透传。 之后发现不一致时先说明再修改。",
+      "timestamp": "2026-05-11T10:45:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录这项项目约定：请求关联标识字段为 `request_id`，跨服务调用必须透传。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
+      "timestamp": "2026-05-11T10:46:00Z"
+    },
+    {
+      "role": "user",
+      "content": "请把这项 MemoryProxy 工具调用评测 项目约定保留下来：仓库中的生成代码不得手工编辑，来源命令记录在 `docs/runbook.md`。 后续实现不要偏离。",
+      "timestamp": "2026-05-11T10:50:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录这项项目约定：仓库中的生成代码不得手工编辑，来源命令记录在 `docs/runbook.md`。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
+      "timestamp": "2026-05-11T10:51:00Z"
+    },
+    {
+      "role": "user",
+      "content": "故障复盘已经确认：错误详情只写服务端日志，用户可见响应使用稳定错误码。 以后同类任务都按这条处理。",
+      "timestamp": "2026-05-11T10:55:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录这项项目约定：错误详情只写服务端日志，用户可见响应使用稳定错误码。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
+      "timestamp": "2026-05-11T10:56:00Z"
+    },
+    {
+      "role": "user",
+      "content": "这次 MemoryProxy 工具调用评测 评审定下了一条长期规则：并发更新必须使用版本字段 `version`，不能依赖先读后写。 后续相关改动按这个决定执行。",
+      "timestamp": "2026-05-11T11:00:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录这项项目约定：并发更新必须使用版本字段 `version`，不能依赖先读后写。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
+      "timestamp": "2026-05-11T11:01:00Z"
+    },
+    {
+      "role": "user",
+      "content": "上次联调后我们把下面内容作为固定约定：配置变更后必须运行 `uv run pytest`，通过后才能提交。 之后发现不一致时先说明再修改。",
+      "timestamp": "2026-05-11T11:05:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录这项项目约定：配置变更后必须运行 `uv run pytest`，通过后才能提交。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
+      "timestamp": "2026-05-11T11:06:00Z"
+    },
+    {
+      "role": "user",
+      "content": "请把这项 MemoryProxy 工具调用评测 项目约定保留下来：路径比较前必须标准化，不能依赖当前工作目录的偶然值。 后续实现不要偏离。",
+      "timestamp": "2026-05-11T11:10:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录这项项目约定：路径比较前必须标准化，不能依赖当前工作目录的偶然值。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
+      "timestamp": "2026-05-11T11:11:00Z"
+    },
+    {
+      "role": "user",
+      "content": "故障复盘已经确认：模块 `billing` 的默认超时为 1090 毫秒，修改前必须评估调用链。 以后同类任务都按这条处理。",
+      "timestamp": "2026-05-11T11:15:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录这项项目约定：模块 `billing` 的默认超时为 1090 毫秒，修改前必须评估调用链。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
+      "timestamp": "2026-05-11T11:16:00Z"
+    },
+    {
+      "role": "user",
+      "content": "这次 MemoryProxy 工具调用评测 评审定下了一条长期规则：测试夹具统一放在 `tests/fixtures`，不得从其他测试目录跨用可变数据。 后续相关改动按这个决定执行。",
+      "timestamp": "2026-05-11T11:20:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录这项项目约定：测试夹具统一放在 `tests/fixtures`，不得从其他测试目录跨用可变数据。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
+      "timestamp": "2026-05-11T11:21:00Z"
+    },
+    {
+      "role": "user",
+      "content": "上次联调后我们把下面内容作为固定约定：环境变量使用 `MEMORY_PROXY_EVALU_ASYNC_EXPORT` 命名，并在示例文件中只放占位值。 之后发现不一致时先说明再修改。",
+      "timestamp": "2026-05-11T11:25:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录这项项目约定：环境变量使用 `MEMORY_PROXY_EVALU_ASYNC_EXPORT` 命名，并在示例文件中只放占位值。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
+      "timestamp": "2026-05-11T11:26:00Z"
+    },
+    {
+      "role": "user",
+      "content": "请把这项 MemoryProxy 工具调用评测 项目约定保留下来：批处理默认批大小为 1201，只能通过显式配置覆盖。 后续实现不要偏离。",
+      "timestamp": "2026-05-11T11:30:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录这项项目约定：批处理默认批大小为 1201，只能通过显式配置覆盖。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
+      "timestamp": "2026-05-11T11:31:00Z"
+    },
+    {
+      "role": "user",
+      "content": "故障复盘已经确认：临时资源名称以 `MEMORY_PROXY_EVALU-tmp-` 开头，任务结束后必须清理。 以后同类任务都按这条处理。",
+      "timestamp": "2026-05-11T11:35:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录这项项目约定：临时资源名称以 `MEMORY_PROXY_EVALU-tmp-` 开头，任务结束后必须清理。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
+      "timestamp": "2026-05-11T11:36:00Z"
+    },
+    {
+      "role": "user",
+      "content": "这次 MemoryProxy 工具调用评测 评审定下了一条长期规则：审计日志必须包含 `event_id` 字段，但不得记录敏感原文。 后续相关改动按这个决定执行。",
+      "timestamp": "2026-05-11T11:40:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录这项项目约定：审计日志必须包含 `event_id` 字段，但不得记录敏感原文。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
+      "timestamp": "2026-05-11T11:41:00Z"
+    },
+    {
+      "role": "user",
+      "content": "上次联调后我们把下面内容作为固定约定：后台任务的最大并发数为 4，超过时进入等待队列。 之后发现不一致时先说明再修改。",
+      "timestamp": "2026-05-11T11:45:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录这项项目约定：后台任务的最大并发数为 4，超过时进入等待队列。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
+      "timestamp": "2026-05-11T11:46:00Z"
+    },
+    {
+      "role": "user",
+      "content": "请把这项 MemoryProxy 工具调用评测 项目约定保留下来：失败重试的基础退避为 1349 毫秒，并加入随机抖动。 后续实现不要偏离。",
+      "timestamp": "2026-05-11T11:50:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录这项项目约定：失败重试的基础退避为 1349 毫秒，并加入随机抖动。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
+      "timestamp": "2026-05-11T11:51:00Z"
+    },
+    {
+      "role": "user",
+      "content": "故障复盘已经确认：配置文件路径固定为 `build/output`，旧路径只读兼容一个版本。 以后同类任务都按这条处理。",
+      "timestamp": "2026-05-11T11:55:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录这项项目约定：配置文件路径固定为 `build/output`，旧路径只读兼容一个版本。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
+      "timestamp": "2026-05-11T11:56:00Z"
+    },
+    {
+      "role": "user",
+      "content": "这次 MemoryProxy 工具调用评测 评审定下了一条长期规则：生成文件必须写入 `config/project.yml`，禁止污染源码目录。 后续相关改动按这个决定执行。",
+      "timestamp": "2026-05-11T12:00:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录这项项目约定：生成文件必须写入 `config/project.yml`，禁止污染源码目录。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
+      "timestamp": "2026-05-11T12:01:00Z"
+    },
+    {
+      "role": "user",
+      "content": "上次联调后我们把下面内容作为固定约定：功能开关 `ASYNC_EXPORT` 默认关闭，只有 staging 验证后才能开启。 之后发现不一致时先说明再修改。",
+      "timestamp": "2026-05-11T12:05:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录这项项目约定：功能开关 `ASYNC_EXPORT` 默认关闭，只有 staging 验证后才能开启。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
+      "timestamp": "2026-05-11T12:06:00Z"
+    },
+    {
+      "role": "user",
+      "content": "请把这项 MemoryProxy 工具调用评测 项目约定保留下来：内部事件字段 `operation` 缺失时按兼容分支处理，不能直接崩溃。 后续实现不要偏离。",
+      "timestamp": "2026-05-11T12:10:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录这项项目约定：内部事件字段 `operation` 缺失时按兼容分支处理，不能直接崩溃。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
+      "timestamp": "2026-05-11T12:11:00Z"
+    },
+    {
+      "role": "user",
+      "content": "故障复盘已经确认：本地开发端口固定为 4132，测试端口由进程动态分配。 以后同类任务都按这条处理。",
+      "timestamp": "2026-05-11T12:15:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录这项项目约定：本地开发端口固定为 4132，测试端口由进程动态分配。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
+      "timestamp": "2026-05-11T12:16:00Z"
+    },
+    {
+      "role": "user",
+      "content": "这次 MemoryProxy 工具调用评测 评审定下了一条长期规则：归档文件保留 3 天，清理任务必须支持 dry-run。 后续相关改动按这个决定执行。",
+      "timestamp": "2026-05-11T12:20:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录这项项目约定：归档文件保留 3 天，清理任务必须支持 dry-run。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
+      "timestamp": "2026-05-11T12:21:00Z"
+    },
+    {
+      "role": "user",
+      "content": "上次联调后我们把下面内容作为固定约定：请求关联标识字段为 `request_id`，跨服务调用必须透传。 之后发现不一致时先说明再修改。",
+      "timestamp": "2026-05-11T12:25:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录这项项目约定：请求关联标识字段为 `request_id`，跨服务调用必须透传。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
+      "timestamp": "2026-05-11T12:26:00Z"
+    },
+    {
+      "role": "user",
+      "content": "请把这项 MemoryProxy 工具调用评测 项目约定保留下来：仓库中的生成代码不得手工编辑，来源命令记录在 `docs/runbook.md`。 后续实现不要偏离。",
+      "timestamp": "2026-05-11T12:30:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录这项项目约定：仓库中的生成代码不得手工编辑，来源命令记录在 `docs/runbook.md`。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
+      "timestamp": "2026-05-11T12:31:00Z"
+    },
+    {
+      "role": "user",
+      "content": "故障复盘已经确认：错误详情只写服务端日志，用户可见响应使用稳定错误码。 以后同类任务都按这条处理。",
+      "timestamp": "2026-05-11T12:35:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录这项项目约定：错误详情只写服务端日志，用户可见响应使用稳定错误码。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
+      "timestamp": "2026-05-11T12:36:00Z"
+    },
+    {
+      "role": "user",
+      "content": "这次 MemoryProxy 工具调用评测 评审定下了一条长期规则：并发更新必须使用版本字段 `version`，不能依赖先读后写。 后续相关改动按这个决定执行。",
+      "timestamp": "2026-05-11T12:40:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录这项项目约定：并发更新必须使用版本字段 `version`，不能依赖先读后写。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
+      "timestamp": "2026-05-11T12:41:00Z"
+    },
+    {
+      "role": "user",
+      "content": "上次联调后我们把下面内容作为固定约定：配置变更后必须运行 `uv run pytest`，通过后才能提交。 之后发现不一致时先说明再修改。",
+      "timestamp": "2026-05-11T12:45:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录这项项目约定：配置变更后必须运行 `uv run pytest`，通过后才能提交。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
+      "timestamp": "2026-05-11T12:46:00Z"
+    },
+    {
+      "role": "user",
+      "content": "请把这项 MemoryProxy 工具调用评测 项目约定保留下来：路径比较前必须标准化，不能依赖当前工作目录的偶然值。 后续实现不要偏离。",
+      "timestamp": "2026-05-11T12:50:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录这项项目约定：路径比较前必须标准化，不能依赖当前工作目录的偶然值。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
+      "timestamp": "2026-05-11T12:51:00Z"
+    },
+    {
+      "role": "user",
+      "content": "故障复盘已经确认：模块 `billing` 的默认超时为 1830 毫秒，修改前必须评估调用链。 以后同类任务都按这条处理。",
+      "timestamp": "2026-05-11T12:55:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录这项项目约定：模块 `billing` 的默认超时为 1830 毫秒，修改前必须评估调用链。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
+      "timestamp": "2026-05-11T12:56:00Z"
+    },
+    {
+      "role": "user",
+      "content": "这次 MemoryProxy 工具调用评测 评审定下了一条长期规则：测试夹具统一放在 `tests/fixtures`，不得从其他测试目录跨用可变数据。 后续相关改动按这个决定执行。",
+      "timestamp": "2026-05-11T13:00:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录这项项目约定：测试夹具统一放在 `tests/fixtures`，不得从其他测试目录跨用可变数据。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
+      "timestamp": "2026-05-11T13:01:00Z"
+    },
+    {
+      "role": "user",
+      "content": "上次联调后我们把下面内容作为固定约定：环境变量使用 `MEMORY_PROXY_EVALU_ASYNC_EXPORT` 命名，并在示例文件中只放占位值。 之后发现不一致时先说明再修改。",
+      "timestamp": "2026-05-11T13:05:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录这项项目约定：环境变量使用 `MEMORY_PROXY_EVALU_ASYNC_EXPORT` 命名，并在示例文件中只放占位值。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
+      "timestamp": "2026-05-11T13:06:00Z"
+    },
+    {
+      "role": "user",
+      "content": "请把这项 MemoryProxy 工具调用评测 项目约定保留下来：批处理默认批大小为 1941，只能通过显式配置覆盖。 后续实现不要偏离。",
+      "timestamp": "2026-05-11T13:10:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录这项项目约定：批处理默认批大小为 1941，只能通过显式配置覆盖。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
+      "timestamp": "2026-05-11T13:11:00Z"
+    },
+    {
+      "role": "user",
+      "content": "故障复盘已经确认：临时资源名称以 `MEMORY_PROXY_EVALU-tmp-` 开头，任务结束后必须清理。 以后同类任务都按这条处理。",
+      "timestamp": "2026-05-11T13:15:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录这项项目约定：临时资源名称以 `MEMORY_PROXY_EVALU-tmp-` 开头，任务结束后必须清理。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
+      "timestamp": "2026-05-11T13:16:00Z"
+    },
+    {
+      "role": "user",
+      "content": "这次 MemoryProxy 工具调用评测 评审定下了一条长期规则：审计日志必须包含 `event_id` 字段，但不得记录敏感原文。 后续相关改动按这个决定执行。",
+      "timestamp": "2026-05-11T13:20:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录这项项目约定：审计日志必须包含 `event_id` 字段，但不得记录敏感原文。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
+      "timestamp": "2026-05-11T13:21:00Z"
+    },
+    {
+      "role": "user",
+      "content": "上次联调后我们把下面内容作为固定约定：后台任务的最大并发数为 8，超过时进入等待队列。 之后发现不一致时先说明再修改。",
+      "timestamp": "2026-05-11T13:25:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录这项项目约定：后台任务的最大并发数为 8，超过时进入等待队列。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
+      "timestamp": "2026-05-11T13:26:00Z"
+    },
+    {
+      "role": "user",
+      "content": "请把这项 MemoryProxy 工具调用评测 项目约定保留下来：失败重试的基础退避为 2089 毫秒，并加入随机抖动。 后续实现不要偏离。",
+      "timestamp": "2026-05-11T13:30:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录这项项目约定：失败重试的基础退避为 2089 毫秒，并加入随机抖动。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
+      "timestamp": "2026-05-11T13:31:00Z"
+    },
+    {
+      "role": "user",
+      "content": "故障复盘已经确认：配置文件路径固定为 `build/output`，旧路径只读兼容一个版本。 以后同类任务都按这条处理。",
+      "timestamp": "2026-05-11T13:35:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录这项项目约定：配置文件路径固定为 `build/output`，旧路径只读兼容一个版本。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
+      "timestamp": "2026-05-11T13:36:00Z"
+    },
+    {
+      "role": "user",
+      "content": "这次 MemoryProxy 工具调用评测 评审定下了一条长期规则：生成文件必须写入 `config/project.yml`，禁止污染源码目录。 后续相关改动按这个决定执行。",
+      "timestamp": "2026-05-11T13:40:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录这项项目约定：生成文件必须写入 `config/project.yml`，禁止污染源码目录。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
+      "timestamp": "2026-05-11T13:41:00Z"
+    },
+    {
+      "role": "user",
+      "content": "上次联调后我们把下面内容作为固定约定：功能开关 `ASYNC_EXPORT` 默认关闭，只有 staging 验证后才能开启。 之后发现不一致时先说明再修改。",
+      "timestamp": "2026-05-11T13:45:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录这项项目约定：功能开关 `ASYNC_EXPORT` 默认关闭，只有 staging 验证后才能开启。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
+      "timestamp": "2026-05-11T13:46:00Z"
+    },
+    {
+      "role": "user",
+      "content": "请把这项 MemoryProxy 工具调用评测 项目约定保留下来：内部事件字段 `operation` 缺失时按兼容分支处理，不能直接崩溃。 后续实现不要偏离。",
+      "timestamp": "2026-05-11T13:50:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录这项项目约定：内部事件字段 `operation` 缺失时按兼容分支处理，不能直接崩溃。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
+      "timestamp": "2026-05-11T13:51:00Z"
+    },
+    {
+      "role": "user",
+      "content": "故障复盘已经确认：本地开发端口固定为 4152，测试端口由进程动态分配。 以后同类任务都按这条处理。",
+      "timestamp": "2026-05-11T13:55:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录这项项目约定：本地开发端口固定为 4152，测试端口由进程动态分配。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
+      "timestamp": "2026-05-11T13:56:00Z"
+    }
+  ]
+}

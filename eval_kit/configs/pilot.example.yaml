@@ -1,0 +1,38 @@
+# 当前本机部署示例。密钥由 lab_root/<variant>/secrets 读取，不写在配置或结果中。
+lab_root: /storage1/liukuan/tencentdb-memory-lab
+dataset: ../dataset/tasks/tool_call_eval_v1.jsonl
+# asset_path 是相对 eval_kit 的路径，不能按 tasks/ 目录解析。
+asset_base: ..
+skills: ../dataset/skills
+memories: ../dataset/memories
+results_dir: ../results
+service_id: rhino-ab
+claude_binary: /home/liukuan/.npm-global/bin/claude
+uv_binary: /home/liukuan/.local/bin/uv
+client_image: tdai-eval-cli:node22-py312
+model: deepseek-v4-flash[1m]
+per_family: 3
+timeout_ms: 600000
+processing_timeout_ms: 1800000
+# 准备进程保留原 4096 预算；只有日志证实截断才手工选 8192。两组 CLI 也统一关闭思考。
+preparation_max_tokens: 4096
+preparation_thinking: disabled
+# 工具指标到观测点即结束；端到端小任务另用 end_to_end，不把安装依赖时间混入这组指标。
+measurement: tool_calls
+stop_after_tools:
+  skill_001_node-typescript-api: [skill_view, skill_files_read]
+  skill_008_python-fastapi: [skill_view, skill_files_read]
+  skill_015_react-frontend: [skill_view, skill_files_read]
+# 两组均在临时容器中运行，允许真实 Coding 命令；仍应仅使用可信素材。
+allow_bash: true
+# 启动已安装的 tdam-{baseline,native}-{core,proxy} 用户服务；不会重建业务代码。
+start_services: true
+variants:
+  baseline:
+    project: ../../TencentDB-Agent-Memory-Baseline
+    core_url: http://127.0.0.1:8420
+    proxy_url: http://127.0.0.1:8096/claude-code/rhino-ab
+  native:
+    project: ../../TencentDB-Agent-Memory-Native
+    core_url: http://127.0.0.1:18420
+    proxy_url: http://127.0.0.1:18096/claude-code/rhino-ab

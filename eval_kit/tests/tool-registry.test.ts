@@ -7,6 +7,16 @@ import {
 } from "../recorder/tool-registry.js";
 
 describe("tool registry", () => {
+  it("does not classify ordinary Bash text mentioning an endpoint as a tool invocation", () => {
+    expect(extractBaselineCurlCall("echo https://example/memory-bridge/v3/atomic/search", "echo")).toBeNull();
+  });
+
+  it("keeps an existing result when later model requests repeat the same tool call", () => {
+    const call = { role: "assistant", content: [{ type: "tool_use", id: "repeat", name: "skill_view", input: { skill_name: "x" } }] };
+    const records = pairNativeToolBlocks([call, { role: "user", content: [{ type: "tool_result", tool_use_id: "repeat", content: "saved" }] }, call]);
+    expect(records).toHaveLength(1);
+    expect(records[0]?.result).toBe("saved");
+  });
   it("normalizes a Baseline Bash/curl endpoint and JSON arguments", () => {
     const call = extractBaselineCurlCall(
       "curl -sS -X POST 'http://127.0.0.1:8097/memory-bridge/v3/conversation/search' -H 'content-type: application/json' --data '{\"query\":\"A/B\"}'",

@@ -9,6 +9,8 @@ import { prepareDataBuilder } from "./data-preparation/prepare.js";
 import { parseMemoryImportCommand, memoryImportHelp } from "./importers/memories/command.js";
 import { importMemoryDirectory } from "./importers/memories/importer.js";
 import { runExperiment, scoreExperiment } from "./runner/runner.js";
+import { runObservationExperiment, scoreObservationExperiment } from "./bridge-eval/runner.js";
+import { runPilotPipeline } from "./pipeline/run.js";
 import { parseSkillImportCommand, skillImportHelp } from "./importers/skills/command.js";
 import { importSkillDirectory } from "./importers/skills/importer.js";
 import { createViewerApp } from "./viewer/server.js";
@@ -49,7 +51,9 @@ function help(): string {
   return `TencentDB Agent Memory Eval Kit
 
 Usage:
-  npm run run -- --config configs/experiments/smoke.yaml [--reset-assets|--resume] [--case ID] [--variant baseline|native]
+  npm run pipeline -- --config configs/pilot.example.yaml
+  npm run run -- --config configs/bridge-observation.example.yaml
+  npm run legacy:run -- --config configs/experiments/smoke.yaml [--reset-assets|--resume] [--case ID] [--variant baseline|native]
   npm run score -- --experiment results/<experiment_id>
   npm run viewer -- --results results [--port 4173]
   npm run skills:import -- --variant native|baseline|both --directory DIR --user-id USER --team-id TEAM --agent-id AGENT
@@ -69,6 +73,12 @@ async function main(): Promise<void> {
     else if (command === "memories") process.stdout.write(memoryImportHelp());
     else if (command === "data") process.stdout.write(dataBuilderHelp());
     else process.stdout.write(help());
+    return;
+  }
+  if (command === "pipeline") {
+    const parsed = parse(args);
+    const result = await runPilotPipeline(resolve(one(parsed,"config",true)!));
+    process.stdout.write(JSON.stringify({experimentDirectory:result.experimentDirectory,summary:result.summary},null,2) + "\n");
     return;
   }
   if (command === "skills") {
@@ -106,6 +116,13 @@ async function main(): Promise<void> {
   }
   const parsed = parse(args);
   if (command === "run") {
+    if (parsed.flags.size || [...parsed.values.keys()].some(k => k !== "config")) throw new Error("Bridge evaluation accepts only --config; select runs in the prepared manifest");
+    const result = await runObservationExperiment(resolve(one(parsed, "config", true)!));
+    process.stdout.write(JSON.stringify({ experiment: result.experimentDirectory, runs: result.runs.length, summary: result.summary }, null, 2) + "\n");
+    if (result.runs.some(r => !r.observation_valid)) process.exitCode = 1;
+    return;
+  }
+  if (command === "legacy-run") {
     const config = one(parsed, "config", true) as string;
     const variant = one(parsed, "variant");
     if (variant && variant !== "baseline" && variant !== "native") throw new Error("--variant must be baseline or native");
@@ -121,7 +138,10 @@ async function main(): Promise<void> {
   }
   if (command === "score") {
     const experiment = one(parsed, "experiment", true) as string;
-    const summary = await scoreExperiment(resolve(experiment));
+    const { readFile } = await import("node:fs/promises");
+    const { join } = await import("node:path");
+    const saved = JSON.parse(await readFile(join(resolve(experiment), "summary.json"), "utf8")) as { schema_version?: number };
+    const summary = saved.schema_version === 2 ? await scoreObservationExperiment(resolve(experiment)) : await scoreExperiment(resolve(experiment));
     process.stdout.write(`${JSON.stringify(summary, null, 2)}\n`);
     return;
   }

@@ -1,5 +1,13 @@
 # TencentDB Agent Memory Eval Kit
 
+> 当前正式调用统计使用 **Bridge 发起记录（配置版本 2）**：直接读取两组 JSONL，不依赖 Langfuse。
+> 操作方式见 [Proxy Tool 观测统计说明](docs/proxy-tool-observation.md)。
+> 一键准备并评测：`bash run-pipeline.sh configs/pilot.example.yaml`，详见 [Pipeline 使用说明](docs/pilot-pipeline.md)。
+> 小样本入口默认只测 Tool Calling，到指定事件即停止；已有 9 条 × 两组的实际结果、修复和未解决问题见 [试跑报告](docs/pilot-9-task-report.md)。
+> 已有独立身份运行表时：`npm run run -- --config configs/bridge-observation.local.yaml`。
+> Viewer 只支持当前 Bridge 格式：`npm run viewer -- --results results --port 4173`，见 [页面使用说明](docs/viewer.md)。
+> 下方旧实验中的 `npm run run` 现应使用 `npm run legacy:run`；dataset 与 data-preparation 用法不变。
+
 这个目录统一保存评测配置、Skill/Memory 数据、批量导入工具、A/B 运行程序、指标计算和结果页面。`tencentdb-memory-lab` 继续负责运行 Baseline、Native 和数据构建服务，不在这里保存密钥、数据库或日志。
 
 当前主要目录：
@@ -9,6 +17,8 @@ eval_kit/
 ├── configs/                 # 数据准备和实验配置
 ├── dataset/                 # 任务、输入文件、Skill、L0 和生成参考
 ├── data-preparation/        # 生成统一底稿并安装到两套环境
+├── pipeline/                # 逐 Task 独立身份、顺序提炼、配对同步和一键试跑
+├── bridge-eval/             # Bridge 事件采集、观测终止、调用指标汇总
 ├── importers/               # Skill 与 L0 批量导入
 ├── runner/                  # Baseline/Native 用例运行
 ├── recorder/                # Langfuse、ClickHouse 和客户端记录
@@ -19,6 +29,8 @@ eval_kit/
 ```
 
 ## Commands
+
+以下命令均在 `eval_kit` 目录中执行：
 
 ```bash
 npm install
@@ -54,7 +66,7 @@ cd /home/liukuan/Tencent-DB-Memory-Project/eval_kit
 用户、团队和 Agent。每个 `SKILL.md` 同目录下的 `files/` 可放附属文件：
 
 ```text
-prepared-skills/
+dataset/skills/
 ├── order-service-conventions/
 │   ├── SKILL.md
 │   └── files/
@@ -68,7 +80,7 @@ prepared-skills/
 ```bash
 npm run skills:import -- \
   --variant both \
-  --directory ./prepared-skills \
+  --directory ./dataset/skills \
   --user-id usr-f7iwo2muhb \
   --team-id team-f7jadamhk3 \
   --agent-id agt-f7jq1rrl7h \
@@ -124,6 +136,8 @@ MemoryCore `/v3/conversation/add`。每批最多 100 条消息。接口保存 L0
 
 先检查文件、身份和目标端是否已有同名会话，不写入数据：
 
+执行前先把正式评测用的 `.json` 或 `.jsonl` 文件放入 `dataset/memories/`；空目录会直接报错，避免误以为已经完成检查。
+
 ```bash
 npm run memories:import -- \
   --variant both \
@@ -176,6 +190,34 @@ results/<experiment_id>/
     └── clickhouse-tool-calls.json
 ```
 
-`summary.json` 的 `paired_deltas_native_minus_baseline` 统一采用 Native − Baseline；Token/时延为负表示 Native 更少或更快。Provider Token 来自完整 Langfuse Observation；定义 Token 使用固定 `cl100k_base` 分别估算 Baseline XML 工具块与 Native canonical JSON schema；TTFT 优先采用 Claude stream 结果里的 `ttft_stream_ms`。Trace 未稳定到齐时，Provider 派生指标为 `null`，并保留部分原始采集用于归因。
+`summary.json` 的 `paired_deltas_native_minus_baseline` 统一采用 Native − Baseline；Token/时延为负表示 Native 更少或更快。Provider Token 来自完整 Langfuse Observation；TTFT 优先采用 Claude stream 结果里的 `ttft_stream_ms`。Trace 未稳定到齐时，Provider 派生指标为 `null`，并保留部分原始采集用于归因。
+
+## 指标口径
+
+- 有效调用率：发生任意参评 Proxy Tool 调用的正样本数 / 全部正样本数。选错类别仍计为调用，再由工具选择正确率判错。
+- 误调用率：发生 Proxy Tool 调用的负样本数 / 全部负样本数。同一负样本同时调用 Memory 和 Skill，总体只算一次。
+- 工具选择正确率：选择正确的正样本数 / 已发生调用的正样本数。`by_tool_family.memory` 和 `by_tool_family.skill` 按任务预期类别分正样本，两类误调用率共用全部负样本。结果保留分子、分母；空分母为 `null`，不伪装成 0%。
+- 同一 `call_id` 的重复采集只算一次；新 ID 调用同名工具仍是新的调用。工具选择按模型生成顺序检查，不按结果完成顺序。
+- 单步可用 `allowed_first_tools: ["skill_search", "skill_view"]` 表示任选其一；多步可用 `expected_tool_sequence: ["skill_search", "skill_view"]`，或 `allowed_sequences: [["skill_view"], ["skill_search", "skill_view"]]`。多步要求完整顺序匹配，不能先错后对，也不会将重复调用去掉再评分。三种规则最多声明一种。旧的单个 `expected_tool` / `expected_tools` 检查首次调用；旧的多工具 `expected_tools` 保持无序必需集合语义，有顺序要求时请显式补充标注。工具执行错误和参数断言单独记录，不改变“是否发生调用”的结果。
+- `tool_micro_precision/recall` 是旧的工具名称集合诊断项，与上面的案例级指标分开，不作为实验报告中的有效调用率。
+- `suites` 分别列出 `main`、`probe`、`smoke`、`reliability` 中实际存在的组。正式数据含 `probe` 时，请从 `suites.main.variants` 取主实验指标，避免与探查案例混合；最外层 `overall` 仍表示本次文件中的全部运行。
+
+### 静态 Token
+
+`variants.<variant>.static_definition` 是正式静态指标：Baseline 统计固定 Fake Tool 说明、调用规则及 curl 示例；Native 统计 Proxy Schema **加 System 固定调用引导**。提取器移除 Memory 正文、Skill/Knowledge 目录条目，并统一运行时身份 Header 的占位值。只读取真实请求中实际出现的说明，未注入的内容不会补造。
+
+统一用 `cl100k_base` 编码普通文本，各固定 System 块分别求和，Native 再加完整的 canonical JSON Schema 数组；忽略顶层 `cache_control`，保留 Schema 内同名的业务属性。该值是统一统计规则下的相对成本，不是服务商精确计费 Token。
+
+同一份固定内容在汇总时只编码一次。`configurations` 保留每种配置的 `source_run_id`、`system_tokens`、`schema_tokens` 和 `total_tokens`，方便回看对应 Langfuse 原始输入。如果固定内容确有多种，`tokens` 为 `null` 并分别列出，不能按 Query 加权平均。`static_token_comparison.reduction_percent` 使用 `(Baseline − Native) / Baseline × 100`，只有两组各有一种可确认的固定配置且 Baseline 大于零时才计算。旧 `definition_tokens` 分布仅为逐次运行诊断，Viewer 使用新的静态指标。
+
+采样优先取初始化后已提供工具的请求。统计始终以实际内容为准：Native 标签下出现 Fake Tool 文案仍会计入，并记录 `native_contains_fake_tool_guidance`；缺少 Proxy Schema 或 Baseline 出现 Proxy Schema 也会提示。存在这些配置问题时，不输出 Token 降幅，避免把漏注入或组别错误当成优化收益。历史输入缺失记为 `null`。
+
+### 端到端延迟
+
+从 Runner 提交输入并启动 Claude 到收到最终 `result` 计时，不在首次 Tool Call 停止，也不把结果采集、Claude 进程收尾计入。旧记录没有最终事件到达时间时保留原记录的延迟，不假造更精确的历史值。超时、运行异常、Trace 不完整的记录单独保留，排除出正常性能与调用率分母。
+
+同一实验、同一 Case、同一 Variant 的重复运行先取均值，再跨 Case 统计均值、中位数、P95。偶数样本的中位数取中间两项平均，P95 使用 nearest-rank。`end_to_end_comparison` 仅比较两组都有有效记录的相同案例，给出两组均值、配对案例数和 `(Native − Baseline) / Baseline × 100`。不会用最后一次运行覆盖此前重复结果。延迟仍须结合调用正确率解读，漏调用后的快速回答不能说明性能改善。
+
+评分依赖已采集的工具记录：目前采集端主要读取 Claude/Anthropic 消息；Baseline 识别直接写出 URL 的 curl 请求，变量拼接 URL、复杂脚本或单个 Bash 中的多次 HTTP 调用尚不能完整展开。ClickHouse 没有可匹配调用 ID 时，工具耗时/错误保持未知，不按同名工具或行号猜测。正式运行前应先抽查这类记录；本文的指标修复不代表整个评测 Runner 已完成所有客户端和协议的验收。
 
 每个 `CaseRun` 都固化 Dataset 输入/断言、身份、原始请求、逐次注入后的 Model Call、thinking/stop reason、工具调用与结果、最终答案、指标和失败标签。`config.json` 还保存 Harness 逐文件哈希、各仓 Commit/工作区状态、Prompt/Schema 内容哈希、资产快照与固定 Run-order 哈希。

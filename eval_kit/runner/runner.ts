@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 
 import { loadDataset } from "./dataset-loader.js";
 import { pairedDeltas, scoreRun, summarizeRuns } from "../metrics/index.js";
-import { estimateDefinitionTokens, TOKENIZER_NAME } from "../metrics/token.js";
+import { definitionInputForModelCalls, estimateDefinitionTokens, TOKENIZER_NAME } from "../metrics/token.js";
 import { queryNativeToolCalls } from "../recorder/clickhouse-client.js";
 import { LangfuseClient, pollStableObservations } from "../recorder/langfuse-client.js";
 import { normalizeTrace } from "../recorder/trace-recorder.js";
@@ -101,6 +101,16 @@ function elapsed(start: string, end: string): number | null {
   return Number.isFinite(value) ? Math.max(0, value) : null;
 }
 
+function finalResultError(events: Record<string, unknown>[]): string | null {
+  // CLI 即使以 0 退出，也可能返回轮数上限或 API 错误；这不能算正常完成的快速回答。
+  const result = events.findLast((event) => event.type === "result");
+  if (!result) return "Claude did not emit a final result";
+  if (result.is_error === true || (typeof result.subtype === "string" && result.subtype.startsWith("error"))) {
+    return `Claude final result reported ${String(result.subtype ?? "error")}`;
+  }
+  return null;
+}
+
 function compactRun(run: CaseRun): Record<string, unknown> {
   return {
     run_id: run.run_id,
@@ -127,6 +137,9 @@ function caseDefinition(testCase: EvalCase): CaseRun["case"] {
     query: testCase.query,
     should_call: testCase.should_call,
     expected_tools: testCase.expected_tools,
+    ...(testCase.allowed_first_tools ? { allowed_first_tools: testCase.allowed_first_tools } : {}),
+    ...(testCase.expected_tool_sequence ? { expected_tool_sequence: testCase.expected_tool_sequence } : {}),
+    ...(testCase.allowed_sequences ? { allowed_sequences: testCase.allowed_sequences } : {}),
     argument_assertions: testCase.argument_assertions ?? [],
     answer_assertions: testCase.answer_assertions ?? [],
   };
@@ -233,6 +246,7 @@ async function executeRun(
     secureWriteJson(clickhousePath, clickhouseRows),
   ]);
   const clientEvents = client?.events ?? await readJsonl(streamPath);
+  const resultError = finalResultError(clientEvents);
   const normalized = normalizeTrace({
     variant: schedule.variant,
     tapEvents,
@@ -243,10 +257,10 @@ async function executeRun(
     langfuseBaseUrl: config.langfuse.base_url,
     langfuseProjectId: config.langfuse.project_id ?? null,
   });
-  const status: CaseRun["status"] = clientError || (client && !client.timedOut && client.exitCode !== 0)
+  const status: CaseRun["status"] = clientError || (client && !client.timedOut && (client.exitCode !== 0 || resultError !== null))
     ? "infra_error"
     : client?.timedOut ? "timeout" : "completed";
-  const definitionInput = normalized.model_calls.at(0)?.input;
+  const definitionInput = definitionInputForModelCalls(schedule.variant, normalized.model_calls);
   const run: CaseRun = {
     schema_version: 1,
     run_id: schedule.run_id,
@@ -268,7 +282,7 @@ async function executeRun(
       definition_tokens: !traceComplete || definitionInput === undefined ? null : estimateDefinitionTokens(schedule.variant, definitionInput),
     },
     latency: {
-      end_to_end_ms: client ? elapsed(startedAt, endedAt) : null,
+      end_to_end_ms: client ? elapsed(startedAt, client.completedAt ?? endedAt) : null,
       ttft_ms: client?.ttftMs ?? null,
       tool_ms: normalized.tool_calls.flatMap((call) => call.latency_ms === null ? [] : [call.latency_ms]),
     },
@@ -280,7 +294,7 @@ async function executeRun(
     },
     metrics: null,
     failure_tags: [],
-    error: [clientError, recorderError, client && client.exitCode !== 0 ? client.stderr || `Claude exited ${client.exitCode}` : null].filter(Boolean).join("; ") || null,
+    error: [clientError, recorderError, resultError, client && client.exitCode !== 0 ? client.stderr || `Claude exited ${client.exitCode}` : null].filter(Boolean).join("; ") || null,
   };
   return scoreRun(testCase, run);
 }
@@ -490,9 +504,10 @@ export async function scoreExperiment(experimentDirectory: string): Promise<Reco
       langfuseBaseUrl: snapshot.actual_configuration?.langfuse?.base_url ?? "",
       langfuseProjectId: snapshot.actual_configuration?.langfuse?.project_id ?? null,
     });
-    const definitionInput = normalized.model_calls.at(0)?.input;
+    const definitionInput = definitionInputForModelCalls(source.variant, normalized.model_calls);
     const rescored = scoreRun(testCase, {
       ...source,
+      status: source.status === "completed" && finalResultError(clientEvents) ? "infra_error" : source.status,
       identity: snapshot.actual_configuration?.identity ?? source.identity,
       case: caseDefinition(testCase),
       raw_request: normalized.raw_request,

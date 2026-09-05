@@ -7,7 +7,9 @@
     "node": ">=22"
   },
   "scripts": {
+    "pipeline": "tsx cli.ts pipeline",
     "run": "tsx cli.ts run",
+    "legacy:run": "tsx cli.ts legacy-run",
     "score": "tsx cli.ts score",
     "skills:import": "tsx cli.ts skills import",
     "memories:import": "tsx cli.ts memories import",

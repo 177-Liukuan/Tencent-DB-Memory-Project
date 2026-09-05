@@ -1,0 +1,1 @@
+{"name":"orders-api","private":true,"scripts":{"test":"vitest","typecheck":"tsc --noEmit"}}

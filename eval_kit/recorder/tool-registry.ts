@@ -54,11 +54,15 @@ function parseDataArgument(command: string): { value: unknown; error: string | n
 }
 
 export function extractBaselineCurlCall(command: string, callId: string): ToolCallRecord | null {
-  const match = ENDPOINTS.find(([pattern]) => pattern.test(command));
+  // 必须是 curl 的 URL；echo/日志里提到 Bridge 地址不代表模型调用了工具。
+  const curl = command.replace(/\\\r?\n/gu, " ").match(/(?:^|&&|\|\||;|\n)\s*(?:command\s+)?(?:\/[^\s]+\/)?curl\s+([\s\S]*)/u)?.[1];
+  if (!curl) return null;
+  const url = curl.match(/https?:\/\/[^\s'"\\]+/u)?.[0];
+  if (!url) return null;
+  const match = ENDPOINTS.find(([pattern]) => pattern.test(url));
   if (!match) return null;
   const [, logicalName] = match;
-  const args = parseDataArgument(command);
-  const url = command.match(/https?:\/\/[^\s'"\\]+/u)?.[0] ?? null;
+  const args = parseDataArgument(curl);
   return {
     ...emptyRecord(callId, "Bash", logicalName, "managed"),
     arguments: args.value,
@@ -102,6 +106,8 @@ export function pairNativeToolBlocks(messages: unknown[]): ToolCallRecord[] {
       if (!raw || typeof raw !== "object") continue;
       const block = raw as Record<string, unknown>;
       if (block.type === "tool_use" && typeof block.id === "string" && typeof block.name === "string") {
+        // 下一轮请求会重复携带历史，不能用重复的 Tool Call 清空之前保存的结果。
+        if (calls.has(block.id)) continue;
         const kind = MANAGED_TOOL_NAMES.has(block.name) ? "managed" : "client";
         calls.set(block.id, {
           ...emptyRecord(block.id, block.name, block.name, kind),

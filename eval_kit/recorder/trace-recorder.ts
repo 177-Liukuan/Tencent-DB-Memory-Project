@@ -1,6 +1,6 @@
 import type { ModelCall, ProviderUsage, RawRequest, ToolCallRecord, Variant } from "../types.js";
 import { isProxyModelGeneration } from "./observations.js";
-import { normalizeClaudeStream, pairNativeToolBlocks } from "./tool-registry.js";
+import { normalizeClaudeStream } from "./tool-registry.js";
 
 function parseJson(value: unknown): unknown {
   if (typeof value !== "string") return value;
@@ -179,7 +179,8 @@ function callsFromObservations(observations: Record<string, unknown>[]): ToolCal
     const assistant = assistantMessage(observation.output);
     if (assistant) messages.push(assistant);
   }
-  return pairNativeToolBlocks(messages);
+  // 两个采集来源使用同一套名称映射，Baseline 的 Bash/curl 也能从上游记录补回。
+  return normalizeClaudeStream(messages.map((message) => ({ message }))).tool_calls;
 }
 
 function clickhouseCallId(row: Record<string, unknown>): string | null {
@@ -225,12 +226,9 @@ export function normalizeTrace(input: NormalizeTraceInput): NormalizedTrace {
     const id = clickhouseCallId(row);
     return id ? [[id, row] as const] : [];
   }));
-  const bridgeRows = input.clickhouseRows.filter((row) => row.kind === "bridge_call" || (typeof row.executed_endpoint === "string" && row.executed_endpoint.length > 0));
-  toolCalls = toolCalls.map((call, index) => {
-    const row = rowsById.get(call.call_id)
-      ?? input.clickhouseRows.find((candidate) => candidate.initiated_tool === call.logical_name && typeof candidate.executed_endpoint === "string" && candidate.executed_endpoint.length > 0)
-      ?? bridgeRows[index]
-      ?? input.clickhouseRows.find((candidate) => candidate.initiated_tool === call.logical_name);
+  toolCalls = toolCalls.map((call) => {
+    // 同名工具可以被多次调用，数据库返回顺序也可能不同；只用调用 ID 关联。
+    const row = rowsById.get(call.call_id);
     if (!row) return call;
     const status = row.upstream_status;
     return {

@@ -24,6 +24,7 @@ export class LangfuseClient {
       if (query.toStartTime) url.searchParams.set("toStartTime", query.toStartTime);
       if (cursor) url.searchParams.set("cursor", cursor);
       const response = await fetch(url, {
+        signal: AbortSignal.timeout(30_000),
         headers: { authorization: `Basic ${Buffer.from(`${this.#options.publicKey}:${this.#options.secretKey}`).toString("base64")}` },
       });
       if (!response.ok) throw new Error(`Langfuse observations request failed: HTTP ${response.status}`);

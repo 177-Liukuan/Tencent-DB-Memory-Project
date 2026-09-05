@@ -1,0 +1,205 @@
+{
+  "session_id": "node-typescript-api-20-rounds",
+  "messages": [
+    {
+      "role": "user",
+      "content": "这次 Node.js / TypeScript API 服务 评审定下了一条长期规则：仓库固定使用 Node.js 22 和 pnpm 10，任何依赖变更都必须更新 pnpm-lock.yaml，不能生成 package-lock.json。 后续相关改动按这个决定执行。",
+      "timestamp": "2026-01-05T09:00:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录这项项目约定：仓库固定使用 Node.js 22 和 pnpm 10，任何依赖变更都必须更新 pnpm-lock.yaml，不能生成 package-lock.json。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
+      "timestamp": "2026-01-05T09:01:00Z"
+    },
+    {
+      "role": "user",
+      "content": "上次联调后我们把下面内容作为固定约定：TypeScript 开启 strict 和 exactOptionalPropertyTypes，公共类型不允许用 any 或宽泛索引签名绕过检查。 之后发现不一致时先说明再修改。",
+      "timestamp": "2026-01-05T09:05:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录这项项目约定：TypeScript 开启 strict 和 exactOptionalPropertyTypes，公共类型不允许用 any 或宽泛索引签名绕过检查。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
+      "timestamp": "2026-01-05T09:06:00Z"
+    },
+    {
+      "role": "user",
+      "content": "请把这项 Node.js / TypeScript API 服务 项目约定保留下来：HTTP 接口响应统一使用 code、message、request_id、data 四个顶层字段。 后续实现不要偏离。",
+      "timestamp": "2026-01-05T09:10:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录这项项目约定：HTTP 接口响应统一使用 code、message、request_id、data 四个顶层字段。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
+      "timestamp": "2026-01-05T09:11:00Z"
+    },
+    {
+      "role": "user",
+      "content": "故障复盘已经确认：订单列表分页默认 page_size 为 37，最大值为 137；超过上限时返回参数错误。 以后同类任务都按这条处理。",
+      "timestamp": "2026-01-05T09:15:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录这项项目约定：订单列表分页默认 page_size 为 37，最大值为 137；超过上限时返回参数错误。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
+      "timestamp": "2026-01-05T09:16:00Z"
+    },
+    {
+      "role": "user",
+      "content": "这次 Node.js / TypeScript API 服务 评审定下了一条长期规则：1 月 12 日重复下单事故后确认：GET 最多自动重试一次，POST 默认不自动重试。 后续相关改动按这个决定执行。",
+      "timestamp": "2026-01-05T09:20:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录这项项目约定：1 月 12 日重复下单事故后确认：GET 最多自动重试一次，POST 默认不自动重试。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
+      "timestamp": "2026-01-05T09:21:00Z"
+    },
+    {
+      "role": "user",
+      "content": "上次联调后我们把下面内容作为固定约定：1 月 18 日评审确定：订单业务错误必须继承 AppError，错误码使用 ORD_ 前缀，不能靠 message 文本分类。 之后发现不一致时先说明再修改。",
+      "timestamp": "2026-01-05T09:25:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录这项项目约定：1 月 18 日评审确定：订单业务错误必须继承 AppError，错误码使用 ORD_ 前缀，不能靠 message 文本分类。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
+      "timestamp": "2026-01-05T09:26:00Z"
+    },
+    {
+      "role": "user",
+      "content": "请把这项 Node.js / TypeScript API 服务 项目约定保留下来：合并订单模块前固定执行 ./tools/verify.mjs --scope orders，顺序为 format、typecheck、test。 后续实现不要偏离。",
+      "timestamp": "2026-01-05T09:30:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录这项项目约定：合并订单模块前固定执行 ./tools/verify.mjs --scope orders，顺序为 format、typecheck、test。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
+      "timestamp": "2026-01-05T09:31:00Z"
+    },
+    {
+      "role": "user",
+      "content": "故障复盘已经确认：模块 `telemetry` 的默认超时为 350 毫秒，修改前必须评估调用链。 以后同类任务都按这条处理。",
+      "timestamp": "2026-01-05T09:35:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录这项项目约定：模块 `telemetry` 的默认超时为 350 毫秒，修改前必须评估调用链。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
+      "timestamp": "2026-01-05T09:36:00Z"
+    },
+    {
+      "role": "user",
+      "content": "这次 Node.js / TypeScript API 服务 评审定下了一条长期规则：测试夹具统一放在 `config/project.yml`，不得从其他测试目录跨用可变数据。 后续相关改动按这个决定执行。",
+      "timestamp": "2026-01-05T09:40:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录这项项目约定：测试夹具统一放在 `config/project.yml`，不得从其他测试目录跨用可变数据。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
+      "timestamp": "2026-01-05T09:41:00Z"
+    },
+    {
+      "role": "user",
+      "content": "上次联调后我们把下面内容作为固定约定：环境变量使用 `NODE_TYPESCRIPT_AP_ASYNC_EXPORT` 命名，并在示例文件中只放占位值。 之后发现不一致时先说明再修改。",
+      "timestamp": "2026-01-05T09:45:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录这项项目约定：环境变量使用 `NODE_TYPESCRIPT_AP_ASYNC_EXPORT` 命名，并在示例文件中只放占位值。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
+      "timestamp": "2026-01-05T09:46:00Z"
+    },
+    {
+      "role": "user",
+      "content": "请把这项 Node.js / TypeScript API 服务 项目约定保留下来：批处理默认批大小为 461，只能通过显式配置覆盖。 后续实现不要偏离。",
+      "timestamp": "2026-01-05T09:50:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录这项项目约定：批处理默认批大小为 461，只能通过显式配置覆盖。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
+      "timestamp": "2026-01-05T09:51:00Z"
+    },
+    {
+      "role": "user",
+      "content": "故障复盘已经确认：临时资源名称以 `NODE_TYPESCRIPT_AP-tmp-` 开头，任务结束后必须清理。 以后同类任务都按这条处理。",
+      "timestamp": "2026-01-05T09:55:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录这项项目约定：临时资源名称以 `NODE_TYPESCRIPT_AP-tmp-` 开头，任务结束后必须清理。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
+      "timestamp": "2026-01-05T09:56:00Z"
+    },
+    {
+      "role": "user",
+      "content": "这次 Node.js / TypeScript API 服务 评审定下了一条长期规则：审计日志必须包含 `event_id` 字段，但不得记录敏感原文。 后续相关改动按这个决定执行。",
+      "timestamp": "2026-01-05T10:00:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录这项项目约定：审计日志必须包含 `event_id` 字段，但不得记录敏感原文。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
+      "timestamp": "2026-01-05T10:01:00Z"
+    },
+    {
+      "role": "user",
+      "content": "上次联调后我们把下面内容作为固定约定：后台任务的最大并发数为 8，超过时进入等待队列。 之后发现不一致时先说明再修改。",
+      "timestamp": "2026-01-05T10:05:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录这项项目约定：后台任务的最大并发数为 8，超过时进入等待队列。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
+      "timestamp": "2026-01-05T10:06:00Z"
+    },
+    {
+      "role": "user",
+      "content": "请把这项 Node.js / TypeScript API 服务 项目约定保留下来：失败重试的基础退避为 609 毫秒，并加入随机抖动。 后续实现不要偏离。",
+      "timestamp": "2026-01-05T10:10:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录这项项目约定：失败重试的基础退避为 609 毫秒，并加入随机抖动。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
+      "timestamp": "2026-01-05T10:11:00Z"
+    },
+    {
+      "role": "user",
+      "content": "故障复盘已经确认：配置文件路径固定为 `tests/fixtures`，旧路径只读兼容一个版本。 以后同类任务都按这条处理。",
+      "timestamp": "2026-01-05T10:15:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录这项项目约定：配置文件路径固定为 `tests/fixtures`，旧路径只读兼容一个版本。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
+      "timestamp": "2026-01-05T10:16:00Z"
+    },
+    {
+      "role": "user",
+      "content": "这次 Node.js / TypeScript API 服务 评审定下了一条长期规则：生成文件必须写入 `ops/settings.json`，禁止污染源码目录。 后续相关改动按这个决定执行。",
+      "timestamp": "2026-01-05T10:20:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录这项项目约定：生成文件必须写入 `ops/settings.json`，禁止污染源码目录。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
+      "timestamp": "2026-01-05T10:21:00Z"
+    },
+    {
+      "role": "user",
+      "content": "上次联调后我们把下面内容作为固定约定：功能开关 `ASYNC_EXPORT` 默认关闭，只有 staging 验证后才能开启。 之后发现不一致时先说明再修改。",
+      "timestamp": "2026-01-05T10:25:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录这项项目约定：功能开关 `ASYNC_EXPORT` 默认关闭，只有 staging 验证后才能开启。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
+      "timestamp": "2026-01-05T10:26:00Z"
+    },
+    {
+      "role": "user",
+      "content": "请把这项 Node.js / TypeScript API 服务 项目约定保留下来：内部事件字段 `operation` 缺失时按兼容分支处理，不能直接崩溃。 后续实现不要偏离。",
+      "timestamp": "2026-01-05T10:30:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录这项项目约定：内部事件字段 `operation` 缺失时按兼容分支处理，不能直接崩溃。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
+      "timestamp": "2026-01-05T10:31:00Z"
+    },
+    {
+      "role": "user",
+      "content": "故障复盘已经确认：本地开发端口固定为 4112，测试端口由进程动态分配。 以后同类任务都按这条处理。",
+      "timestamp": "2026-01-05T10:35:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录这项项目约定：本地开发端口固定为 4112，测试端口由进程动态分配。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
+      "timestamp": "2026-01-05T10:36:00Z"
+    }
+  ]
+}

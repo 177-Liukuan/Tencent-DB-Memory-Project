@@ -1,0 +1,205 @@
+{
+  "session_id": "react-frontend-20-rounds",
+  "messages": [
+    {
+      "role": "user",
+      "content": "这次 React / TypeScript 前端 评审定下了一条长期规则：前端固定使用 React 19、Vite 和 pnpm，不引入 Create React App 兼容层。 后续相关改动按这个决定执行。",
+      "timestamp": "2026-01-23T09:00:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录这项项目约定：前端固定使用 React 19、Vite 和 pnpm，不引入 Create React App 兼容层。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
+      "timestamp": "2026-01-23T09:01:00Z"
+    },
+    {
+      "role": "user",
+      "content": "上次联调后我们把下面内容作为固定约定：表单状态使用 React 自带状态与原生表单动作，不引入 Formik。 之后发现不一致时先说明再修改。",
+      "timestamp": "2026-01-23T09:05:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录这项项目约定：表单状态使用 React 自带状态与原生表单动作，不引入 Formik。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
+      "timestamp": "2026-01-23T09:06:00Z"
+    },
+    {
+      "role": "user",
+      "content": "请把这项 React / TypeScript 前端 项目约定保留下来：组件样式必须使用同名 .module.css 文件，禁止新增全局业务类名。 后续实现不要偏离。",
+      "timestamp": "2026-01-23T09:10:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录这项项目约定：组件样式必须使用同名 .module.css 文件，禁止新增全局业务类名。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
+      "timestamp": "2026-01-23T09:11:00Z"
+    },
+    {
+      "role": "user",
+      "content": "故障复盘已经确认：用户模块可访问性 id 统一使用 usr- 前缀，label 必须通过 htmlFor 与输入框关联。 以后同类任务都按这条处理。",
+      "timestamp": "2026-01-23T09:15:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录这项项目约定：用户模块可访问性 id 统一使用 usr- 前缀，label 必须通过 htmlFor 与输入框关联。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
+      "timestamp": "2026-01-23T09:16:00Z"
+    },
+    {
+      "role": "user",
+      "content": "这次 React / TypeScript 前端 评审定下了一条长期规则：2 月 22 日 hydration 故障后确认：window、localStorage 等浏览器对象只能在 effect 或事件处理器中访问。 后续相关改动按这个决定执行。",
+      "timestamp": "2026-01-23T09:20:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录这项项目约定：2 月 22 日 hydration 故障后确认：window、localStorage 等浏览器对象只能在 effect 或事件处理器中访问。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
+      "timestamp": "2026-01-23T09:21:00Z"
+    },
+    {
+      "role": "user",
+      "content": "上次联调后我们把下面内容作为固定约定：2 月 24 日评审确定：组件测试使用 Vitest 与 Testing Library，优先按 role 和 accessible name 查询。 之后发现不一致时先说明再修改。",
+      "timestamp": "2026-01-23T09:25:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录这项项目约定：2 月 24 日评审确定：组件测试使用 Vitest 与 Testing Library，优先按 role 和 accessible name 查询。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
+      "timestamp": "2026-01-23T09:26:00Z"
+    },
+    {
+      "role": "user",
+      "content": "请把这项 React / TypeScript 前端 项目约定保留下来：用户界面模块合并前运行 pnpm check:user-ui，内部依次执行 lint、typecheck、vitest。 后续实现不要偏离。",
+      "timestamp": "2026-01-23T09:30:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录这项项目约定：用户界面模块合并前运行 pnpm check:user-ui，内部依次执行 lint、typecheck、vitest。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
+      "timestamp": "2026-01-23T09:31:00Z"
+    },
+    {
+      "role": "user",
+      "content": "故障复盘已经确认：模块 `worker` 的默认超时为 350 毫秒，修改前必须评估调用链。 以后同类任务都按这条处理。",
+      "timestamp": "2026-01-23T09:35:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录这项项目约定：模块 `worker` 的默认超时为 350 毫秒，修改前必须评估调用链。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
+      "timestamp": "2026-01-23T09:36:00Z"
+    },
+    {
+      "role": "user",
+      "content": "这次 React / TypeScript 前端 评审定下了一条长期规则：测试夹具统一放在 `ops/settings.json`，不得从其他测试目录跨用可变数据。 后续相关改动按这个决定执行。",
+      "timestamp": "2026-01-23T09:40:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录这项项目约定：测试夹具统一放在 `ops/settings.json`，不得从其他测试目录跨用可变数据。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
+      "timestamp": "2026-01-23T09:41:00Z"
+    },
+    {
+      "role": "user",
+      "content": "上次联调后我们把下面内容作为固定约定：环境变量使用 `REACT_FRONTEND_ASYNC_EXPORT` 命名，并在示例文件中只放占位值。 之后发现不一致时先说明再修改。",
+      "timestamp": "2026-01-23T09:45:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录这项项目约定：环境变量使用 `REACT_FRONTEND_ASYNC_EXPORT` 命名，并在示例文件中只放占位值。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
+      "timestamp": "2026-01-23T09:46:00Z"
+    },
+    {
+      "role": "user",
+      "content": "请把这项 React / TypeScript 前端 项目约定保留下来：批处理默认批大小为 461，只能通过显式配置覆盖。 后续实现不要偏离。",
+      "timestamp": "2026-01-23T09:50:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录这项项目约定：批处理默认批大小为 461，只能通过显式配置覆盖。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
+      "timestamp": "2026-01-23T09:51:00Z"
+    },
+    {
+      "role": "user",
+      "content": "故障复盘已经确认：临时资源名称以 `REACT_FRONTEND-tmp-` 开头，任务结束后必须清理。 以后同类任务都按这条处理。",
+      "timestamp": "2026-01-23T09:55:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录这项项目约定：临时资源名称以 `REACT_FRONTEND-tmp-` 开头，任务结束后必须清理。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
+      "timestamp": "2026-01-23T09:56:00Z"
+    },
+    {
+      "role": "user",
+      "content": "这次 React / TypeScript 前端 评审定下了一条长期规则：审计日志必须包含 `event_id` 字段，但不得记录敏感原文。 后续相关改动按这个决定执行。",
+      "timestamp": "2026-01-23T10:00:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录这项项目约定：审计日志必须包含 `event_id` 字段，但不得记录敏感原文。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
+      "timestamp": "2026-01-23T10:01:00Z"
+    },
+    {
+      "role": "user",
+      "content": "上次联调后我们把下面内容作为固定约定：后台任务的最大并发数为 8，超过时进入等待队列。 之后发现不一致时先说明再修改。",
+      "timestamp": "2026-01-23T10:05:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录这项项目约定：后台任务的最大并发数为 8，超过时进入等待队列。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
+      "timestamp": "2026-01-23T10:06:00Z"
+    },
+    {
+      "role": "user",
+      "content": "请把这项 React / TypeScript 前端 项目约定保留下来：失败重试的基础退避为 609 毫秒，并加入随机抖动。 后续实现不要偏离。",
+      "timestamp": "2026-01-23T10:10:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录这项项目约定：失败重试的基础退避为 609 毫秒，并加入随机抖动。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
+      "timestamp": "2026-01-23T10:11:00Z"
+    },
+    {
+      "role": "user",
+      "content": "故障复盘已经确认：配置文件路径固定为 `config/project.yml`，旧路径只读兼容一个版本。 以后同类任务都按这条处理。",
+      "timestamp": "2026-01-23T10:15:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录这项项目约定：配置文件路径固定为 `config/project.yml`，旧路径只读兼容一个版本。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
+      "timestamp": "2026-01-23T10:16:00Z"
+    },
+    {
+      "role": "user",
+      "content": "这次 React / TypeScript 前端 评审定下了一条长期规则：生成文件必须写入 `docs/runbook.md`，禁止污染源码目录。 后续相关改动按这个决定执行。",
+      "timestamp": "2026-01-23T10:20:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录这项项目约定：生成文件必须写入 `docs/runbook.md`，禁止污染源码目录。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
+      "timestamp": "2026-01-23T10:21:00Z"
+    },
+    {
+      "role": "user",
+      "content": "上次联调后我们把下面内容作为固定约定：功能开关 `ASYNC_EXPORT` 默认关闭，只有 staging 验证后才能开启。 之后发现不一致时先说明再修改。",
+      "timestamp": "2026-01-23T10:25:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录这项项目约定：功能开关 `ASYNC_EXPORT` 默认关闭，只有 staging 验证后才能开启。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
+      "timestamp": "2026-01-23T10:26:00Z"
+    },
+    {
+      "role": "user",
+      "content": "请把这项 React / TypeScript 前端 项目约定保留下来：内部事件字段 `operation` 缺失时按兼容分支处理，不能直接崩溃。 后续实现不要偏离。",
+      "timestamp": "2026-01-23T10:30:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录这项项目约定：内部事件字段 `operation` 缺失时按兼容分支处理，不能直接崩溃。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
+      "timestamp": "2026-01-23T10:31:00Z"
+    },
+    {
+      "role": "user",
+      "content": "故障复盘已经确认：本地开发端口固定为 4112，测试端口由进程动态分配。 以后同类任务都按这条处理。",
+      "timestamp": "2026-01-23T10:35:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录这项项目约定：本地开发端口固定为 4112，测试端口由进程动态分配。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
+      "timestamp": "2026-01-23T10:36:00Z"
+    }
+  ]
+}

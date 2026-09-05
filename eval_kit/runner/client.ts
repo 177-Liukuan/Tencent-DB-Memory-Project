@@ -1,11 +1,16 @@
-import { spawn } from "node:child_process";
+import { spawn, execFile } from "node:child_process";
 import { createWriteStream } from "node:fs";
-import { chmod, readFile } from "node:fs/promises";
+import { chmod, readFile, realpath } from "node:fs/promises";
+import { containerCommand } from "./container-client.js";
 
 import type { EvalCase, Variant } from "../types.js";
 import { parseEnvFile } from "./config.js";
+import { secureWriteJson } from "../lib/fs.js";
+import { join } from "node:path";
 
 export type ClientRunInput = {
+  /** 新评测入口必须启用 Claude 的正常 Hooks；旧实验调用方式保持兼容。 */
+  evaluation?: { model: string; allowBash?: boolean; image?: string };
   binary: string;
   variant: Variant;
   testCase: EvalCase;
@@ -18,6 +23,7 @@ export type ClientRunInput = {
   identity: { service_id: string; team_id: string; agent_id: string; task_id: string };
   timeoutMs: number;
   streamPath: string;
+  observationStop?: {file:string;tools:string[]};
 };
 
 export type ClientRunResult = {
@@ -26,8 +32,11 @@ export type ClientRunResult = {
   timedOut: boolean;
   startedAt: string;
   endedAt: string;
+  completedAt?: string;
   ttftMs: number | null;
   stderr: string;
+  stoppedOnObservation?:boolean;
+  observationStoppedAt?:string;
 };
 
 function parseEvents(raw: string): Record<string, unknown>[] {
@@ -83,17 +92,32 @@ export async function runClaudeClient(input: ClientRunInput): Promise<ClientRunR
     ANTHROPIC_AUTH_TOKEN: authToken,
     ANTHROPIC_CUSTOM_HEADERS: customHeaders,
     CLAUDE_CONFIG_DIR: input.claudeConfigDirectory,
+    // 两组关闭 CLI 思考设置；自定义上游是否收到 disabled 仍需按实际请求核对。
+    MAX_THINKING_TOKENS: "0",
     NO_PROXY: "127.0.0.1,localhost",
     no_proxy: "127.0.0.1,localhost",
   };
   delete env.ANTHROPIC_API_KEY;
+  if (input.evaluation) {
+    // 每次运行使用独立设置，既不读取用户项目设置，也不让 --bare 禁用 Native 的 Turn Hook。
+    const hooks = input.variant === "native" ? Object.fromEntries(
+      ["UserPromptSubmit", "PreCompact", "PostCompact"].map(event => [event, [{ matcher: "", hooks: [{
+        type: "http", url: input.baseUrl.replace(/\/$/, "") + "/hooks/claude-code/context",
+        headers: { "x-api-key": authToken },
+      }] }]]),
+    ) : {};
+    await secureWriteJson(join(input.claudeConfigDirectory, "settings.json"), { hooks, alwaysThinkingEnabled: false });
+    env.ANTHROPIC_MODEL = input.evaluation.model;
+  }
   const args = [
-    "--bare",
+    ...(input.evaluation ? ["--setting-sources", "user", "--model", input.evaluation.model] : ["--bare"]),
     "--no-session-persistence",
     "--output-format", "stream-json",
     "--verbose",
-    "--tools", "Bash",
-    "--allowedTools", "Bash(curl *)",
+    "--tools", input.evaluation ? "Bash,Read,Write,Edit,Glob,Grep" : "Bash",
+    // Coding 评测需要安装依赖和运行测试；由统一实验配置显式开启，两组保持相同权限。
+    "--allowedTools", input.evaluation?.allowBash ? "Bash,Read,Write,Edit,Glob,Grep"
+      : input.evaluation ? "Bash(curl *),Read,Write,Edit,Glob,Grep" : "Bash(curl *)",
     "--session-id", input.sessionId,
     "--print",
     input.testCase.query,
@@ -105,7 +129,14 @@ export async function runClaudeClient(input: ClientRunInput): Promise<ClientRunR
   let stderr = "";
   let firstOutputMs: number | null = null;
   let timedOut = false;
-  const child = spawn(input.binary, args, {
+  let completedAt: string | undefined;
+  let timingBuffer = "";
+  let stoppedOnObservation=false;
+  let observationStoppedAt:string|undefined;
+  const containerName = `tdai-eval-${input.sessionId}`;
+  const launch = input.evaluation?.image ? containerCommand({image:input.evaluation.image,name:containerName,
+    binary:await realpath(input.binary),workspace:input.workDirectory,settings:input.claudeConfigDirectory,args}) : {command:input.binary,args};
+  const child = spawn(launch.command, launch.args, {
     cwd: input.workDirectory,
     env,
     detached: true,
@@ -115,33 +146,66 @@ export async function runClaudeClient(input: ClientRunInput): Promise<ClientRunR
     if (firstOutputMs === null) firstOutputMs = Date.now() - startedMs;
     raw += chunk.toString("utf8");
     output.write(chunk);
+    timingBuffer += chunk.toString("utf8");
+    const lines = timingBuffer.split("\n");
+    timingBuffer = lines.pop() ?? "";
+    for (const line of [...lines, timingBuffer]) {
+      try {
+        const event = JSON.parse(line) as Record<string, unknown>;
+        // 用户在最终 result 到达时已收到完整回答，不把后续进程收尾计入等待时间。
+        if (event.type === "result" && event.is_error !== true) completedAt ??= new Date().toISOString();
+      } catch { /* stdout 中的非 JSON 文本不代表回答完成 */ }
+    }
   });
   child.stderr.on("data", (chunk: Buffer) => {
     if (stderr.length < 32_768) stderr += chunk.toString("utf8").slice(0, 32_768 - stderr.length);
   });
   const exitCode = await new Promise<number | null>((resolve, reject) => {
     let settled = false;
+    const stop = () => {
+      if (input.evaluation?.image) execFile("docker",["rm","-f",containerName],()=>{});
+      if (child.pid) killProcessGroup(child.pid,"SIGTERM");
+      setTimeout(()=>{if (child.exitCode===null && child.pid) killProcessGroup(child.pid,"SIGKILL");},2000).unref();
+    };
+    let checking=false;
+    const observationTimer=input.observationStop ? setInterval(async () => {
+      if (settled || checking || stoppedOnObservation) return;
+      checking=true;
+      try {
+        const content=await readFile(input.observationStop!.file,"utf8");
+        if (settled) return;
+        // 只读完整行；文件末尾可能正在追加，最终计数仍由严格事件解析器检查。
+        const rows=content.slice(0,content.lastIndexOf("\n")+1).split("\n").filter(Boolean).map(line=>JSON.parse(line));
+        const names=rows.map(row=>row.tool_name);
+        const tools=input.observationStop!.tools;
+        if (names.length && tools.every(tool=>names.includes(tool))) {
+          stoppedOnObservation=true;observationStoppedAt=new Date().toISOString();stop();
+        }
+      } catch(error) {if ((error as NodeJS.ErrnoException).code!=="ENOENT") stderr+="\nObservation stop read failed; final validation required.";}
+      finally {checking=false;}
+    },250) : undefined;
     const finish = (value: number | null): void => {
       if (settled) return;
       settled = true;
       clearTimeout(timeout);
+      clearInterval(observationTimer);
       resolve(value);
     };
     child.once("error", (error) => {
       if (settled) return;
       settled = true;
       clearTimeout(timeout);
+      clearInterval(observationTimer);
       reject(error);
     });
-    child.once("exit", (code) => finish(code));
+    // close 保证 stdout 已读完；exit 可能早于最后一段数据到达。
+    child.once("close", (code) => finish(code));
     const timeout = setTimeout(() => {
       timedOut = true;
-      if (child.pid) killProcessGroup(child.pid, "SIGTERM");
-      setTimeout(() => {
-        if (child.exitCode === null && child.pid) killProcessGroup(child.pid, "SIGKILL");
-      }, 2_000).unref();
+      stop();
     }, input.timeoutMs);
   });
+  if (input.evaluation?.image) await new Promise<void>(resolve=>execFile("docker",["rm","-f",containerName],()=>resolve()));
   await new Promise<void>((resolve, reject) => output.end((error?: Error | null) => error ? reject(error) : resolve()));
   await chmod(input.streamPath, 0o600);
   const events = parseEvents(raw);
@@ -151,7 +215,10 @@ export async function runClaudeClient(input: ClientRunInput): Promise<ClientRunR
     timedOut,
     startedAt,
     endedAt: new Date().toISOString(),
+    ...(completedAt ? { completedAt } : {}),
     ttftMs: timeToFirstAssistantMs(events, startedAt, firstOutputMs),
     stderr,
+    stoppedOnObservation,
+    ...(observationStoppedAt ? {observationStoppedAt} : {}),
   };
 }

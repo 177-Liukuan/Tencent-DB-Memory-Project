@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { scoreRun, summarizeRuns } from "../metrics/index.js";
-import { percentile } from "../metrics/latency.js";
+import { aggregateRuns, pairedDeltas, scoreRun, summarizeRuns } from "../metrics/index.js";
+import { distribution, percentile } from "../metrics/latency.js";
 import { evaluateArgument } from "../metrics/tool.js";
 import type { CaseRun, EvalCase } from "../types.js";
 
@@ -43,7 +43,78 @@ function run(overrides: Partial<CaseRun> = {}): CaseRun {
   };
 }
 
+function calls(...names: string[]): CaseRun["tool_calls"] {
+  return names.map((name, index) => ({
+    call_id: String(index), raw_name: name, logical_name: name, kind: "managed",
+    arguments: {}, result: null, error: null, started_at: null, ended_at: null, latency_ms: null,
+  }));
+}
+
 describe("metric engine", () => {
+  it("accepts an allowed first tool without requiring every alternative", () => {
+    const testCase = evalCase({ expected_tools: ["tdai_memory_search", "tdai_conversation_search"], allowed_first_tools: ["tdai_memory_search", "tdai_conversation_search"] });
+    const good = scoreRun(testCase, run({ tool_calls: calls("tdai_conversation_search") }));
+    expect(good.metrics?.selection_correct).toBe(true);
+    expect(good.metrics?.case_pass).toBe(true);
+    const corrected = scoreRun(testCase, run({ tool_calls: calls("skill_view", "tdai_memory_search") }));
+    expect(corrected.metrics?.effective_call).toBe(true);
+    expect(corrected.metrics?.selection_correct).toBe(false);
+  });
+
+  it("checks the first call for single-step labels and preserves sequence order and repetitions", () => {
+    expect(scoreRun(evalCase(), run({ tool_calls: calls("tdai_memory_search", "skill_view") })).metrics?.selection_correct).toBe(true);
+    const sequence = evalCase({ expected_tools: ["skill_search", "skill_view"], expected_tool_sequence: ["skill_search", "skill_view"] });
+    expect(scoreRun(sequence, run({ tool_calls: calls("skill_view", "skill_search") })).metrics?.selection_correct).toBe(false);
+    expect(scoreRun(sequence, run({ tool_calls: calls("skill_search", "skill_view") })).metrics?.selection_correct).toBe(true);
+    expect(scoreRun(sequence, run({ tool_calls: calls("skill_search", "skill_search", "skill_view") })).metrics?.selection_correct).toBe(false);
+    const alternatives = evalCase({ expected_tools: ["skill_search", "skill_view"], allowed_sequences: [["skill_view"], ["skill_search", "skill_view"]] });
+    expect(scoreRun(alternatives, run({ tool_calls: calls("skill_view") })).metrics?.selection_correct).toBe(true);
+  });
+
+  it("counts repeated observations of a call ID once, but keeps new calls to the same tool", () => {
+    const [one] = calls("tdai_memory_search");
+    const scored = scoreRun(evalCase(), run({ tool_calls: [one!, one!, { ...one!, call_id: "new-call" }] }));
+    expect(scored.metrics?.managed_tool_calls).toBe(2);
+    expect(scored.metrics?.duplicate_tool_calls).toBe(1);
+  });
+
+  it("separates expected task family from the called family and shares negative denominators", () => {
+    const score = (id: string, family: "memory" | "skill" | "none", names: string[]) => scoreRun(
+      evalCase({ case_id: id, tool_family: family, should_call: family !== "none", expected_tools: family === "none" ? [] : [family === "memory" ? "tdai_memory_search" : "skill_view"] }),
+      run({ run_id: id, case_id: id, tool_calls: calls(...names) }),
+    );
+    const summary = summarizeRuns([
+      score("m1", "memory", ["skill_view"]), score("m2", "memory", []),
+      score("s", "skill", ["skill_view"]),
+      score("n1", "none", ["skill_view", "tdai_memory_search"]), score("n2", "none", []),
+    ]);
+    expect(summary.overall.effective_call_rate).toBeCloseTo(2 / 3);
+    expect(summary.overall.tool_selection_accuracy).toBe(0.5);
+    expect(summary.overall.false_call_rate).toBe(0.5);
+    expect(summary.variants.baseline?.by_tool_family.memory).toMatchObject({ positive_cases: 2, called_positive_cases: 1, correct_tool_cases: 0, negative_cases: 2, false_call_cases: 1, effective_call_rate: 0.5, false_call_rate: 0.5, tool_selection_accuracy: 0 });
+    expect(summary.overall.by_tool_family.skill.effective_call_rate).toBe(1);
+    expect(summary.overall.by_tool_family.skill.false_call_rate).toBe(0.5);
+  });
+
+  it("excludes failed timing and averages repetitions within each case before combining cases", () => {
+    const make = (id: string, caseId: string, ms: number, status: CaseRun["status"] = "completed") => run({ run_id: id, case_id: caseId, status, latency: { end_to_end_ms: ms, ttft_ms: 1, tool_ms: [] } });
+    const items = [make("a1", "a", 100), make("a2", "a", 300), make("b1", "b", 1000), make("bad", "c", 1, "timeout")];
+    expect(aggregateRuns(items).end_to_end_ms).toEqual({ count: 2, mean: 600, median: 600, p95: 1000 });
+  });
+
+  it("uses all repetitions in paired deltas and reports percentage changes over the same case set", () => {
+    const make = (caseId: string, variant: CaseRun["variant"], ms: number) => run({ case_id: caseId, variant, latency: { end_to_end_ms: ms, ttft_ms: 1, tool_ms: [] } });
+    const items = [make("a", "baseline", 100), make("a", "baseline", 300), make("a", "native", 100), make("b", "baseline", 1000), make("b", "native", 800), make("unpaired", "baseline", 9999)];
+    expect(pairedDeltas(items).end_to_end_ms).toEqual({ count: 2, mean: -150, median: -150, p95: -100 });
+    expect(summarizeRuns(items).end_to_end_comparison).toMatchObject({ paired_cases: 2, baseline_mean_ms: 600, native_mean_ms: 450, change_percent: -25 });
+  });
+
+  it("keeps main and probe summaries separate for the formal report", () => {
+    const main = scoreRun(evalCase(), run({ tool_calls: calls("tdai_memory_search"), case: { ...run().case, suite: "main" } }));
+    const probe = scoreRun(evalCase(), run({ case: { ...run().case, suite: "probe" } }));
+    expect(summarizeRuns([main, probe]).suites.main?.variants.baseline?.effective_call_rate).toBe(1);
+    expect(summarizeRuns([main, probe]).suites.probe?.variants.baseline?.effective_call_rate).toBe(0);
+  });
   it("scores missing, false-positive, wrong, extra, arguments and task failures", () => {
     expect(scoreRun(evalCase(), run()).failure_tags).toContain("Missing Tool");
     expect(scoreRun(evalCase({ should_call: false, expected_tools: [] }), run({ tool_calls: [{ call_id: "1", raw_name: "skill_view", logical_name: "skill_view", kind: "managed", arguments: {}, result: null, error: null, started_at: null, ended_at: null, latency_ms: null }] })).failure_tags).toContain("False Positive");
@@ -85,6 +156,9 @@ describe("metric engine", () => {
 });
 
 describe("percentile", () => {
+  it("uses the average of the two middle observations for an even-sized median", () => {
+    expect(distribution([10, 20, 30, 100]).median).toBe(25);
+  });
   it("uses nearest-rank P95", () => {
     expect(percentile([1, 2, 3, 4, 100], 0.95)).toBe(100);
     expect(percentile([], 0.95)).toBeNull();

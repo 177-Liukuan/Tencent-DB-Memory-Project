@@ -121,7 +121,7 @@ function unfinished(status: PipelineStatus): string {
 }
 
 export async function waitForMemoryProcessing(
-  config: DataBuilderConfig,
+  config: Pick<DataBuilderConfig, "processing">,
   dependencies: WaitDependencies,
 ): Promise<PipelineStatus> {
   const sleep = dependencies.sleep ?? ((ms: number) => new Promise<void>((resolvePromise) => setTimeout(resolvePromise, ms)));

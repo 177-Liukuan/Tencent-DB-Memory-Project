@@ -20,11 +20,13 @@ describe("dataset generation templates", () => {
 
   test("keeps browser-use and docling as formal evaluation Skills", async () => {
     const skills = await discoverSkillPackages(resolve(datasetRoot, "skills"));
+    const names = skills.map((skill) => skill.name);
 
-    expect(skills.map((skill) => skill.name).sort()).toEqual([
+    expect(names).toEqual(expect.arrayContaining([
       "browser-use",
       "docling-document-intelligence",
-    ]);
+    ]));
+    expect(new Set(names).size).toBe(names.length);
   });
 
   test("provides three directly importable Skill examples with unique names", async () => {

@@ -12,6 +12,10 @@ export type ParsedMemoryImportCommand = {
   options: { directory: string; onConflict: MemoryConflictMode; dryRun: boolean };
 };
 
+export function defaultMemoryImportLabRoot(): string {
+  return resolve(dirname(fileURLToPath(import.meta.url)), "../../../tencentdb-memory-lab");
+}
+
 function parseArgs(args: string[]): ParsedArgs {
   const values = new Map<string, string>();
   const flags = new Set<string>();
@@ -85,7 +89,7 @@ export async function parseMemoryImportCommand(
   const teamId = required(parsed, "team-id");
   const agentId = required(parsed, "agent-id");
   const serviceId = parsed.values.get("service-id")?.trim() || "rhino-ab";
-  const defaultLabRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../tencentdb-memory-lab");
+  const defaultLabRoot = defaultMemoryImportLabRoot();
   const labRoot = resolve(parsed.values.get("lab-root") ?? env.TDAI_LAB_ROOT ?? defaultLabRoot);
   const variants: Array<"baseline" | "native"> = variant === "both" ? ["baseline", "native"] : [variant];
   const targets: MemoryImportTarget[] = [];
