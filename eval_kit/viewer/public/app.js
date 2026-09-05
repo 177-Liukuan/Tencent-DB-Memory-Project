@@ -1,4 +1,6 @@
-const state = { experiment: "", suite: "", data: null, pairs: [], page: 1, load: 0, detail: 0 };
+import { initDataset } from "./dataset.js";
+
+const state = { experiment: "", suite: "", data: null, pairs: [], page: 1, load: 0, detail: 0, view: "dataset" };
 const PAGE_SIZE = 25;
 const labels = { correct: "符合预期", missed: "未调用", wrong_tool: "选择不符", false_call: "误调用", invalid: "采集异常", damaged: "文件异常", pending: "待运行" };
 const suites = { main: "主评测", smoke: "冒烟测试", probe: "探针测试", reliability: "可靠性测试" };
@@ -38,6 +40,7 @@ function notice(message) {
 }
 function updateUrl(pair) {
   const params = new URLSearchParams();
+  params.set("view", state.view);
   if (state.experiment) params.set("experiment", state.experiment);
   if (state.suite) params.set("suite", state.suite);
   if (pair) { params.set("case", pair.case_id); params.set("repeat", pair.repeat); }
@@ -252,6 +255,24 @@ byId("case-dialog").addEventListener("click", e => {
 });
 const initial = new URLSearchParams(location.search);
 state.experiment = initial.get("experiment") ?? ""; state.suite = initial.get("suite") ?? "";
-await refresh();
+const dataset = initDataset();
+async function selectView(view) {
+  state.view = view;
+  for (const name of ["dataset", "results"]) {
+    byId(`${name}-view`).hidden = name !== view;
+    if (name === view) byId(`nav-${name}`).setAttribute("aria-current", "page");
+    else byId(`nav-${name}`).removeAttribute("aria-current");
+  }
+  updateUrl();
+  if (view === "dataset") await dataset.load();
+  else if (!state.data) await refresh();
+}
+for (const view of ["dataset", "results"]) byId(`nav-${view}`).addEventListener("click", e => {
+  // 修饰键点击仍遵循链接的原生行为，便于单独打开另一页。
+  if (e.ctrlKey || e.metaKey || e.shiftKey || e.altKey) return;
+  e.preventDefault(); void selectView(view);
+});
+// 已有案例链接仍打开评测结果；没有实验参数时默认进入数据集概览。
+await selectView(initial.get("view") === "results" || (!initial.has("view") && state.experiment) ? "results" : "dataset");
 const initialPair = state.pairs.find(p => p.case_id === initial.get("case") && String(p.repeat) === (initial.get("repeat") ?? "1"));
-if (state.data && initialPair) await showPair(initialPair);
+if (state.view === "results" && state.data && initialPair) await showPair(initialPair);

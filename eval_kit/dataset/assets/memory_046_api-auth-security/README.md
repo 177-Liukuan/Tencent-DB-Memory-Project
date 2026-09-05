@@ -1,4 +1,2 @@
-# Environment snapshot: memory_046_api-auth-security
-
-This small repository snapshot exists only to provide realistic coding context for the tool-calling benchmark.
-It is intentionally self-contained and does not require dependency installation during evaluation.
+# Auth edge service
+TypeScript fixture for token verification, login normalization, password reset and OAuth redirect validation. Uses Node crypto only so unit tests are self-contained.

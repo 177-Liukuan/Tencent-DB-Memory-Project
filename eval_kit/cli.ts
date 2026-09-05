@@ -55,7 +55,7 @@ Usage:
   npm run run -- --config configs/bridge-observation.example.yaml
   npm run legacy:run -- --config configs/experiments/smoke.yaml [--reset-assets|--resume] [--case ID] [--variant baseline|native]
   npm run score -- --experiment results/<experiment_id>
-  npm run viewer -- --results results [--port 4173]
+  npm run viewer -- --results results [--dataset tasks.jsonl] [--port 4173]
   npm run skills:import -- --variant native|baseline|both --directory DIR --user-id USER --team-id TEAM --agent-id AGENT
   npm run memories:import -- --variant native|baseline|both --directory DIR --user-id USER --team-id TEAM --agent-id AGENT
   npm run data:prepare -- --config FILE [--check]
@@ -149,7 +149,8 @@ async function main(): Promise<void> {
     const results = resolve(one(parsed, "results") ?? "results");
     const port = Number(one(parsed, "port") ?? "4173");
     if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error("--port must be an integer from 1 to 65535");
-    const server = serve({ fetch: createViewerApp({ resultsRoot: results }).fetch, hostname: "127.0.0.1", port });
+    const dataset = one(parsed, "dataset");
+    const server = serve({ fetch: createViewerApp({ resultsRoot: results, ...(dataset ? { datasetPath: resolve(dataset) } : {}) }).fetch, hostname: "127.0.0.1", port });
     process.stdout.write(`Case Viewer: http://127.0.0.1:${port}\n`);
     const close = (): void => {
       server.close(() => process.exit(0));

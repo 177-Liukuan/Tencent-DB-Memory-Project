@@ -1,7 +1,7 @@
 // 通过 Playwright 的 browser_run_code 工具运行；只读现有实验，不调用模型或修改业务数据。
 (async (page) => {
   const check = (value, message) => { if (!value) throw new Error(message); };
-  await page.goto("http://127.0.0.1:4173/");
+  await page.goto("http://127.0.0.1:4173/?view=results");
   await page.getByRole("heading", { name: "工具调用评测", exact: true }).waitFor({ timeout: 5000 });
   await page.locator("#case-list .case-row").first().waitFor();
   check(await page.locator("#metrics .metric-card").count() === 4, "应显示四个核心对比指标");

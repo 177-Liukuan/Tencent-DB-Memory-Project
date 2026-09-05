@@ -1,3 +1,6 @@
-def test_user_shape():
-    result = {'id': 'u1', 'name': 'Ada'}
-    assert result['id'] == 'u1'
+from fastapi.testclient import TestClient
+from app.main import app
+client = TestClient(app)
+
+def test_health():
+    assert client.get('/health').json() == {'status': 'ok'}

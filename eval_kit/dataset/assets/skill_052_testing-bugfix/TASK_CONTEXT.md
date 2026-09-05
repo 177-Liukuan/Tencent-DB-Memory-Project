@@ -1,10 +1,3 @@
-# Current task context
+# Working notes
 
-Scenario: 测试与缺陷修复
-Stack: TypeScript, Vitest, Node.js
-
-User request:
-
-为解析器补充边界与错误输入测试，确保修复不会只覆盖单个样例。
-
-The files in this directory are the complete environment snapshot available to the agent for this case.
+Repository files describe the current implementation. Keep changes relevant to the requested task and add tests for changed behavior.

@@ -1,4 +1,2 @@
-# Environment snapshot: skill_097_memory-proxy-evaluation
-
-This small repository snapshot exists only to provide realistic coding context for the tool-calling benchmark.
-It is intentionally self-contained and does not require dependency installation during evaluation.
+# MemoryProxy evaluation harness fixture
+TypeScript fixture for normalizing Baseline curl traces and Native tool calls into common business labels. It also models evaluation configuration and recorder aggregation.

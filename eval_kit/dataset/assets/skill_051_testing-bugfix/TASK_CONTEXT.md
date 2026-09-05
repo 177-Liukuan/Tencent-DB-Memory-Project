@@ -1,10 +1,3 @@
-# Current task context
+# Working notes
 
-Scenario: 测试与缺陷修复
-Stack: TypeScript, Vitest, Node.js
-
-User request:
-
-重构测试夹具，消除共享全局状态和执行顺序依赖。
-
-The files in this directory are the complete environment snapshot available to the agent for this case.
+Repository files describe the current implementation. Keep changes relevant to the requested task and add tests for changed behavior.

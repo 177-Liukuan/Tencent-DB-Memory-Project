@@ -1,10 +1,3 @@
-# Current task context
+# Working notes
 
-Scenario: Python / FastAPI 服务
-Stack: Python 3.12, FastAPI, Pydantic v2, pytest, uv
-
-User request:
-
-把同步的第三方画像请求改为异步 httpx 调用，明确超时、取消和上游错误测试。
-
-The files in this directory are the complete environment snapshot available to the agent for this case.
+Repository files describe the current implementation. Keep changes relevant to the requested task and add tests for changed behavior.

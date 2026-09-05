@@ -1,4 +1,2 @@
-# Environment snapshot: none_023_postgres-migrations
-
-This small repository snapshot exists only to provide realistic coding context for the tool-calling benchmark.
-It is intentionally self-contained and does not require dependency installation during evaluation.
+# Orders database migrations
+PostgreSQL migration fixture with schema files, repository code, validation SQL and a resumable backfill utility.

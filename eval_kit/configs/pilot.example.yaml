@@ -19,14 +19,13 @@ preparation_max_tokens: 4096
 preparation_thinking: disabled
 # 工具指标到观测点即结束；端到端小任务另用 end_to_end，不把安装依赖时间混入这组指标。
 measurement: tool_calls
-stop_after_tools:
-  skill_001_node-typescript-api: [skill_view, skill_files_read]
-  skill_008_python-fastapi: [skill_view, skill_files_read]
-  skill_015_react-frontend: [skill_view, skill_files_read]
+stop_after_tools: {}
 # 两组均在临时容器中运行，允许真实 Coding 命令；仍应仅使用可信素材。
 allow_bash: true
 # 启动已安装的 tdam-{baseline,native}-{core,proxy} 用户服务；不会重建业务代码。
 start_services: true
+# 专用评测环境中加载当前源码；会中断既有 Proxy 会话，人工会话期间请设 false。
+restart_proxies: true
 variants:
   baseline:
     project: ../../TencentDB-Agent-Memory-Baseline

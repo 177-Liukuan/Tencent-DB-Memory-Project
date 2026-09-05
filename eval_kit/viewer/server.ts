@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { readManifest, readOverview, readRun, viewerConfigSchema } from "./results.js";
+import { readDatasetOverview } from "./dataset.js";
 
 export function resolveWithin(root: string, child: string): string {
   if (child.includes("\0") || isAbsolute(child)) throw new Error("Path points outside the results root");
@@ -25,9 +26,10 @@ async function jsonFile(root: string, child: string): Promise<unknown> {
   return JSON.parse(await readFile(await resolveExistingWithin(root, child), "utf8"));
 }
 
-export function createViewerApp(options: { resultsRoot: string }): Hono {
+export function createViewerApp(options: { resultsRoot: string; datasetPath?: string }): Hono {
   const app = new Hono();
   const publicRoot = resolve(dirname(fileURLToPath(import.meta.url)), "public");
+  const datasetPath = options.datasetPath ?? resolve(publicRoot, "../../dataset/tasks/tool_call_eval_v1.jsonl");
 
   app.use("*", async (c, next) => {
     await next();
@@ -75,6 +77,8 @@ export function createViewerApp(options: { resultsRoot: string }): Hono {
     }
     return c.json(experiments.sort((a, b) => b.updated_at.localeCompare(a.updated_at) || a.experiment_id.localeCompare(b.experiment_id)));
   });
+  // 浏览器只能读取启动时确定的任务文件，不提供任意文件路径读取接口。
+  app.get("/api/dataset", async (c) => c.json(await readDatasetOverview(datasetPath)));
   app.get("/api/experiments/:experiment/overview", async (c) => {
     const experiment = c.req.param("experiment");
     const current = await config(experiment);

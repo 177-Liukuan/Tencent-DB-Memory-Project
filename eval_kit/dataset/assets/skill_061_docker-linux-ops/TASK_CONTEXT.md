@@ -1,10 +1,3 @@
-# Current task context
+# Working notes
 
-Scenario: Docker / Linux 服务部署
-Stack: Docker, Linux, Python 3.12, systemd
-
-User request:
-
-实现服务收到 SIGTERM 后先摘除就绪状态、停止接单并在期限内排空请求。
-
-The files in this directory are the complete environment snapshot available to the agent for this case.
+Repository files describe the current implementation. Keep changes relevant to the requested task and add tests for changed behavior.

@@ -4,16 +4,51 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="color-scheme" content="light">
-    <title>工具调用评测 · TencentDB Agent Memory</title>
+    <title>数据与评测 · TencentDB Agent Memory</title>
     <link rel="icon" href="data:,">
     <link rel="stylesheet" href="/assets/styles.css">
   </head>
   <body>
     <header class="topbar">
       <a class="brand" href="/" aria-label="评测首页"><span class="brand-mark" aria-hidden="true"></span>TencentDB <span>Agent Memory</span></a>
-      <span class="readonly">只读结果查看器</span>
+      <nav class="page-nav" aria-label="主要导航"><a id="nav-dataset" href="/?view=dataset">数据集概览</a><a id="nav-results" href="/?view=results">评测结果</a></nav>
+      <span class="readonly"><span class="status-dot"></span>只读工作台</span>
     </header>
     <main>
+      <section id="dataset-view" hidden aria-labelledby="dataset-title">
+        <section class="dataset-hero">
+          <div><p class="eyebrow">DATASET EXPLORER</p><h1 id="dataset-title">数据集，一目了然。</h1><p>从任务分布到调用预期，探索每一条评测输入。</p><div class="dataset-source"><span class="source-pill" id="dataset-source">当前任务数据集</span><span id="dataset-updated"></span></div></div>
+          <div class="hero-actions"><span class="hero-tag">TencentDB Agent Memory · 任务一</span><button id="dataset-refresh" type="button" class="primary">刷新数据 <span aria-hidden="true">↻</span></button></div>
+        </section>
+        <p id="dataset-notice" class="notice" role="alert" hidden></p>
+        <p id="dataset-loading" class="loading" role="status" hidden>正在读取数据集…</p>
+        <div id="dataset-content" hidden>
+          <div id="dataset-stats" class="dataset-stats"></div>
+          <div class="dataset-charts">
+            <section class="panel distribution-panel" aria-labelledby="distribution-title"><div class="chart-heading"><div><p class="eyebrow">COMPOSITION</p><h2 id="distribution-title">任务类别</h2></div><span class="muted">点击类别筛选</span></div><div class="composition"><div id="dataset-donut" class="donut-wrap"></div><div id="dataset-families" class="chart-legend"></div></div><div id="dataset-balance" class="balance-note"></div></section>
+            <section class="panel scenario-panel" aria-labelledby="scenario-title"><div class="chart-heading"><div><p class="eyebrow">SCENARIOS</p><h2 id="scenario-title">场景覆盖</h2></div><span id="scenario-count" class="muted"></span></div><div id="dataset-scenarios" class="scenario-bars"></div></section>
+          </div>
+          <div class="dataset-secondary-charts">
+            <section class="panel compact-chart"><h2>任务难度</h2><div id="dataset-difficulties" class="difficulty-buttons"></div></section>
+            <section class="panel compact-chart"><h2>预期工具分布 <small class="muted">涉及该工具的任务数，可重叠</small></h2><div id="dataset-tools" class="tool-coverage"></div></section>
+          </div>
+          <section class="panel dataset-list-panel" aria-labelledby="dataset-list-title">
+            <div class="section-heading"><div><p class="eyebrow">BROWSE TASKS</p><h2 id="dataset-list-title">探索任务</h2><p class="muted">图表展示全量分布；筛选只影响下方列表。点击任务查看完整输入与预期。</p></div><span id="dataset-count" class="counter" role="status"></span></div>
+            <form id="dataset-filters" class="filters">
+              <label class="search"><span class="sr-only">搜索数据集</span><input id="dataset-search" type="search" placeholder="搜索问题、任务 ID、工具或 Skill" autocomplete="off"></label>
+              <select id="dataset-family" aria-label="数据集类别"><option value="">全部类别</option></select>
+              <select id="dataset-scenario" aria-label="数据集场景"><option value="">全部场景</option></select>
+              <select id="dataset-difficulty" aria-label="数据集难度"><option value="">全部难度</option></select>
+              <button id="dataset-clear" type="button" class="text-button">重置筛选</button>
+            </form>
+            <div class="dataset-columns" aria-hidden="true"><span>任务 / 用户输入</span><span>类别与难度</span><span>场景 / 预期工具</span><span></span></div>
+            <div id="dataset-list"></div>
+            <div class="pagination"><span id="dataset-page" class="muted"></span><div><button id="dataset-prev" type="button" class="secondary">上一页</button><button id="dataset-next" type="button" class="secondary">下一页</button></div></div>
+          </section>
+          <p class="dataset-disclaimer">这里展示数据集的预期标签，不是模型实测结果，也不代表标签已经人工审核。素材数量按任务中引用的唯一名称或路径统计，不包含文件完整性检查。</p>
+        </div>
+      </section>
+      <section id="results-view" hidden>
       <section class="page-heading">
         <div><p class="eyebrow">PROXY TOOL EVALUATION</p><h1>工具调用评测</h1><p class="muted">同一个任务，比较两种工具调用方式。</p></div>
         <div class="experiment-controls">
@@ -54,7 +89,9 @@
           <p>本观测格式不采集工具参数、业务返回值或静态注入 Token，因此不在此展示这些指标。</p>
         </details>
       </section>
+      </section>
     </main>
+    <dialog id="dataset-dialog" aria-labelledby="dataset-detail-title"><div class="dialog-heading"><div><p class="eyebrow">TASK DETAIL</p><h2 id="dataset-detail-title"></h2></div><button id="dataset-close" type="button" class="secondary" aria-label="关闭任务详情">关闭 ×</button></div><div id="dataset-detail-body"></div></dialog>
     <dialog id="case-dialog" aria-labelledby="detail-title">
       <div class="dialog-heading"><div><p class="eyebrow">CASE COMPARISON</p><h2 id="detail-title"></h2></div><button id="close-detail" type="button" class="secondary" aria-label="关闭详情">关闭 ×</button></div>
       <div id="detail-body"></div>

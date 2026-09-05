@@ -1,4 +1,2 @@
-# Environment snapshot: none_008_python-fastapi
-
-This small repository snapshot exists only to provide realistic coding context for the tool-calling benchmark.
-It is intentionally self-contained and does not require dependency installation during evaluation.
+# User Service
+FastAPI service with Pydantic request models, an explicit service/repository boundary and pytest coverage.

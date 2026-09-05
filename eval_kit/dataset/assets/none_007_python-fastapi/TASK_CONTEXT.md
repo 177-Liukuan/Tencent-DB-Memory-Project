@@ -1,10 +1,3 @@
-# Current task context
+# Working notes
 
-Scenario: Python / FastAPI 服务
-Stack: Python 3.12, FastAPI, Pydantic v2, pytest, uv
-
-User request:
-
-把 `app/users.py` 中局部变量 `data` 重命名为 `python_fastapi_data`，不要改变行为。
-
-The files in this directory are the complete environment snapshot available to the agent for this case.
+Repository files describe the current implementation. Keep changes relevant to the requested task and add tests for changed behavior.

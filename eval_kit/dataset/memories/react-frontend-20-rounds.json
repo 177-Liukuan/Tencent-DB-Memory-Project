@@ -3,203 +3,203 @@
   "messages": [
     {
       "role": "user",
-      "content": "这次 React / TypeScript 前端 评审定下了一条长期规则：前端固定使用 React 19、Vite 和 pnpm，不引入 Create React App 兼容层。 后续相关改动按这个决定执行。",
-      "timestamp": "2026-01-23T09:00:00Z"
+      "content": "项目决定更新：用户中心新增组件统一放在 src/features/users/components，并通过该 feature 的 index.ts 导出；禁止继续把业务组件堆到 src/components 根目录。 后续涉及这部分时按该决定执行。",
+      "timestamp": "2026-04-19T09:00:00Z"
     },
     {
       "role": "assistant",
-      "content": "已记录这项项目约定：前端固定使用 React 19、Vite 和 pnpm，不引入 Create React App 兼容层。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
-      "timestamp": "2026-01-23T09:01:00Z"
+      "content": "已记录：用户中心新增组件统一放在 src/features/users/components，并通过该 feature 的 index.ts 导出；禁止继续把业务组件堆到 src/components 根目录。",
+      "timestamp": "2026-04-19T09:01:00Z"
     },
     {
       "role": "user",
-      "content": "上次联调后我们把下面内容作为固定约定：表单状态使用 React 自带状态与原生表单动作，不引入 Formik。 之后发现不一致时先说明再修改。",
-      "timestamp": "2026-01-23T09:05:00Z"
+      "content": "今天复查了实现，补充一条注意事项：用户卡片的头像加载失败时显示姓名首字，不把断图图标留在界面上。",
+      "timestamp": "2026-04-19T09:07:00Z"
     },
     {
       "role": "assistant",
-      "content": "已记录这项项目约定：表单状态使用 React 自带状态与原生表单动作，不引入 Formik。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
-      "timestamp": "2026-01-23T09:06:00Z"
+      "content": "已记录：用户卡片的头像加载失败时显示姓名首字，不把断图图标留在界面上。",
+      "timestamp": "2026-04-19T09:08:00Z"
     },
     {
       "role": "user",
-      "content": "请把这项 React / TypeScript 前端 项目约定保留下来：组件样式必须使用同名 .module.css 文件，禁止新增全局业务类名。 后续实现不要偏离。",
-      "timestamp": "2026-01-23T09:10:00Z"
+      "content": "关于测试安排，有个约定要记下来：错误提示除了颜色还要有文字，灰阶显示和色觉障碍用户也应能理解状态。",
+      "timestamp": "2026-04-19T09:14:00Z"
     },
     {
       "role": "assistant",
-      "content": "已记录这项项目约定：组件样式必须使用同名 .module.css 文件，禁止新增全局业务类名。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
-      "timestamp": "2026-01-23T09:11:00Z"
+      "content": "已记录：错误提示除了颜色还要有文字，灰阶显示和色觉障碍用户也应能理解状态。",
+      "timestamp": "2026-04-19T09:15:00Z"
     },
     {
       "role": "user",
-      "content": "故障复盘已经确认：用户模块可访问性 id 统一使用 usr- 前缀，label 必须通过 htmlFor 与输入框关联。 以后同类任务都按这条处理。",
-      "timestamp": "2026-01-23T09:15:00Z"
+      "content": "项目决定更新：用户资料表单不引入额外表单库，跨步骤草稿状态由 UsersProvider 保存，字段内部状态保持在组件内。 后续涉及这部分时按该决定执行。",
+      "timestamp": "2026-04-19T09:21:00Z"
     },
     {
       "role": "assistant",
-      "content": "已记录这项项目约定：用户模块可访问性 id 统一使用 usr- 前缀，label 必须通过 htmlFor 与输入框关联。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
-      "timestamp": "2026-01-23T09:16:00Z"
+      "content": "已记录：用户资料表单不引入额外表单库，跨步骤草稿状态由 UsersProvider 保存，字段内部状态保持在组件内。",
+      "timestamp": "2026-04-19T09:22:00Z"
     },
     {
       "role": "user",
-      "content": "这次 React / TypeScript 前端 评审定下了一条长期规则：2 月 22 日 hydration 故障后确认：window、localStorage 等浏览器对象只能在 effect 或事件处理器中访问。 后续相关改动按这个决定执行。",
-      "timestamp": "2026-01-23T09:20:00Z"
+      "content": "这次评审还确认了：列表渲染使用稳定的用户编号作为 key，不能使用会随排序变化的数组下标。",
+      "timestamp": "2026-04-19T09:28:00Z"
     },
     {
       "role": "assistant",
-      "content": "已记录这项项目约定：2 月 22 日 hydration 故障后确认：window、localStorage 等浏览器对象只能在 effect 或事件处理器中访问。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
-      "timestamp": "2026-01-23T09:21:00Z"
+      "content": "已记录：列表渲染使用稳定的用户编号作为 key，不能使用会随排序变化的数组下标。",
+      "timestamp": "2026-04-19T09:29:00Z"
     },
     {
       "role": "user",
-      "content": "上次联调后我们把下面内容作为固定约定：2 月 24 日评审确定：组件测试使用 Vitest 与 Testing Library，优先按 role 和 accessible name 查询。 之后发现不一致时先说明再修改。",
-      "timestamp": "2026-01-23T09:25:00Z"
+      "content": "后续维护时请保留这个处理方式：网络请求在组件卸载时取消，避免旧响应覆盖刚切换到的新用户资料。",
+      "timestamp": "2026-04-19T09:35:00Z"
     },
     {
       "role": "assistant",
-      "content": "已记录这项项目约定：2 月 24 日评审确定：组件测试使用 Vitest 与 Testing Library，优先按 role 和 accessible name 查询。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
-      "timestamp": "2026-01-23T09:26:00Z"
+      "content": "已记录：网络请求在组件卸载时取消，避免旧响应覆盖刚切换到的新用户资料。",
+      "timestamp": "2026-04-19T09:36:00Z"
     },
     {
       "role": "user",
-      "content": "请把这项 React / TypeScript 前端 项目约定保留下来：用户界面模块合并前运行 pnpm check:user-ui，内部依次执行 lint、typecheck、vitest。 后续实现不要偏离。",
-      "timestamp": "2026-01-23T09:30:00Z"
+      "content": "今天复查了实现，补充一条注意事项：移动端对话框要让正文可以滚动，提交按钮不能被虚拟键盘永久遮住。",
+      "timestamp": "2026-04-19T09:42:00Z"
     },
     {
       "role": "assistant",
-      "content": "已记录这项项目约定：用户界面模块合并前运行 pnpm check:user-ui，内部依次执行 lint、typecheck、vitest。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
-      "timestamp": "2026-01-23T09:31:00Z"
+      "content": "已记录：移动端对话框要让正文可以滚动，提交按钮不能被虚拟键盘永久遮住。",
+      "timestamp": "2026-04-19T09:43:00Z"
     },
     {
       "role": "user",
-      "content": "故障复盘已经确认：模块 `worker` 的默认超时为 350 毫秒，修改前必须评估调用链。 以后同类任务都按这条处理。",
-      "timestamp": "2026-01-23T09:35:00Z"
+      "content": "项目决定更新：用户状态徽标只能使用 --usr-status-active / --usr-status-disabled 两个主题 token，组件内不得写十六进制业务颜色。 后续相关改动按这条执行。",
+      "timestamp": "2026-04-19T09:49:00Z"
     },
     {
       "role": "assistant",
-      "content": "已记录这项项目约定：模块 `worker` 的默认超时为 350 毫秒，修改前必须评估调用链。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
-      "timestamp": "2026-01-23T09:36:00Z"
+      "content": "已记录：用户状态徽标只能使用 --usr-status-active / --usr-status-disabled 两个主题 token，组件内不得写十六进制业务颜色。",
+      "timestamp": "2026-04-19T09:50:00Z"
     },
     {
       "role": "user",
-      "content": "这次 React / TypeScript 前端 评审定下了一条长期规则：测试夹具统一放在 `ops/settings.json`，不得从其他测试目录跨用可变数据。 后续相关改动按这个决定执行。",
-      "timestamp": "2026-01-23T09:40:00Z"
+      "content": "关于测试安排，有个约定要记下来：表单提交失败后保留用户已经输入的内容，重试不应要求重新填写。",
+      "timestamp": "2026-04-19T09:56:00Z"
     },
     {
       "role": "assistant",
-      "content": "已记录这项项目约定：测试夹具统一放在 `ops/settings.json`，不得从其他测试目录跨用可变数据。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
-      "timestamp": "2026-01-23T09:41:00Z"
+      "content": "已记录：表单提交失败后保留用户已经输入的内容，重试不应要求重新填写。",
+      "timestamp": "2026-04-19T09:57:00Z"
     },
     {
       "role": "user",
-      "content": "上次联调后我们把下面内容作为固定约定：环境变量使用 `REACT_FRONTEND_ASYNC_EXPORT` 命名，并在示例文件中只放占位值。 之后发现不一致时先说明再修改。",
-      "timestamp": "2026-01-23T09:45:00Z"
+      "content": "这次评审还确认了：展示日期由统一的格式化函数处理，组件内部不重复拼接年月日。",
+      "timestamp": "2026-04-19T10:03:00Z"
     },
     {
       "role": "assistant",
-      "content": "已记录这项项目约定：环境变量使用 `REACT_FRONTEND_ASYNC_EXPORT` 命名，并在示例文件中只放占位值。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
-      "timestamp": "2026-01-23T09:46:00Z"
+      "content": "已记录：展示日期由统一的格式化函数处理，组件内部不重复拼接年月日。",
+      "timestamp": "2026-04-19T10:04:00Z"
     },
     {
       "role": "user",
-      "content": "请把这项 React / TypeScript 前端 项目约定保留下来：批处理默认批大小为 461，只能通过显式配置覆盖。 后续实现不要偏离。",
-      "timestamp": "2026-01-23T09:50:00Z"
+      "content": "后续维护时请保留这个处理方式：测试等待可见状态变化，不使用任意毫秒数的 sleep 来掩盖异步问题。",
+      "timestamp": "2026-04-19T10:10:00Z"
     },
     {
       "role": "assistant",
-      "content": "已记录这项项目约定：批处理默认批大小为 461，只能通过显式配置覆盖。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
-      "timestamp": "2026-01-23T09:51:00Z"
+      "content": "已记录：测试等待可见状态变化，不使用任意毫秒数的 sleep 来掩盖异步问题。",
+      "timestamp": "2026-04-19T10:11:00Z"
     },
     {
       "role": "user",
-      "content": "故障复盘已经确认：临时资源名称以 `REACT_FRONTEND-tmp-` 开头，任务结束后必须清理。 以后同类任务都按这条处理。",
-      "timestamp": "2026-01-23T09:55:00Z"
+      "content": "项目决定更新：用户模块可访问性 id 统一采用 usr- 前缀，label 必须通过 htmlFor 关联真实 input id。 后续涉及这部分时按该决定执行。",
+      "timestamp": "2026-04-19T10:17:00Z"
     },
     {
       "role": "assistant",
-      "content": "已记录这项项目约定：临时资源名称以 `REACT_FRONTEND-tmp-` 开头，任务结束后必须清理。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
-      "timestamp": "2026-01-23T09:56:00Z"
+      "content": "已记录：用户模块可访问性 id 统一采用 usr- 前缀，label 必须通过 htmlFor 关联真实 input id。",
+      "timestamp": "2026-04-19T10:18:00Z"
     },
     {
       "role": "user",
-      "content": "这次 React / TypeScript 前端 评审定下了一条长期规则：审计日志必须包含 `event_id` 字段，但不得记录敏感原文。 后续相关改动按这个决定执行。",
-      "timestamp": "2026-01-23T10:00:00Z"
+      "content": "今天复查了实现，补充一条注意事项：搜索结果为空和请求失败使用不同提示，前者不应该展示重试按钮。",
+      "timestamp": "2026-04-19T10:24:00Z"
     },
     {
       "role": "assistant",
-      "content": "已记录这项项目约定：审计日志必须包含 `event_id` 字段，但不得记录敏感原文。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
-      "timestamp": "2026-01-23T10:01:00Z"
+      "content": "已记录：搜索结果为空和请求失败使用不同提示，前者不应该展示重试按钮。",
+      "timestamp": "2026-04-19T10:25:00Z"
     },
     {
       "role": "user",
-      "content": "上次联调后我们把下面内容作为固定约定：后台任务的最大并发数为 8，超过时进入等待队列。 之后发现不一致时先说明再修改。",
-      "timestamp": "2026-01-23T10:05:00Z"
+      "content": "关于测试安排，有个约定要记下来：大段用户备注以文本方式渲染，不使用未经清理的 innerHTML。",
+      "timestamp": "2026-04-19T10:31:00Z"
     },
     {
       "role": "assistant",
-      "content": "已记录这项项目约定：后台任务的最大并发数为 8，超过时进入等待队列。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
-      "timestamp": "2026-01-23T10:06:00Z"
+      "content": "已记录：大段用户备注以文本方式渲染，不使用未经清理的 innerHTML。",
+      "timestamp": "2026-04-19T10:32:00Z"
     },
     {
       "role": "user",
-      "content": "请把这项 React / TypeScript 前端 项目约定保留下来：失败重试的基础退避为 609 毫秒，并加入随机抖动。 后续实现不要偏离。",
-      "timestamp": "2026-01-23T10:10:00Z"
+      "content": "这次评审还确认了：点击下载后显示处理中状态，生成完成再开放链接，避免重复触发导出。",
+      "timestamp": "2026-04-19T10:38:00Z"
     },
     {
       "role": "assistant",
-      "content": "已记录这项项目约定：失败重试的基础退避为 609 毫秒，并加入随机抖动。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
-      "timestamp": "2026-01-23T10:11:00Z"
+      "content": "已记录：点击下载后显示处理中状态，生成完成再开放链接，避免重复触发导出。",
+      "timestamp": "2026-04-19T10:39:00Z"
     },
     {
       "role": "user",
-      "content": "故障复盘已经确认：配置文件路径固定为 `config/project.yml`，旧路径只读兼容一个版本。 以后同类任务都按这条处理。",
-      "timestamp": "2026-01-23T10:15:00Z"
+      "content": "复盘记录（2026-04-19）：2026-02-22 hydration 故障后确认：window/localStorage 只能在 effect 或事件处理器里读取，首屏 render 不能依赖浏览器对象。 后续相关改动都按这条执行。",
+      "timestamp": "2026-04-19T10:45:00Z"
     },
     {
       "role": "assistant",
-      "content": "已记录这项项目约定：配置文件路径固定为 `config/project.yml`，旧路径只读兼容一个版本。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
-      "timestamp": "2026-01-23T10:16:00Z"
+      "content": "已记录：2026-02-22 hydration 故障后确认：window/localStorage 只能在 effect 或事件处理器里读取，首屏 render 不能依赖浏览器对象。",
+      "timestamp": "2026-04-19T10:46:00Z"
     },
     {
       "role": "user",
-      "content": "这次 React / TypeScript 前端 评审定下了一条长期规则：生成文件必须写入 `docs/runbook.md`，禁止污染源码目录。 后续相关改动按这个决定执行。",
-      "timestamp": "2026-01-23T10:20:00Z"
+      "content": "后续维护时请保留这个处理方式：键盘用户关闭浮层后应回到触发它的控件，不能让焦点掉到页面开头。",
+      "timestamp": "2026-04-19T10:52:00Z"
     },
     {
       "role": "assistant",
-      "content": "已记录这项项目约定：生成文件必须写入 `docs/runbook.md`，禁止污染源码目录。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
-      "timestamp": "2026-01-23T10:21:00Z"
+      "content": "已记录：键盘用户关闭浮层后应回到触发它的控件，不能让焦点掉到页面开头。",
+      "timestamp": "2026-04-19T10:53:00Z"
     },
     {
       "role": "user",
-      "content": "上次联调后我们把下面内容作为固定约定：功能开关 `ASYNC_EXPORT` 默认关闭，只有 staging 验证后才能开启。 之后发现不一致时先说明再修改。",
-      "timestamp": "2026-01-23T10:25:00Z"
+      "content": "今天复查了实现，补充一条注意事项：错误日志记录组件名称和请求编号，不附带用户填写的完整表单。",
+      "timestamp": "2026-04-19T10:59:00Z"
     },
     {
       "role": "assistant",
-      "content": "已记录这项项目约定：功能开关 `ASYNC_EXPORT` 默认关闭，只有 staging 验证后才能开启。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
-      "timestamp": "2026-01-23T10:26:00Z"
+      "content": "已记录：错误日志记录组件名称和请求编号，不附带用户填写的完整表单。",
+      "timestamp": "2026-04-19T11:00:00Z"
     },
     {
       "role": "user",
-      "content": "请把这项 React / TypeScript 前端 项目约定保留下来：内部事件字段 `operation` 缺失时按兼容分支处理，不能直接崩溃。 后续实现不要偏离。",
-      "timestamp": "2026-01-23T10:30:00Z"
+      "content": "关于测试安排，有个约定要记下来：加载占位内容保留主要元素的尺寸，减少数据返回时页面明显跳动。",
+      "timestamp": "2026-04-19T11:06:00Z"
     },
     {
       "role": "assistant",
-      "content": "已记录这项项目约定：内部事件字段 `operation` 缺失时按兼容分支处理，不能直接崩溃。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
-      "timestamp": "2026-01-23T10:31:00Z"
+      "content": "已记录：加载占位内容保留主要元素的尺寸，减少数据返回时页面明显跳动。",
+      "timestamp": "2026-04-19T11:07:00Z"
     },
     {
       "role": "user",
-      "content": "故障复盘已经确认：本地开发端口固定为 4112，测试端口由进程动态分配。 以后同类任务都按这条处理。",
-      "timestamp": "2026-01-23T10:35:00Z"
+      "content": "复盘记录（2026-04-19）：2026-02-24 测试评审确定：组件测试使用 Testing Library，交互元素优先按 role 与 accessible name 查询。 后续相关改动都按这条执行。",
+      "timestamp": "2026-04-19T11:13:00Z"
     },
     {
       "role": "assistant",
-      "content": "已记录这项项目约定：本地开发端口固定为 4112，测试端口由进程动态分配。 后续遇到相关开发、测试或评审任务时，我会以此为准。",
-      "timestamp": "2026-01-23T10:36:00Z"
+      "content": "已记录：2026-02-24 测试评审确定：组件测试使用 Testing Library，交互元素优先按 role 与 accessible name 查询。",
+      "timestamp": "2026-04-19T11:14:00Z"
     }
   ]
 }

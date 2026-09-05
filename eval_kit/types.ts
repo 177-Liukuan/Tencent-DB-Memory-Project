@@ -42,6 +42,8 @@ export type EvalCase = {
   candidate_skills?: string[];
   expected_skills?: string[];
   expected_skill_files?: string[];
+  // 仅供数据审核；不会传入客户端提示词。
+  target_memory_refs?: Array<{fact_id:string;session_id:string;user_message_index:number;assistant_message_index:number}>;
 };
 
 export type RawRequest = {

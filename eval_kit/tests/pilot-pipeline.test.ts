@@ -16,7 +16,9 @@ it("一键入口默认只观测工具，准备预算保留 4096 且拒绝 16384"
         native: { project: "native", core_url: "http://localhost:18420", proxy_url: "http://localhost:18096" } } };
     const file = join(d, "config.json");
     await writeFile(file, JSON.stringify(config));
-    expect(await loadPilotConfig(file)).toMatchObject({ measurement: "tool_calls", preparation_max_tokens: 4096 });
+    expect(await loadPilotConfig(file)).toMatchObject({ measurement: "tool_calls", preparation_max_tokens: 4096, restart_proxies:false });
+    await writeFile(file, JSON.stringify({...config,restart_proxies:true}));
+    expect((await loadPilotConfig(file)).restart_proxies).toBe(true);
     await writeFile(file, JSON.stringify({ ...config, preparation_max_tokens: 16384 }));
     await expect(loadPilotConfig(file)).rejects.toThrow();
   } finally { await rm(d, { recursive: true, force: true }); }
@@ -31,6 +33,18 @@ it("选择与文件顺序无关，各类覆盖不同场景且拒绝数量不足"
     "memory_a", "memory_b", "memory_c", "skill_a", "skill_b", "skill_c", "none_a", "none_b", "none_c",
   ]);
   expect(() => selectPilotCases(cases, 4)).toThrow("不足");
+});
+
+it("抽样先覆盖场景，再从同场景选更多题；固定 seed 和 all 可复现", () => {
+  const cases = ["memory", "skill", "none"].flatMap(family => ["a", "b", "c"].flatMap(scenario => [1,2,3].map(n => ({
+    schema_version:1, case_id:`${family}_${scenario}_${n}`, suite:"main", tool_family:family,
+    should_call:family!=="none", query:"task", expected_tools:[], asset_path:"assets/x", scenario_id:scenario,
+  })))) as EvalCase[];
+  const sample = selectPilotCases(cases, 5, "pilot-30-20260905");
+  expect(sample).toHaveLength(15);
+  expect(new Set(sample.slice(0,3).map(c => c.scenario_id)).size).toBe(3);
+  expect(selectPilotCases([...cases].reverse(), 5, "pilot-30-20260905")).toEqual(sample);
+  expect(selectPilotCases(cases, "all", "pilot-30-20260905")).toHaveLength(27);
 });
 
 it("只复制指定 Agent 的 L0/L1/索引/画像，目标非空时拒绝重用", async () => {

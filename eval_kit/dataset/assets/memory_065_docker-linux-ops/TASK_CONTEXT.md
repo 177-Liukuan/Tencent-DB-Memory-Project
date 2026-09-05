@@ -1,10 +1,3 @@
-# Current task context
+# Working notes
 
-Scenario: Docker / Linux 服务部署
-Stack: Docker, Linux, Python 3.12, systemd
-
-User request:
-
-调整 Dockerfile 的运行用户和目录权限，数值沿用现有部署规则。
-
-The files in this directory are the complete environment snapshot available to the agent for this case.
+Repository files describe the current implementation. Keep changes relevant to the requested task and add tests for changed behavior.

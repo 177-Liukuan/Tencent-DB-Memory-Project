@@ -26,6 +26,9 @@ Thumbs.db
 .idea/
 .vscode/
 
+# Browser checks generate local screenshots and page snapshots.
+.playwright-mcp/
+
 # Eval Kit dependencies and generated artifacts
 eval_kit/node_modules/
 eval_kit/coverage/

@@ -1,4 +1,5 @@
 import { readFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
 import { dirname, resolve } from "node:path";
 import yaml from "js-yaml";
 import { z } from "zod";
@@ -8,7 +9,8 @@ const endpoint = z.object({ project: z.string(), core_url: z.string().url(), pro
 const schema = z.object({
   lab_root: z.string(), dataset: z.string(), asset_base: z.string(), skills: z.string(), memories: z.string(),
   results_dir: z.string(), service_id: z.string().regex(/^[\w-]+$/),
-  claude_binary: z.string(), model: z.string(), per_family: z.number().int().positive().default(3),
+  claude_binary: z.string(), model: z.string(), per_family: z.union([z.number().int().positive(), z.literal("all")]).default(3),
+  sample_seed: z.string().default(""),
   client_image: z.string().regex(/^[a-z0-9][a-z0-9_.:/-]+$/).default("tdai-eval-cli:node22-py312"),
   uv_binary: z.string(),
   timeout_ms: z.number().int().positive().default(600_000),
@@ -19,6 +21,7 @@ const schema = z.object({
   stop_after_tools:z.record(z.string(),z.array(z.string().min(1)).min(1)).default({}),
   allow_bash: z.boolean().default(false),
   start_services: z.boolean().default(false),
+  restart_proxies: z.boolean().default(false),
   variants: z.object({ baseline: endpoint, native: endpoint }).strict(),
 }).strict();
 export type PilotConfig = z.infer<typeof schema>;
@@ -35,17 +38,23 @@ export async function loadPilotConfig(path: string): Promise<PilotConfig> {
   return config;
 }
 
-// 按标签分层、场景去重；不按模型结果挑选“表现好”的样本，输入文件重新排序也不改变选择。
-export function selectPilotCases(cases: EvalCase[], count: number): EvalCase[] {
+// 先覆盖场景，再选同场景的下一题；固定 seed 后，文件顺序与模型表现都不影响抽样。
+export function selectPilotCases(cases: EvalCase[], count: number | "all", seed = ""): EvalCase[] {
   return (["memory", "skill", "none"] as const).flatMap(family => {
-    const scenarios = new Set<string>();
-    const selected = cases.filter(c => c.suite === "main" && c.tool_family === family && c.asset_path)
-      .sort((a, b) => a.case_id.localeCompare(b.case_id)).filter(c => {
-        const scenario = c.scenario_id ?? c.case_id;
-        if (scenarios.has(scenario)) return false;
-        scenarios.add(scenario); return true;
-      }).slice(0, count);
-    if (selected.length !== count) throw new Error(`${family} 有素材的独立场景不足 ${count} 个`);
-    return selected;
+    const rank = (id: string) => seed ? createHash("sha256").update(`${seed}:${family}:${id}`).digest("hex") : id;
+    const eligible = cases.filter(c => c.suite === "main" && c.tool_family === family && c.asset_path);
+    const groups = new Map<string, EvalCase[]>();
+    for (const c of eligible.sort((a,b) => rank(a.case_id).localeCompare(rank(b.case_id)))) {
+      const scenario = c.scenario_id ?? c.case_id;
+      const group = groups.get(scenario) ?? []; group.push(c); groups.set(scenario, group);
+    }
+    const ordered = [...groups.entries()].sort(([a],[b]) => rank(a).localeCompare(rank(b))).map(([,items]) => items);
+    const selected: EvalCase[] = [];
+    for (let round = 0; selected.length < eligible.length; round++) {
+      for (const group of ordered) { const item = group[round]; if (item) selected.push(item); }
+    }
+    if (count === "all") return selected;
+    if (selected.length < count) throw new Error(`${family} 有素材的 Main 任务不足 ${count} 个`);
+    return selected.slice(0, count);
   });
 }

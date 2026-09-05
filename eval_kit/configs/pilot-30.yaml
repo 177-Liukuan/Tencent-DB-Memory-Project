@@ -1,0 +1,32 @@
+# 修订数据集的小规模复查：每类 10 题；Main 的首次调用与评分使用同一个观察范围。
+lab_root: /storage1/liukuan/tencentdb-memory-lab
+dataset: ../dataset/tasks/tool_call_eval_v1.jsonl
+asset_base: ..
+skills: ../dataset/skills
+memories: ../dataset/memories
+results_dir: ../results
+service_id: rhino-ab
+claude_binary: /home/liukuan/.npm-global/bin/claude
+uv_binary: /home/liukuan/.local/bin/uv
+client_image: tdai-eval-cli:node22-py312
+model: deepseek-v4-flash[1m]
+per_family: 10
+sample_seed: pilot-30-20260905
+timeout_ms: 180000
+processing_timeout_ms: 1800000
+preparation_max_tokens: 4096
+preparation_thinking: disabled
+measurement: tool_calls
+stop_after_tools: {}
+allow_bash: true
+start_services: true
+restart_proxies: true
+variants:
+  baseline:
+    project: ../../TencentDB-Agent-Memory-Baseline
+    core_url: http://127.0.0.1:8420
+    proxy_url: http://127.0.0.1:8096/claude-code/rhino-ab
+  native:
+    project: ../../TencentDB-Agent-Memory-Native
+    core_url: http://127.0.0.1:18420
+    proxy_url: http://127.0.0.1:18096/claude-code/rhino-ab

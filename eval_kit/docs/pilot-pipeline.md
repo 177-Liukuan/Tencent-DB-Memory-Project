@@ -42,7 +42,9 @@ npm run score -- --experiment results/pilot-2026-09-05T10-26-56-763Z
 | `results_dir` | 准备记录和运行结果位置 |
 | `claude_binary` / `uv_binary` | 本机可执行文件路径 |
 | `model` / `client_image` | 两组共用模型配置和隔离镜像 |
-| `per_family` | 各类数量，默认 3；按 case_id 排序选择不同场景 |
+| `per_family` | 各类数量，默认 3；`all` 选择全部 Main，不含 Probe |
+| `sample_seed` | 固定抽样种子；先覆盖不同场景，再选择同场景后续任务；输入行重排不影响抽样 |
+| `restart_proxies` | 默认 false；专用评测示例设 true，在准备前重启两组 Proxy，防止旧进程继续运行旧源码。会中断现有人工会话 |
 | `measurement` | 默认 `tool_calls`；小任务完整延迟另用 `end_to_end` |
 | `stop_after_tools` | 指定案例需要观测到的工具名；未填写则第一条任意 Proxy 调用即停止 |
 | `timeout_ms` | 运行总上限，示例 600000；不是每个案例都等这么久 |
@@ -51,7 +53,9 @@ npm run score -- --experiment results/pilot-2026-09-05T10-26-56-763Z
 | `processing_timeout_ms` | 每个准备进程总截止时间，示例 1800000 |
 | `allow_bash` | 两组是否允许真实 Coding 命令；示例 true，并在隔离容器中执行 |
 
-示例对三个 Skill Task 等待 `[skill_view, skill_files_read]`，保留之前所有错误/额外调用。这不是参数正确性 Judge，也不证明后端已经成功读取内容；它只按 Bridge 发起事件停止。若标签要求完整序列，要提前设置与之匹配的窗口，不应把“还没观察到后续步骤”混同于工具选择错误。
+当前示例和 `pilot-30.yaml` 均在第一条任意 Proxy 调用后停止，与 Main 的首次选择标签一致。这不是参数正确性 Judge，也不证明后端已经成功读取目标内容。只有专门检查完整步骤的案例才配置 `stop_after_tools`，并使用相应的顺序标签。
+
+修订数据的 30 题检查：`bash run-pipeline.sh configs/pilot-30.yaml`。该配置每类 10 题，固定 `sample_seed: pilot-30-20260905`，运行上限 180 秒；不要将“无调用且超时”当作正常负例。
 
 ## 自动流程
 
@@ -63,6 +67,7 @@ npm run score -- --experiment results/pilot-2026-09-05T10-26-56-763Z
 6. 固定 Task 的初始项目副本和校验值，每次运行再复制成自己的可写 Workspace；两组交替先运行，不共用已修改文件或缓存。
 7. 真正启动 CLI。Native 保留官方 Hooks；独立 Session、设置、鉴权；只挂载当前素材、设置和 CLI，不挂载 dataset/标签/结果根目录。
 8. 按指定点停止或等最终回答，保存 Bridge/CLI 原始记录，核对身份、事件归属及客户端 Native Tool 是否隐藏，再汇总指标和静态 Token。
+9. 单独读回首次实际模型输入中的动态 Memory 与候选 Skill 顺序，保存到 `input-review/`。逐字命中只作审核线索；摘要中换一种说法给出答案仍需人工判断，程序不自动重写标签。
 
 工具模式主动结束时，`stopped_on_observation=true`、`completed=false`、`end_to_end_ms=null`。后续 Coding 失败但已有可靠调用时，`observation_valid=true`，错误另外保存。没有调用且 API 失败/超时则无效，不计作正常 None。
 
@@ -106,6 +111,7 @@ results/
     ├── report.md / summary.json / manifest.json
     ├── data-preparation.json / revisions-after.json
     ├── pipeline-audit.json / static-token-check.json
+    ├── input-review/                # 首次输入的 Memory、候选顺序和目标事实，供标签审核
     ├── runs/task-XX-<variant>.json
     └── raw/task-XX-<variant>/         # CLI、Bridge、设置、可写项目
 ```

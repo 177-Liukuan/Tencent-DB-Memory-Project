@@ -1,4 +1,2 @@
-# Environment snapshot: none_036_message-queue-workers
-
-This small repository snapshot exists only to provide realistic coding context for the tool-calling benchmark.
-It is intentionally self-contained and does not require dependency installation during evaluation.
+# Billing worker
+A small at-least-once message processing fixture with idempotency, retry classification, an outbox and node:test coverage.

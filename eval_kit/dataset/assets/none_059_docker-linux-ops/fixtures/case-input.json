@@ -1,0 +1,6 @@
+{
+  "scenario": "docker-linux-ops",
+  "sample_order_id": "ord-101",
+  "customer": "customer-1",
+  "enabled": true
+}

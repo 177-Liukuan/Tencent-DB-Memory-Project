@@ -219,6 +219,7 @@ Raw Request
 | [`TencentDB-Agent-Memory/`](TencentDB-Agent-Memory/) | 官方仓库 submodule，固定 `97f9465` | 上游参考源码，用于阅读实现和比较后续变化 |
 | [`TencentDB-Agent-Memory-Baseline/`](TencentDB-Agent-Memory-Baseline/) | 私有 submodule，`baseline/bugfix-sync`，固定 `41306b1` | A/B 固定基线；仅包含两侧共用修复并保留原始 Fake Tool，此后冻结 |
 | [`TencentDB-Agent-Memory-Native/`](TencentDB-Agent-Memory-Native/) | 私有 submodule，`research/native-tool`，固定 `6728810` | 课题实现目录；只实现 Native Proxy Tool，不保留 Fake Tool 双模式或回退 |
+| [`eval_kit/`](eval_kit/) | 根仓库内的 TypeScript 工具 | 统一管理数据准备、Skill/Memory 导入、A/B 用例运行、指标计算和结果查看 |
 | [`tencentdb-memory-lab`](tencentdb-memory-lab) | 符号链接 + 独立私有仓库，版本见 `workspace.lock.yaml` | 可复用脚本、文档和脱敏模板进入 Git；配置、凭据、数据、日志和会话历史留在运行环境 |
 | [`手稿/`](手稿/) | 课题说明、会议纪要、代码阅读笔记与图解 | 研究背景和设计依据 |
 | [`issues/`](issues/) | 已脱敏的问题、复现、根因、验收条件和上游协作记录 | 问题档案与修复证据 |
@@ -402,7 +403,7 @@ npm test
 
 ### 课题与方案
 
-- [`手稿/Native Tool课题目标与技术实施方案（内部）.md`](手稿/Native%20Tool课题目标与技术实施方案（内部）.md)：当前 Native Proxy Tool 的范围、架构、工程决策、实施顺序和评测基线；后续开发以此为准。
+- [`Native Tool课题目标与技术实施方案（内部）.md`](Native%20Tool课题目标与技术实施方案（内部）.md)：当前 Native Proxy Tool 的范围、架构、工程决策、实施顺序和评测基线；后续开发以此为准。
 - [`手稿/参与的课题.题目介绍.md`](手稿/参与的课题.题目介绍.md)：两个正式课题、指标、方向和交付物。
 - [`手稿/任务一梳理.md`](手稿/任务一梳理.md)：任务一的早期边界、Fake/Native 两条路线、评测方法和导师建议。
 - [`手稿/8.21_对齐课题背景_腾讯元宝会议纪要.md`](手稿/8.21_对齐课题背景_腾讯元宝会议纪要.md)：课题对齐会议的摘要与转写。

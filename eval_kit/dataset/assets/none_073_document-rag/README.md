@@ -1,4 +1,2 @@
-# Environment snapshot: none_073_document-rag
-
-This small repository snapshot exists only to provide realistic coding context for the tool-calling benchmark.
-It is intentionally self-contained and does not require dependency installation during evaluation.
+# Document ingestion fixture
+Python document-ingestion example with deterministic HTML extraction, chunking, metadata preservation and tests.

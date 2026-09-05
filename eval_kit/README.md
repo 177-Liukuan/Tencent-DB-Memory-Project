@@ -5,8 +5,12 @@
 > 一键准备并评测：`bash run-pipeline.sh configs/pilot.example.yaml`，详见 [Pipeline 使用说明](docs/pilot-pipeline.md)。
 > 小样本入口默认只测 Tool Calling，到指定事件即停止；已有 9 条 × 两组的实际结果、修复和未解决问题见 [试跑报告](docs/pilot-9-task-report.md)。
 > 已有独立身份运行表时：`npm run run -- --config configs/bridge-observation.local.yaml`。
-> Viewer 只支持当前 Bridge 格式：`npm run viewer -- --results results --port 4173`，见 [页面使用说明](docs/viewer.md)。
+> Viewer 提供可筛选的数据集概览和当前 Bridge 实验结果对比：`npm run viewer -- --results results --port 4173`。可用 `--dataset` 指定任务文件，见 [页面使用说明](docs/viewer.md)。
 > 下方旧实验中的 `npm run run` 现应使用 `npm run legacy:run`；dataset 与 data-preparation 用法不变。
+
+修订数据的 30 题复查使用 `bash run-pipeline.sh configs/pilot-30.yaml`：Memory、Skill、None 各 10 题，首次调用即停止，按允许的首次工具选择评分。`sample_seed` 固定抽样，`per_family: all` 可运行全部 Main，Probe 仍单列。数据变化与标签边界见 [v2 修订说明](dataset/review/v2-revision.md)。
+
+已完成 30 题 × 两组的真实运行，逐题调用、指标、修复记录与正式评测前仍需解决的问题见 [30 题实测报告](docs/pilot-30-task-report.md)。
 
 这个目录统一保存评测配置、Skill/Memory 数据、批量导入工具、A/B 运行程序、指标计算和结果页面。`tencentdb-memory-lab` 继续负责运行 Baseline、Native 和数据构建服务，不在这里保存密钥、数据库或日志。
 
@@ -23,7 +27,7 @@ eval_kit/
 ├── runner/                  # Baseline/Native 用例运行
 ├── recorder/                # Langfuse、ClickHouse 和客户端记录
 ├── metrics/                 # 指标计算
-├── viewer/                  # 逐条查看评测结果
+├── viewer/                  # 数据集分布、任务浏览与评测结果对比
 ├── tests/
 └── results/                 # 本地结果，不提交 Git
 ```

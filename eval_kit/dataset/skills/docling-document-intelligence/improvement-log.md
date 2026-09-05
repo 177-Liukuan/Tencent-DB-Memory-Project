@@ -1,2 +1,0 @@
-# Docling improvement log
-

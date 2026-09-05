@@ -1,4 +1,2 @@
-# Environment snapshot: skill_055_cicd-release
-
-This small repository snapshot exists only to provide realistic coding context for the tool-calling benchmark.
-It is intentionally self-contained and does not require dependency installation during evaluation.
+# Checkout release fixture
+Release automation fixture containing CI workflow, promotion metadata, release scripts and operational documentation.

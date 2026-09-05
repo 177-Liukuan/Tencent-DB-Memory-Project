@@ -1,14 +1,17 @@
-# 评测结果查看器
+# 数据集与评测查看器
 
-Viewer 只读取当前 Bridge 观测实验（配置 `version: 2`），不再兼容旧的 `cases.jsonl`、Langfuse 拼接轨迹或旧评分字段。不需要前端构建，也没有新增前端依赖。
+Viewer 包含“数据集概览”和“评测结果”两个页面，统一采用浅蓝、天蓝色系。数据集页面不依赖已有实验；评测结果只读取当前 Bridge 观测实验（配置 `version: 2`），不兼容旧评分字段。不需要前端构建，也没有新增前端依赖。
 
 ## 启动与访问
 
 ```bash
 cd /home/liukuan/Tencent-DB-Memory-Project/eval_kit
 
-# 读取本地 results，启动只读页面；不会调用模型或重新运行 Task
+# 读取当前数据集和本地 results，启动只读页面；不会调用模型或重新运行 Task
 npm run viewer -- --results results --port 4173
+
+# 如需查看另一份任务文件，只需指定 --dataset；相对路径以执行命令的目录为准
+npm run viewer -- --results results --dataset dataset/tasks/tool_call_eval_v1.jsonl --port 4173
 ```
 
 Linux 服务器本地访问 `http://127.0.0.1:4173`。
@@ -22,7 +25,22 @@ ssh -N -L 4173:127.0.0.1:4173 liukuan@<服务器地址>
 
 Viewer 没有登录功能，只监听 `127.0.0.1`，不要通过公网反向代理直接暴露。虽然不提供凭据文件下载，任务输入和模型回答本身仍可能包含私有信息。
 
-## 怎么看
+## 数据集概览
+
+默认首页为 `/?view=dataset`。未指定 `--dataset` 时，读取 eval_kit 中的 `dataset/tasks/tool_call_eval_v1.jsonl`；它与所选实验的历史快照无关。
+
+- 顶部展示总任务数、应调用与不应调用数量、场景数，以及素材、记忆来源和 Skill 引用数。
+- 环形图展示 Memory / Skill / None 等类别；场景条形图、难度按钮可以点击筛选。多个筛选项取交集，再次点击同一项取消该项筛选。
+- 工具分布表示“多少条任务的预期涉及该工具”。一条任务可能涉及多个工具，因此各工具数量之和可能大于任务数；同一任务连续调用两次同名工具只计一条任务。
+- 列表支持搜索问题、任务 ID、工具名、Skill 名称和标签，每页 20 条。筛选只影响列表，不改变上方全量分布。
+- 点击任务查看完整 Query、预期调用顺序或允许范围、相关素材路径、记忆与 Skill 引用，以及完整任务数据。调用顺序中的重复工具不会被去重。按 Esc、点击关闭或窗口外部返回。
+- 修改数据集后点击“刷新数据”。格式错误、空文件、重复 ID 不会被忽略或显示部分统计，而是提示检查文件并重试。
+
+这里展示的是数据集标签，不代表标签已经人工审核，也不是模型调用结果。资源数按任务引用的唯一名称或路径统计，不检查文件是否存在，不读取完整 Memory、Skill 和代码素材。页面不会编辑数据集。
+
+## 评测结果
+
+点击顶部“评测结果”，或访问 `/?view=results`。原有带 `experiment`、`suite`、`case` 的结果链接仍可直接打开。
 
 1. 选择实验和评测分组。Main、Smoke、Probe、Reliability 分开统计，不把冒烟结果当成正式评测。
 2. 顶部对比有效调用率、误调用率、工具选择正确率和配对端到端延迟。Memory / Skill 分项、样本数及非配对耗时分布可展开查看。
@@ -50,14 +68,16 @@ Viewer 没有登录功能，只监听 `127.0.0.1`，不要通过公网反向代�
 ## 数据与代码
 
 - `viewer/server.ts`：只读接口、路径检查、公开字段和响应安全设置。
+- `viewer/dataset.ts`：复用 Runner 的任务校验，统计类别、场景、难度和预期工具覆盖；不另写评测规则。
 - `viewer/results.ts`：读取运行清单、验证结果、计算展示状态；复用 `summarizeObservationRuns` 和 `selectionCorrect`，不另写评分规则。
-- `viewer/public/`：原生 JavaScript / CSS 页面，详情按需读取；实验切换后忽略旧请求的迟到响应。
+- `viewer/public/`：原生 JavaScript / CSS 页面；`dataset.js` 负责数据集交互，`app.js` 保留结果对比和页面切换。图表使用 SVG 与原生 progress，不加载外部图表库。
 
-接口只提供实验列表、`/api/experiments/:id/overview` 和清单内的 `/runs/:run_id`。总览按已生成的结果现场汇总，避免运行中的 `summary.json` 与列表不同步；不修改结果文件。未列入清单的文件、`raw/`、Claude settings 及完整运行配置均不作为下载接口开放。
+`/api/dataset` 只读取启动时指定的任务文件，不接受浏览器传来的文件路径。实验接口提供列表、`/api/experiments/:id/overview` 和清单内的 `/runs/:run_id`。结果总览按已生成的文件现场汇总，避免运行中的 `summary.json` 与列表不同步；不修改结果文件。未列入清单的文件、`raw/`、Claude settings 及完整运行配置均不作为下载接口开放。
 
 ## 验证（2026-09-05）
 
-- TypeScript 检查通过，eval_kit 全量 Vitest **142 passed，0 skipped**，其中 Viewer API 9 项。覆盖新格式读取、状态区分、分组及配对延迟、损坏结果、准备目录排除、路径逃逸和未授权文件读取。
-- Playwright 自动操作现有真实冒烟结果：并排详情、搜索、清空、分页、筛选、Esc 关闭、390px 手机布局，以及读取失败重试、HTML 文本安全、迟到响应不覆盖新数据。
-- 浏览器脚本在 `tests/viewer.browser.js`，可交给 Playwright `browser_run_code` 的 `filename` 执行；需先启动 4173，且 results 中有至少一组包含有效 Run 的 Bridge 实验。它不属于 Vitest，也不会发起新的业务工具调用。
+- TypeScript 检查通过，eval_kit 全量 Vitest **166 passed，0 skipped**，其中原 Viewer API 9 项、新数据集 API 7 项。新增测试覆盖分类和去重计数、刷新后反映文件变化、文件错误和禁止任意路径读取。
+- `tests/viewer-dataset.browser.js`：用当前 300 条真实任务核对数量，测试图表联动、筛选交集、分页、完整 Query 与规则、重复工具序列、390 / 768 / 1100px 布局、页面切换、HTML 文本安全及失败重试。
+- `tests/viewer.browser.js`：回归真实实验的并排详情、搜索、清空、分页、筛选、Esc 关闭、390px 手机布局，以及读取失败重试、HTML 文本安全、迟到响应不覆盖新数据。
+- 两份浏览器脚本可交给 Playwright `browser_run_code` 的 `filename` 执行；需先启动 4173。结果回归还要求 results 中有至少一组包含有效 Run 的 Bridge 实验。它们不属于 Vitest，也不会发起新的业务工具调用。
 - 浏览器故障测试会临时替换 Viewer HTTP 响应以覆盖异常和分页场景；不会写实验结果，更不会把这些临时数据用于工具调用评测。

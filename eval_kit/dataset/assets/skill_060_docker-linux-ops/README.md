@@ -1,4 +1,2 @@
-# Environment snapshot: skill_060_docker-linux-ops
-
-This small repository snapshot exists only to provide realistic coding context for the tool-calling benchmark.
-It is intentionally self-contained and does not require dependency installation during evaluation.
+# Containerized checkout service
+Python HTTP service with health endpoints, graceful shutdown state, worker process, Docker/Compose definitions and pytest coverage.

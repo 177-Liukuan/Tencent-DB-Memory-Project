@@ -11,6 +11,7 @@ import { isolateSeedSessions } from "./inputs.js";
 import { waitForHttp } from "./readiness.js";
 import { prepareClientImage } from "./container-image.js";
 import { captureStaticTokenCheck } from "./static-tokens.js";
+import { captureInputReviews } from "./input-review.js";
 import { auditPilotResults } from "./audit.js";
 import { snapshotWorkspace } from "./workspace.js";
 import { parseEnvFile } from "../runner/config.js";
@@ -72,16 +73,23 @@ async function verifySkills(connection: Connection, run: PreparedRun, packages: 
 export async function runPilotPipeline(configPath: string) {
   const config = await loadPilotConfig(configPath);
   const dataset = await loadDataset(config.dataset);
-  const selected = selectPilotCases(dataset.cases, config.per_family);
+  const selected = selectPilotCases(dataset.cases, config.per_family, config.sample_seed);
   const skills = await discoverSkillPackages(config.skills);
   const sessions = await discoverMemorySessions(config.memories);
   // 所有引用先检查，不能创建一半 Agent 后才发现素材路径或 Skill 名拼错。
   for (const c of selected) {
     if (!c.asset_path || !(await stat(resolve(config.asset_base,c.asset_path))).isDirectory()) throw new Error("缺少项目素材: " + c.case_id);
     for (const name of c.candidate_skills ?? []) if (!skills.some(s=>s.name === name)) throw new Error("缺少 Skill: " + name);
+    for (const path of c.expected_skill_files ?? []) {
+      if (!(c.expected_skills ?? []).some(name => skills.find(s=>s.name===name)?.resources.some(r=>r.path===path))) {
+        throw new Error(c.case_id + " Skill 资源不能导入: " + path);
+      }
+    }
     for (const id of c.source_memory_sessions ?? []) if (!sessions.some(s=>s.sessionId === id)) throw new Error("缺少 Memory: " + id);
   }
   if (config.start_services) await exec("systemctl", ["--user","start", ...variants.flatMap(v=>["core","proxy"].map(s=>`tdam-${v}-${s}.service`))]);
+  // start 不会重载已运行的源码；专用评测环境可显式重启，必须发生在创建 CLI 会话之前。
+  if (config.restart_proxies) await exec("systemctl", ["--user","restart", ...variants.map(v=>`tdam-${v}-proxy.service`)]);
   const connections = {} as Record<Variant,Connection>;
   const revisions = {} as Record<Variant,Awaited<ReturnType<typeof revision>>>;
   for (const variant of variants) {
@@ -212,6 +220,9 @@ export async function runPilotPipeline(configPath: string) {
     await secureWriteJson(join(result.experimentDirectory,"pipeline-audit.json"),audit);
     const staticTokens = await captureStaticTokenCheck(config.lab_root,result.runs).catch(error=>({status:"unavailable",reason:String(error)}));
     await secureWriteJson(join(result.experimentDirectory,"static-token-check.json"),staticTokens);
+    // 这份材料用于判断答案是否已自动注入，不以字符串未命中自动判定“必须调用”。
+    await captureInputReviews(config.lab_root,result.runs,selected,config.memories,join(result.experimentDirectory,"input-review"))
+      .catch(error=>secureWriteJson(join(result.experimentDirectory,"input-review-error.json"),{reason:String(error)}));
     await secureWriteJson(join(result.experimentDirectory,"data-preparation.json"),{directory:preparation,pairChecks});
     const after = Object.fromEntries(await Promise.all(variants.map(async v=>[v,await revision(config.variants[v].project)])));
     await secureWriteJson(join(result.experimentDirectory,"revisions-after.json"),after);

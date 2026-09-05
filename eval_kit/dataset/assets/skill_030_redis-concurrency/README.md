@@ -1,4 +1,2 @@
-# Environment snapshot: skill_030_redis-concurrency
-
-This small repository snapshot exists only to provide realistic coding context for the tool-calling benchmark.
-It is intentionally self-contained and does not require dependency installation during evaluation.
+# Redis concurrency lab
+A TypeScript fixture modelling locks, cache entries and rate limiting behind a small Redis-like interface. Tests use an in-memory adapter so the core logic is runnable without Redis.

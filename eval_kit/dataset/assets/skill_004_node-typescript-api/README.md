@@ -1,4 +1,5 @@
-# Environment snapshot: skill_004_node-typescript-api
+# Orders API
+A small TypeScript service. It has an order domain layer, an HTTP client, explicit error types and node:test coverage.
 
-This small repository snapshot exists only to provide realistic coding context for the tool-calling benchmark.
-It is intentionally self-contained and does not require dependency installation during evaluation.
+## Local development
+Run `npm run build` then `npm test`.

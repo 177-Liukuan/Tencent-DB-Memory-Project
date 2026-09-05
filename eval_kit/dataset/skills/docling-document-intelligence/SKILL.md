@@ -62,7 +62,7 @@ Docling has two pipeline families. Pick based on document type and hardware.
 | **Standard** (default) | `--pipeline standard` | Born-digital PDFs, speed | No GPU needed; OCR for scanned pages |
 | **VLM** | `--pipeline vlm` | Complex layouts, handwriting, formulas | Needs GPU; slower |
 
-See [pipelines.md](pipelines.md) for the full decision matrix, OCR engine table
+See [pipelines.md](references/pipelines.md) for the full decision matrix, OCR engine table
 (EasyOCR, RapidOCR, Tesseract, macOS), and VLM model presets.
 
 ### 3. Convert the document
@@ -322,7 +322,7 @@ flags to try next).
 **Step D — Self-improvement log (skill memory)**
 
 After a successful pass **or** after the final iteration, append one entry to
-[improvement-log.md](improvement-log.md) in this skill directory:
+[improvement-log.md](references/improvement-log.md) in this skill directory:
 
 - Source type (e.g. scanned PDF, digital PDF, DOCX)
 - First-run problems (from `issues`)
@@ -363,7 +363,7 @@ If `scripts/docling-evaluate.py` cannot run, still verify:
 ## Pipeline reference
 
 Full decision matrix, all OCR engine options, VLM model presets, and API
-server configuration: [pipelines.md](pipelines.md)
+server configuration: [pipelines.md](references/pipelines.md)
 
 ## Output conventions
 
