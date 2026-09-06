@@ -17,6 +17,7 @@ const schema = z.object({
   processing_timeout_ms: z.number().int().positive().default(1_800_000),
   preparation_max_tokens: z.union([z.literal(4096),z.literal(8192)]).default(4096),
   preparation_thinking: z.enum(["default","disabled"]).default("default"),
+  memory_cache: z.boolean().default(true),
   measurement:z.enum(["tool_calls","end_to_end"]).default("tool_calls"),
   stop_after_tools:z.record(z.string(),z.array(z.string().min(1)).min(1)).default({}),
   allow_bash: z.boolean().default(false),

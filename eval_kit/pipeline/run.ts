@@ -193,12 +193,15 @@ export async function runPilotPipeline(configPath: string) {
         process.stderr.write(`[pipeline] reusing frozen ${label}: no LLM extraction\n`);
       } else {
         await secureWriteJson(inputFile,{project:config.variants.baseline.project,directory,maxTokens:config.preparation_max_tokens,
-          thinking:config.preparation_thinking,identity:baselineTarget.identity,sessions:builderSessions});
+          thinking:config.preparation_thinking,identity:baselineTarget.identity,sessions:builderSessions,
+          ...(config.memory_cache?{cacheDirectory:join(config.results_dir,"memory-cache")}: {})});
         const environment=parseEnvFile(await readFile(join(config.lab_root,"baseline/secrets/core.env"),"utf8"));
-        process.stderr.write(`[pipeline] building ${label}: L1 → L2 → L3, maxTokens=${config.preparation_max_tokens}\n`);
+        process.stderr.write(`[pipeline] preparing ${label}: ${config.memory_cache?"check Memory cache, ":""}maxTokens=${config.preparation_max_tokens}\n`);
         await exec(process.execPath,["--import","tsx",fileURLToPath(new URL("./memory-builder.ts",import.meta.url)),inputFile],{
           cwd:fileURLToPath(new URL("../",import.meta.url)),env:{...process.env,...environment},timeout:config.processing_timeout_ms,maxBuffer:2*1024*1024,
         });
+        const ready=JSON.parse(await readFile(join(directory,"ready.json"),"utf8"));
+        process.stderr.write(`[pipeline] prepared ${label}: ${ready.cache?.status??"cache disabled"}, elapsed=${ready.elapsed_ms}ms\n`);
         source={...baselineTarget,dbPath:join(directory,"vectors.db"),profilesRoot:join(directory,"profiles")};
       }
       const target = endpoint(config,runConnections.get(native.run_id)!,native);

@@ -40,6 +40,7 @@ npm run score -- --experiment results/pilot-2026-09-05T10-26-56-763Z
 | `dataset` / `asset_base` | Task JSONL 及其 `asset_path` 的解析根目录 |
 | `skills` / `memories` | 完整 Skill 库、原始对话目录；所有任务导入同一份 Skill 库 |
 | `reuse_preparation` | 可选，旧实验的 preparation 目录；复用任务、Memory 和工作区，Skill 仍从当前 `skills` 目录读取 |
+| `memory_cache` | 默认 true；自动复用相同 L0 和提炼配置的 L0～L3 底稿，不复用旧任务或素材；false 时不读写缓存 |
 | `team_member_user_ids` | 新 Team 中额外加入的查看成员；评测使用 `[usr-f7iwo2muhb]`，不替代每个任务的独立执行账号 |
 | `results_dir` | 准备记录和运行结果位置 |
 | `claude_binary` / `uv_binary` | 本机可执行文件路径 |
@@ -64,7 +65,7 @@ npm run score -- --experiment results/pilot-2026-09-05T10-26-56-763Z
 1. 校验引用、服务、认证、观测目录，记录两项目 HEAD/diff，检查真实客户端镜像。
 2. 每个 Task × 版本新建普通用户、Team、Agent、Task。Agent 使用“通用Coding Agent”和“一个通用Coding Agent”；每个导入 Session 也独立。
 3. 每个 Task 的两组 Agent 都导入 `skills` 目录中的全部 Skill，含正文与 `references/`、`scripts/`、`assets/`、旧 `files/`；按名称排序、逐个读回核对。`candidate_skills` 不再筛选导入内容，`expected_skills` 和工具选择标签仍只用于核验和评分，不发送给模型。
-4. 在独立进程/目录复用 Baseline Core 原有函数：L0 → 全部 L1 → L2 → L3。不启动在线调度器、不修改生产等待规则，没有固定 90/95 秒空等。
+4. 先检查 Memory 缓存；未命中时，在独立进程/目录复用 Baseline Core 原有函数：L0 → 全部 L1 → L2 → L3，成功后保存底稿。命中时仅复制。不启动在线调度器、不修改生产等待规则，没有固定 90/95 秒空等。
 5. 检查实际记录和场景/画像，把唯一一份结果复制到两组空 Agent，核对正文、索引、文件和 API 数量。不整体替换 Core，不重复提炼两次。
 6. 固定 Task 的初始项目副本和校验值，每次运行再复制成自己的可写 Workspace；两组交替先运行，不共用已修改文件或缓存。
 7. 真正启动 CLI。Native 保留官方 Hooks；独立 Session、设置、鉴权；只挂载当前素材、设置和 CLI，不挂载 dataset/标签/结果根目录。
@@ -75,7 +76,23 @@ npm run score -- --experiment results/pilot-2026-09-05T10-26-56-763Z
 
 ### 公平性与隔离
 
-同一 Task 两组共享同一初始 Memory、Skill 和素材内容，但不共用 Agent/Session；不同 Task、重复实验均不共用 Agent。原始素材只用于复制，Claude 改动的是单次运行副本。下次实验重新提炼可能产生不同内容，准备记录中的版本需保留。
+同一 Task 两组共享同一初始 Memory、Skill 和素材内容，但不共用 Agent/Session；不同 Task、重复实验均不共用 Agent。原始素材只用于复制，Claude 改动的是单次运行副本。Memory 缓存命中时保持原底稿内容；重新提炼可能产生不同内容，准备记录中的版本需保留。
+
+### Memory 自动复用
+
+无需增加操作步骤，默认在 `results_dir/memory-cache/<校验值>/` 保存提炼完成的 SQLite 数据和画像文件。
+
+- 按任务使用的完整会话组合判断，保留消息内容、角色、顺序及原始时间，不按文件名或 Task 标签匹配。多个会话合并生成的 L2/L3 不能由各会话的摘要简单拼接。
+- 同时比较实际解析后的 Memory 配置（含模型、输出预算和思考设置）、Baseline MemoryCore 源码/提示词、依赖锁文件及准备代码。仅改 Proxy 提示词或 Task Query 不会使 Memory 缓存失效；轮换 API Key 不影响复用，完整配置和密钥不存入缓存。
+- 命中后仍生成当前 Task 的独立 builder 副本，更换记录及会话编号，再复制给两组空 Agent。场景中的记忆引用同步更换；两组仍通过原有内容核对。
+- 只在提炼完整成功后发布缓存目录。失败、截断或缺少 L2/L3 不发布；缓存文件损坏时报错停止，不静默换成另一份随机生成结果。
+- `ready.json`/`generation.json` 的 `cache.status` 区分 `hit`、`miss`；命中时 `timings` 为空，`cache.source_elapsed_ms` 保存原提炼时间，`elapsed_ms` 记录本次准备耗时。
+
+设置 `memory_cache: false` 可不读写缓存、重新提炼。显式配置 `reuse_preparation` 时仍按原逻辑复用指定旧实验，不经过自动缓存。
+
+已有旧实验没有记录完整的缓存匹配依据，第一版不自动认领其底稿；新逻辑首次成功生成后，后续相同输入即可复用。没有原始时间的对话沿用第一次提炼时写入的时间，缓存不是重新推断“今天”等相对日期的机制。
+
+缓存只在同一 `results_dir` 下复用，不自动跨目录查找或清理。第一版按现有串行 Pipeline 使用；不要同时启动多个共用缓存目录的准备任务，遇到同一底稿并发发布会报错，不覆盖已有结果。缓存属于本地运行数据，不提交 Git。
 
 配置 `reuse_preparation: ../results/preparation/pilot-...` 可复用该实验的任务、工作区和独立 builder Memory，不复用已运行过的 Agent。复用时校验 Memory 和工作区仍与原实验一致；旧目录中的 Skill 子集不会读取，每个新 Agent 都导入当前 `skills` 完整库，并计算新的 `seed_version`。因此可以保留冻结 Memory、切换到完整库，但旧6个候选的结果与新完整库结果应分开报告。若需要环境完全相同的重复实验，还应保持 `skills` 目录版本不变。
 
@@ -104,6 +121,7 @@ MAX_THINKING_TOKENS=0 claude
 
 ```text
 results/
+├── memory-cache/                    # 跨任务、跨实验复用的干净 L0～L3 底稿
 ├── preparation/pilot-<UTC>/
 │   ├── pipeline-config.json / revisions-before.json
 │   ├── skill-library.json            # 本轮完整库的来源目录及排序后的名称

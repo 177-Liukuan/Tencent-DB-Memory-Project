@@ -17,6 +17,8 @@ processing_timeout_ms: 1800000
 # 准备进程保留原 4096 预算；只有日志证实截断才手工选 8192。两组 CLI 也统一关闭思考。
 preparation_max_tokens: 4096
 preparation_thinking: disabled
+# 相同 L0 和提炼配置自动复用干净底稿；false 表示每个 Task 都重新提炼。
+memory_cache: true
 # 工具指标到观测点即结束；端到端小任务另用 end_to_end，不把安装依赖时间混入这组指标。
 measurement: tool_calls
 stop_after_tools: {}

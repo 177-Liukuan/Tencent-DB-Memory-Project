@@ -34,6 +34,8 @@ eval_kit/
 └── results/                 # 本地结果，不提交 Git
 ```
 
+Memory 缓存默认开启（`memory_cache: true`），底稿保存在 `results_dir/memory-cache/`。同一组 L0 会话内容、顺序、原始时间和提炼配置/源码相同时，只提炼一次；后续任务或实验复制已有 L0～L3，不调用 LLM。每个 Agent 仍得到独立副本，记录和会话编号随新任务改写；不会复制正式运行后新增的 Memory，也不会复用旧任务、标签或 Assets。`builder/task-XX/ready.json` 中的 `cache.status` 为 `hit` 或 `miss`，命中时旧提炼耗时单列为 `source_elapsed_ms`。需要重新提炼时设置 `memory_cache: false`。详情见 [Memory 复用说明](docs/pilot-pipeline.md#memory-自动复用)。
+
 ## Commands
 
 以下命令均在 `eval_kit` 目录中执行：

@@ -19,6 +19,9 @@ it("一键入口默认只观测工具，准备预算保留 4096 且拒绝 16384"
     expect(await loadPilotConfig(file)).toMatchObject({ measurement: "tool_calls", preparation_max_tokens: 4096, restart_proxies:false });
     await writeFile(file, JSON.stringify({...config,restart_proxies:true}));
     expect((await loadPilotConfig(file)).restart_proxies).toBe(true);
+    expect((await loadPilotConfig(file)).memory_cache).toBe(true);
+    await writeFile(file, JSON.stringify({...config,memory_cache:false}));
+    expect((await loadPilotConfig(file)).memory_cache).toBe(false);
     await writeFile(file, JSON.stringify({...config,reuse_preparation:"frozen/pilot"}));
     expect((await loadPilotConfig(file)).reuse_preparation).toBe(join(d,"frozen/pilot"));
     await writeFile(file, JSON.stringify({...config,team_member_user_ids:["usr-f7iwo2muhb"]}));

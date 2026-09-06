@@ -68,7 +68,7 @@ export async function inspectMemorySeed(endpoint: SeedEndpoint) {
 }
 
 // 只向刚创建的 Agent 追加种子；不替换 Core 数据目录，也不改动原有人工会话。
-export async function copyMemorySeed(source: SeedEndpoint, target: SeedEndpoint, recordIdNamespace?: string) {
+export async function copyMemorySeed(source: SeedEndpoint, target: SeedEndpoint, recordIdNamespace?: string, sessionIdMap?: ReadonlyMap<string,string>) {
   if (source.dbPath === target.dbPath) throw new Error("种子复制只支持独立数据库");
   const sourceDb = open(source, true); const targetDb = open(target, false);
   try {
@@ -77,13 +77,15 @@ export async function copyMemorySeed(source: SeedEndpoint, target: SeedEndpoint,
     const files = await profileFiles(profilePath(source));
     // record_id 是 Core 全局主键。重复实验只更换内部编号，正文、时间及画像不变；
     // 同一映射同时用于记录、索引及场景中的记忆引用，避免引用仍指向旧 Agent。
-    if (recordIdNamespace) {
-      const ids = new Map(Object.values(data).flat().map(row => [String(row.record_id),
-        "eval-"+createHash("sha256").update(recordIdNamespace+":"+row.record_id).digest("hex")]));
-      const replace = (text:string) => {
-        for (const [before,after] of ids) text=text.replaceAll(before,after);
-        return text;
-      };
+    if (recordIdNamespace || sessionIdMap?.size) {
+      const ids = new Map(sessionIdMap);
+      if (recordIdNamespace) for (const records of Object.values(data)) for (const row of records) {
+        ids.set(String(row.record_id),"eval-"+createHash("sha256").update(recordIdNamespace+":"+row.record_id).digest("hex"));
+      }
+      // 缓存复用也要更换导入会话编号；一次替换避免新编号再次匹配旧编号。
+      const pattern=ids.size?new RegExp([...ids.keys()].sort((a,b)=>b.length-a.length)
+        .map(id=>id.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")).join("|"),"g"):null;
+      const replace = (text:string) => pattern?text.replace(pattern,id=>ids.get(id)!):text;
       for (const records of Object.values(data)) for (const row of records) {
         for (const key of Object.keys(row)) if (typeof row[key] === "string") row[key]=replace(row[key]);
       }
@@ -108,7 +110,7 @@ export async function copyMemorySeed(source: SeedEndpoint, target: SeedEndpoint,
     } catch (error) { targetDb.exec("ROLLBACK"); throw error; }
     sourceDb.exec("COMMIT");
     if (files.length) await cp(profilePath(source), profilePath(target), {recursive:true,errorOnExist:true,force:false});
-    if (recordIdNamespace) for (const file of files) await writeFile(join(profilePath(target),file.path),Buffer.from(file.content,"base64"));
+    if (recordIdNamespace || sessionIdMap?.size) for (const file of files) await writeFile(join(profilePath(target),file.path),Buffer.from(file.content,"base64"));
     const copied = await inspectMemorySeed(target);
     if (copied.digest !== digestRows(data,files)) throw new Error("种子内容核对失败，不开始评测");
     return copied;
