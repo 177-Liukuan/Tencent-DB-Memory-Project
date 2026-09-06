@@ -1,8 +1,8 @@
 # Baseline 项目：TDAI 固定注入提示词
 
-本文按 Baseline 当前代码和运行配置整理，供人工阅读。代码版本为 `baseline/bugfix-sync` 分支的 `41306b1`。
+本文于 2026-09-06 按 Baseline 当前代码和运行配置核对更新，供人工阅读。代码版本为 `baseline/bugfix-sync` 分支的 `de3f1cc`。Skill、Memory 工具块及相关固定引导已与源码渲染结果核对；代码块保留实际原文，发现的旧文案问题在块外注明。
 
-当前运行配置启用了 `skill`、`knowledge`、`tdai-memory`，`skillRuntime.allowLlmWrite=false`。因此，下文只展示当前实际开放的四个 Skill 读取/归档工具，不展示代码中可选的 Skill 写工具。
+当前运行配置启用了 `skill`、`knowledge`、`tdai-memory`，`skillRuntime.allowLlmWrite=false`。因此，常规 Skill 注入仍只有四个读取/归档工具；第 2.3 节另列未开放的六个写工具，供与 Native 对照，不表示已经开启。
 
 ## 阅读说明
 
@@ -116,6 +116,70 @@ Only proceed without loading a skill if genuinely none are relevant to the task.
 ````
 
 来源：`MemoryProxy/src/injection/injectors/skill-injector.ts`、`MemoryCore/src/gateway/skill-handlers.ts`
+
+### 2.3 未开放的 Skill 写工具（对照用）
+
+仅在 `skillRuntime.allowLlmWrite=true` 时，下面六段才会追加到 `<skill_tools>`。当前配置为 `false`，这一节不属于当前模型请求的注入内容，也不应计入本次固定注入 Token。以下保留源码原文，包括尚未修正的旧描述。
+
+````text
+  <tool name="skill_create">
+    path: http://127.0.0.1:8096/skill-bridge/v3/skill/create
+    body: {"name": "string", "content": "SKILL.md 全文（含 frontmatter）", "resources": "?可选数组"}
+    use:  新建 skill；owner 自动 = 当前 agent
+  </tool>
+
+  <tool name="skill_update">
+    path: http://127.0.0.1:8096/skill-bridge/v3/skill/update
+    body: {"skill_id": "skl-xxx", "content": "新 SKILL.md"}
+    use:  替换 SKILL.md（version+1）
+  </tool>
+
+  <tool name="skill_patch">
+    path: http://127.0.0.1:8096/skill-bridge/v3/skill/patch
+    body: {"skill_id": "skl-xxx", "old_string": "...", "new_string": "...", "replace_all": false}
+    use:  SKILL.md 子串替换（避免大 diff）
+  </tool>
+
+  <tool name="skill_delete">
+    path: http://127.0.0.1:8096/skill-bridge/v3/skill/delete
+    body: {"skill_id": "skl-xxx"}
+    use:  软删（archived；不递增版本）
+  </tool>
+
+  <tool name="skill_files_write">
+    path: http://127.0.0.1:8096/skill-bridge/v3/skill/files/write
+    body: {"skill_id": "skl-xxx", "files": [{"path": "scripts/x.sh", "content": "...", "encoding": "utf-8", "is_executable": true}]}
+    use:  增/改资源文件（version+1）
+  </tool>
+
+  <tool name="skill_files_remove">
+    path: http://127.0.0.1:8096/skill-bridge/v3/skill/files/remove
+    body: {"skill_id": "skl-xxx", "paths": ["scripts/old.sh"]}
+    use:  删资源文件（version+1）
+  </tool>
+````
+
+开启写工具时，错误处理列表还会追加：
+
+````text
+- 40301 SKILL_NOT_OWNER：你不是 owner，无法修改。
+- 40901 SKILL_VERSION_STALE：版本过期，先 skill_view 拿最新版本再写。
+- 42201 SKILL_NAME_DUPLICATE：同 team 重名。
+- 42202 SKILL_PATCH_NOT_UNIQUE：old_string 不唯一，传 replace_all=true。
+````
+
+来源：`MemoryProxy/src/injection/injectors/skill-tools-injector.ts`
+
+### 2.4 对照 Native 时需要区分的地方
+
+- Baseline 将用途写在 `use`，参数说明写在 `body` 示例中。Native 分别放到工具 description 和 Schema 字段说明里；移到不同位置不等于删除了说明。
+- `skill_extract` 的 `reason` 在 Baseline 中也是可选参数，不是调用前提。它会归档会话并触发提取，因此上文原提示词的“只读操作”并不严格。
+- `skill_delete` 的“软删（archived）”是旧文案。当前 `SkillCore.delete()` 实际删除全部版本和资源，Native 的“永久删除”与这一行为一致。
+- `skill_files_remove` 只有实际删除了文件才生成新版本；Native 将这个条件写明，没有改变业务行为。
+- `skill_files_read` 的 `/files/read` 返回 JSON 内容及编码信息；仅加 `curl -o` 只会把这个响应保存到文件，不会变成原始资源字节。当前 Bridge 的原始字节下载使用独立 `/files/download` 路径。Native 没有照搬上文那条下载指令。
+- `<available_skills>` 前后的固定引导仍提及 `skill_patch` 和 `skill_create`，即使当前写工具未开放也会出现。这是 Baseline 当前原文，本文保留，不将它误记为当前已开放能力。
+
+后端依据：`MemoryCore/src/core/skill/skill-core.ts`、`MemoryProxy/src/skill/skill-bridge.ts`。本次只更新这份对照文档，没有修改 Baseline 源码。
 
 ## 3. Knowledge
 
