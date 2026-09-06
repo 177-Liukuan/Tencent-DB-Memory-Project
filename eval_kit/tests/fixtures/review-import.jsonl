@@ -1,0 +1,2 @@
+{"schema_version":1,"case_id":"task_d","suite":"main","query":"修改标题","should_call":false,"tool_family":"none","reason":"输入信息完整"}
+{"schema_version":1,"case_id":"task_e","suite":"main","query":"查询历史规则","should_call":true,"tool_family":"memory","allowed_first_tools":["tdai_memory_search"],"reason":"缺少历史约定"}

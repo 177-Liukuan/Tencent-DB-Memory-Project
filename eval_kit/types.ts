@@ -24,6 +24,8 @@ export type EvalCase = {
   case_id: string;
   suite: Suite;
   query: string;
+  /** 人工标注理由，不发送给模型。 */
+  reason?: string;
   should_call: boolean;
   expected_tool?: string | null;
   expected_tools: string[];

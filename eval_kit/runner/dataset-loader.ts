@@ -47,6 +47,8 @@ const caseSchema = z.object({
   case_id: z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._-]*$/u, "case_id must be a safe identifier"),
   suite: z.enum(["smoke", "main", "reliability", "probe"]),
   query: z.string().min(1),
+  // 人工标注依据，仅供审查展示；不参与评分或客户端输入构造。
+  reason: z.string().optional(),
   should_call: z.boolean(),
   expected_tool: z.string().min(1).nullable().optional(),
   expected_tools: z.array(z.string().min(1)).optional(),
@@ -77,6 +79,11 @@ export type LoadedDataset = {
 
 export async function loadDataset(path: string): Promise<LoadedDataset> {
   const raw = await readFile(path, "utf8");
+  return parseDataset(raw, path);
+}
+
+/** 编辑器在写入前复用 Runner 校验，避免保存出无法运行的数据。 */
+export function parseDataset(raw: string, path = "dataset"): LoadedDataset {
   const cases: EvalCase[] = [];
   const seen = new Set<string>();
   for (const [index, source] of raw.split(/\r?\n/u).entries()) {

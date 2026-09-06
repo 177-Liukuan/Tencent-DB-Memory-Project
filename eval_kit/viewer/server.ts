@@ -6,6 +6,10 @@ import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { readManifest, readOverview, readRun, viewerConfigSchema } from "./results.js";
 import { readDatasetOverview } from "./dataset.js";
+import { readReview, changeReview, parseImport } from "./review.js";
+import { bodyLimit } from "hono/body-limit";
+import { z } from "zod";
+import type { EvalCase } from "../types.js";
 
 export function resolveWithin(root: string, child: string): string {
   if (child.includes("\0") || isAbsolute(child)) throw new Error("Path points outside the results root");
@@ -30,6 +34,7 @@ export function createViewerApp(options: { resultsRoot: string; datasetPath?: st
   const app = new Hono();
   const publicRoot = resolve(dirname(fileURLToPath(import.meta.url)), "public");
   const datasetPath = options.datasetPath ?? resolve(publicRoot, "../../dataset/tasks/tool_call_eval_v1.jsonl");
+  const catalogPath = resolve(publicRoot, "../../dataset/可供选择的工具.md");
 
   app.use("*", async (c, next) => {
     await next();
@@ -79,6 +84,32 @@ export function createViewerApp(options: { resultsRoot: string; datasetPath?: st
   });
   // 浏览器只能读取启动时确定的任务文件，不提供任意文件路径读取接口。
   app.get("/api/dataset", async (c) => c.json(await readDatasetOverview(datasetPath)));
+  app.use("/api/review/*", bodyLimit({ maxSize: 8 * 1024 * 1024, onError: c => c.json({ error: "导入内容不能超过 8 MiB。" }, 413) }));
+  app.use("/api/review/*", async (c, next) => {
+    if (c.req.method !== "GET") {
+      // JSON 写接口拒绝跨站请求；浏览器不能借本机 Viewer 改写任务文件。
+      const origin = c.req.header("origin");
+      if ((origin && origin !== new URL(c.req.url).origin) || c.req.header("sec-fetch-site") === "cross-site") {
+        throw new HTTPException(403, { message: "不允许跨站修改数据集。" });
+      }
+      if (!c.req.header("content-type")?.startsWith("application/json")) throw new HTTPException(415, { message: "请使用 JSON 请求。" });
+    }
+    await next();
+  });
+  app.get("/api/review", async c => c.json(await readReview(datasetPath, catalogPath)));
+  const editSchema = z.object({ revision: z.string().min(1), task: z.record(z.string(), z.unknown()) }).strict();
+  const importSchema = z.object({ revision: z.string().min(1), content: z.string().min(1), replaceExisting: z.boolean(), preview: z.boolean() }).strict();
+  app.put("/api/review/tasks/:id", async c => {
+    const result = editSchema.safeParse(await c.req.json().catch(() => null));
+    if (!result.success) throw new HTTPException(422, { message: "保存请求格式错误。" });
+    return c.json(await changeReview(datasetPath, catalogPath, { revision: result.data.revision,
+      items: [result.data.task as EvalCase], editingId: c.req.param("id"), replaceExisting: true, preview: false }));
+  });
+  app.post("/api/review/import", async c => {
+    const result = importSchema.safeParse(await c.req.json().catch(() => null));
+    if (!result.success) throw new HTTPException(422, { message: "导入请求格式错误。" });
+    return c.json(await changeReview(datasetPath, catalogPath, { ...result.data, items: parseImport(result.data.content) }));
+  });
   app.get("/api/experiments/:experiment/overview", async (c) => {
     const experiment = c.req.param("experiment");
     const current = await config(experiment);

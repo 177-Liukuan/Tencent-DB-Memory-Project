@@ -1,6 +1,5 @@
 const byId = id => document.getElementById(id);
 const familyNames = { memory: "Memory", skill: "Skill", none: "None · 无需工具", knowledge: "Knowledge", unknown: "未标注" };
-const difficultyNames = { easy: "简单", medium: "中等", hard: "困难", unknown: "未标注" };
 const familyDescriptions = { memory: "云端记忆", skill: "可复用技能", none: "无需 Proxy Tool", knowledge: "团队知识", unknown: "缺少类别标签" };
 const pageSize = 20;
 let data, page = 1;
@@ -25,7 +24,7 @@ function filterBy(id, value) {
 function renderStats() {
   const s = data.summary;
   byId("dataset-stats").replaceChildren(...[
-    ["任务总数", s.tasks, "当前任务文件中的全部案例", "01"],
+    ["任务总数", s.tasks, "当前任务文件中的全部任务", "01"],
     ["应调用工具", s.positive, "should_call = true", "02"],
     ["不应调用工具", s.negative, "should_call = false", "03"],
     ["覆盖场景", s.scenarios, `${s.assets} 份素材 · ${s.memory_sessions} 份记忆来源 · ${s.skills} 个 Skill 引用`, "04"],
@@ -36,7 +35,7 @@ function renderStats() {
   }));
 }
 function renderCharts() {
-  const { families, scenarios, difficulties, tools } = data.distributions;
+  const { families, scenarios, tools } = data.distributions;
   const total = data.summary.tasks;
   const svgNode = (name, attrs) => {
     const el = document.createElementNS("http://www.w3.org/2000/svg", name);
@@ -72,31 +71,33 @@ function renderCharts() {
     button.append(label, bar, node("span", "scenario-value", count));
     button.addEventListener("click", () => filterBy("dataset-scenario", name)); return button;
   }));
-  byId("dataset-difficulties").replaceChildren(...difficulties.map(({ name, count }) => {
-    const button = node("button", "difficulty-button"); button.type = "button"; button.dataset.difficulty = name;
-    button.append(node("span", "", difficultyNames[name] ?? name), node("strong", "", count));
-    button.addEventListener("click", () => filterBy("dataset-difficulty", name)); return button;
+  // 两张类别图使用同一份全量统计，筛选只改变下方任务列表。
+  const maxFamilyCount = Math.max(1, ...families.map(f => f.count));
+  byId("dataset-family-counts").replaceChildren(...families.map(({ name, count }) => {
+    const button = node("button", `family-count-button ${familyClass(name)}`); button.type = "button"; button.dataset.family = name;
+    const track = node("span", "family-count-track"), fill = node("span", "family-count-fill");
+    fill.style.width = `${count / maxFamilyCount * 100}%`; track.setAttribute("aria-hidden", "true"); track.append(fill);
+    button.append(node("span", "family-count-label", familyNames[name] ?? name), track, node("strong", "", count));
+    button.addEventListener("click", () => filterBy("dataset-family", name)); return button;
   }));
   byId("dataset-tools").replaceChildren(...tools.map(({ name, count }) => {
     const chip = node("span", "tool-chip"); chip.append(node("span", "", name), node("strong", "", count)); return chip;
   }));
   if (!tools.length) byId("dataset-tools").append(node("span", "muted", "未设置预期工具"));
   options("dataset-family", families, familyNames); options("dataset-scenario", scenarios, { unknown: "未标注" });
-  options("dataset-difficulty", difficulties, difficultyNames);
 }
 function renderList() {
   const search = byId("dataset-search").value.trim().toLocaleLowerCase();
-  const family = byId("dataset-family").value, scenario = byId("dataset-scenario").value, difficulty = byId("dataset-difficulty").value;
+  const family = byId("dataset-family").value, scenario = byId("dataset-scenario").value;
   const items = data.items.filter(item => (!family || (item.tool_family ?? "unknown") === family)
     && (!scenario || (item.scenario_id ?? "unknown") === scenario)
-    && (!difficulty || (item.difficulty ?? "unknown") === difficulty)
     && (!search || [item.case_id, item.query, item.scenario_id, ...item.expected_tools,
       ...item.candidate_skills ?? [], ...item.expected_skills ?? [], ...item.tags ?? []].join(" ").toLocaleLowerCase().includes(search)));
   const pages = Math.max(1, Math.ceil(items.length / pageSize)); page = Math.min(page, pages);
   byId("dataset-count").textContent = `${number(items.length)} / ${number(data.items.length)} 条任务`;
   byId("dataset-page").textContent = `${page} / ${pages} 页`;
   byId("dataset-prev").disabled = page <= 1; byId("dataset-next").disabled = page >= pages;
-  for (const [selector, key, selected] of [[".legend-button", "family", family], [".scenario-button", "scenario", scenario], [".difficulty-button", "difficulty", difficulty]]) {
+  for (const [selector, key, selected] of [[".legend-button, .family-count-button", "family", family], [".scenario-button", "scenario", scenario]]) {
     document.querySelectorAll(selector).forEach(button => button.setAttribute("aria-pressed", String(button.dataset[key] === selected)));
   }
   const list = byId("dataset-list"); list.replaceChildren();
@@ -104,7 +105,7 @@ function renderList() {
   for (const item of items.slice((page - 1) * pageSize, page * pageSize)) {
     const row = node("button", "dataset-row"); row.type = "button"; row.setAttribute("aria-label", `${item.case_id} · 查看任务详情`);
     const copy = node("span", "dataset-copy"); copy.append(node("strong", "", item.case_id), node("span", "dataset-query", item.query));
-    const tags = node("span", "dataset-row-tags"); tags.append(pill(familyNames[item.tool_family ?? "unknown"], familyClass(item.tool_family)), pill(difficultyNames[item.difficulty ?? "unknown"]));
+    const tags = node("span", "dataset-row-tags"); tags.append(pill(familyNames[item.tool_family ?? "unknown"], familyClass(item.tool_family)));
     const expected = node("span", "dataset-expected"); expected.append(node("span", "", item.scenario_id ?? "未标注场景"), node("small", "", item.should_call ? item.expected_tools.join(" · ") : "不应调用 Proxy Tool"));
     row.append(copy, tags, expected, node("span", "row-arrow", "↗"));
     row.addEventListener("click", () => showTask(item)); list.append(row);
@@ -116,9 +117,14 @@ function detailSection(title, value, folded = false) {
 }
 function showTask(item) {
   const body = byId("dataset-detail-body"); byId("dataset-detail-title").textContent = item.case_id;
-  const meta = node("div", "task-meta"); meta.append(pill(familyNames[item.tool_family ?? "unknown"], familyClass(item.tool_family)), pill(difficultyNames[item.difficulty ?? "unknown"]), pill(item.scenario_id ?? "未标注场景"), pill(item.should_call ? "预期：调用工具" : "预期：不调用工具"));
+  const meta = node("div", "task-meta"); meta.append(pill(familyNames[item.tool_family ?? "unknown"], familyClass(item.tool_family)), pill(item.scenario_id ?? "未标注场景"), pill(item.should_call ? "预期：调用工具" : "预期：不调用工具"));
   const query = node("section", "task-query"); query.append(node("h3", "", "用户输入"), node("p", "", item.query));
   body.replaceChildren(meta, query);
+  if (item.reason?.trim()) {
+    const reason = node("section", "task-reason");
+    reason.append(node("h3", "", "标注理由"), node("p", "", item.reason));
+    body.append(reason);
+  }
   // 保留规则的原意：允许多条顺序与单条完整顺序不是同一回事，不能统一压成工具集合。
   if (item.should_call) {
     const [title, rule] = item.allowed_sequences ? ["允许的调用顺序（任选一条）", item.allowed_sequences]
@@ -152,6 +158,7 @@ async function refresh() {
   } finally { byId("dataset-refresh").disabled = false; byId("dataset-loading").hidden = true; }
 }
 export function initDataset() {
+  window.addEventListener("dataset-changed", () => { data = null; });
   byId("dataset-refresh").addEventListener("click", refresh);
   byId("dataset-filters").addEventListener("submit", e => e.preventDefault());
   byId("dataset-filters").addEventListener("input", () => { if (data) { page = 1; renderList(); } });

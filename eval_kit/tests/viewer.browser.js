@@ -11,8 +11,8 @@
   check((await page.locator("#case-dialog").innerText()).includes("Bridge"), "应说明观测来源");
   await page.keyboard.press("Escape");
   check(!(await page.locator("#case-dialog").isVisible()), "Escape 应关闭详情");
-  await page.getByLabel("搜索案例").fill("no-such-case-xyz");
-  await page.getByText("没有符合筛选条件的案例", { exact: true }).waitFor();
+  await page.getByLabel("搜索任务").fill("no-such-task-xyz");
+  await page.getByText("没有符合筛选条件的任务", { exact: true }).waitFor();
   await page.getByRole("button", { name: "清空筛选", exact: true }).click();
   await page.locator("#case-list .case-row").first().waitFor();
   await page.setViewportSize({ width: 390, height: 844 });

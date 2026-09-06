@@ -34,6 +34,9 @@ eval_kit/node_modules/
 eval_kit/coverage/
 eval_kit/.work/
 eval_kit/tmp/
+**/.review-backups/
+*.review.lock
+eval_kit/dataset/tasks/*.tmp
 eval_kit/results/**
 !eval_kit/results/.gitkeep
 

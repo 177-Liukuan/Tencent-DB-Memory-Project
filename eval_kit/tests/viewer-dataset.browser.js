@@ -8,24 +8,41 @@
   try {
     await page.setViewportSize({ width: 1440, height: 1050 });
     await page.goto(origin);
+    await page.locator('#nav-dataset').click();
     await page.locator("#dataset-content").waitFor();
     const actual = await (await page.request.get(`${origin}/api/dataset`)).json();
     check(await page.locator("#dataset-stats .stat-value").first().innerText() === String(actual.items.length), "统计必须来自当前数据集");
     check(actual.summary.tasks === actual.summary.positive + actual.summary.negative, "正负样本数必须等于总任务数");
     check(await page.locator("#nav-dataset").getAttribute("aria-current") === "page", "首页应为数据集");
     check(await page.locator(".dataset-row").count() === Math.min(20, actual.items.length), "列表必须分页");
+    check(await page.locator('#dataset-difficulty, #dataset-difficulties, .difficulty-button').count() === 0, "不再展示难度图表或筛选");
+    check(await page.locator('.family-count-button').count() === actual.distributions.families.length, "每个任务类别应有数量条形图");
+    for (const item of actual.distributions.families) {
+      const bar = page.locator(`.family-count-button[data-family="${item.name}"]`);
+      check(Number(await bar.locator('strong').innerText()) === item.count, "条形图显示实际类别数量");
+      const fill = await bar.locator('.family-count-fill').evaluate(el => getComputedStyle(el).backgroundColor);
+      const stroke = await page.locator(`.donut-segment.${item.name}`).evaluate(el => getComputedStyle(el).stroke);
+      check(fill === stroke, "条形图与环形图使用同一类别颜色");
+    }
     const family = actual.distributions.families.find(f => f.name === "memory") ?? actual.distributions.families[0];
     await page.locator(`.legend-button[data-family="${family.name}"]`).click();
     check(await page.locator("#dataset-family").inputValue() === family.name, "图例应联动类别筛选");
     check((await page.locator("#dataset-count").innerText()).startsWith(`${family.count} /`), "类别筛选数量必须正确");
+    const familyBar = page.locator(`.family-count-button[data-family="${family.name}"]`);
+    check(await familyBar.getAttribute('aria-pressed') === 'true', "图例与条形图选中状态同步");
+    await familyBar.click();
+    check(await page.locator('#dataset-family').inputValue() === '', "再次点击类别条形图取消筛选");
+    await familyBar.click();
+    check(await page.locator('#dataset-family').inputValue() === family.name, "条形图支持点击筛选");
     const sample = actual.items.find(i => (i.tool_family ?? "unknown") === family.name);
-    const scenario = sample.scenario_id ?? "unknown", difficulty = sample.difficulty ?? "unknown";
+    const scenario = sample.scenario_id ?? "unknown";
     await page.locator(`.scenario-button[data-scenario="${scenario}"]`).click();
-    await page.locator(`.difficulty-button[data-difficulty="${difficulty}"]`).click();
-    const filtered = actual.items.filter(i => (i.tool_family ?? "unknown") === family.name && (i.scenario_id ?? "unknown") === scenario && (i.difficulty ?? "unknown") === difficulty);
-    check((await page.locator("#dataset-count").innerText()).startsWith(`${filtered.length} /`), "三个筛选项应取交集");
+    const filtered = actual.items.filter(i => (i.tool_family ?? "unknown") === family.name && (i.scenario_id ?? "unknown") === scenario);
+    check((await page.locator("#dataset-count").innerText()).startsWith(`${filtered.length} /`), "类别与场景筛选取交集");
+    check(await page.locator('.dataset-row').first().locator('.dataset-row-tags .dataset-pill').count() === 1, "列表只保留类别标签");
     await page.locator(".dataset-row").first().click();
     check((await page.locator(".task-query p").innerText()) === filtered[0].query, "详情需保留完整 Query");
+    check(await page.locator('#dataset-detail-body > .task-meta').first().locator('.dataset-pill').count() === 3, "详情不再展示难度标签");
     check((await page.locator("#dataset-detail-body").innerText()).includes("完整任务数据"), "应提供完整标签和检查规则");
     await page.keyboard.press("Escape");
     check(!(await page.locator("#dataset-dialog").isVisible()), "Esc 关闭任务详情");
@@ -55,6 +72,7 @@
 
     const fixture = JSON.parse(JSON.stringify(actual));
     fixture.items[0].query = '<img src="x" onerror="window.datasetXss=true">';
+    fixture.items[0].reason = '该任务依赖历史约定；<img src="x" onerror="window.reasonXss=true">';
     fixture.items[0].expected_tool_sequence = ["skill_search", "skill_view", "skill_view"];
     delete fixture.items[0].allowed_sequences;
     fixture.items[0].should_call = true;
@@ -64,6 +82,8 @@
     await page.locator(".dataset-row").first().click();
     check(await page.locator("#dataset-dialog img").count() === 0, "Query中的HTML不能变成DOM");
     check(await page.evaluate(() => !window.datasetXss), "Query不能执行脚本");
+    check(await page.locator(".task-reason p").innerText() === fixture.items[0].reason, "标注理由必须单独展示并按文本渲染");
+    check(await page.evaluate(() => !window.reasonXss), "标注理由不能执行脚本");
     const sequence = page.locator("#dataset-detail-body details").filter({ has: page.locator('summary', { hasText: /^预期调用顺序$/ }) });
     check((await sequence.innerText()).match(/skill_view/g).length === 2, "详情不能把调用序列中的重复工具去重");
     await page.keyboard.press("Escape");
@@ -79,7 +99,7 @@
     check(await page.locator("#dataset-notice").isHidden(), "刷新成功应移除错误提示");
     check(errors.length === 0, `不能有脚本异常：${errors.join("; ")}`);
     await page.evaluate(() => scrollTo(0, 0));
-    return { passed: true, tasks: actual.summary.tasks, checks: ["实时数量", "分类图例筛选", "场景及难度交集", "完整Query和规则", "搜索空状态", "分页", "手机平板布局", "页面切换", "XSS", "重复工具顺序", "读取失败重试"] };
+    return { passed: true, tasks: actual.summary.tasks, checks: ["实时数量", "类别条形图及配色", "分类图例筛选", "类别与场景交集", "移除难度标签", "完整Query和规则", "搜索空状态", "分页", "手机平板布局", "页面切换", "XSS", "重复工具顺序", "读取失败重试"] };
   } finally {
     await page.unroute("**/api/dataset");
     page.off("pageerror", onError);

@@ -1,4 +1,5 @@
 import { initDataset } from "./dataset.js";
+import { initReview } from "./review.js";
 
 const state = { experiment: "", suite: "", data: null, pairs: [], page: 1, load: 0, detail: 0, view: "dataset" };
 const PAGE_SIZE = 25;
@@ -65,7 +66,7 @@ function renderMetrics() {
     const change = latency ? p.native_change_percent : finite(base) && finite(native) ? (native - base) * 100 : null;
     foot.append(delta(change, latency ? "%" : " 个百分点", lower), node("span", "", " · Native 相对 Baseline"));
     card.append(title, values, foot);
-    card.append(node("p", "metric-foot", latency ? `${p.cases} 个配对案例 · ${p.pairs} 对运行` : key === "effective_call_rate" ? `正样本 B ${b.positive_samples} / N ${n.positive_samples}` : key === "false_call_rate" ? `负样本 B ${b.negative_samples} / N ${n.negative_samples}` : `已调用正样本 B ${b.called_positive_samples} / N ${n.called_positive_samples}`));
+    card.append(node("p", "metric-foot", latency ? `${p.cases} 个配对任务 · ${p.pairs} 对运行` : key === "effective_call_rate" ? `正样本 B ${b.positive_samples} / N ${n.positive_samples}` : key === "false_call_rate" ? `负样本 B ${b.negative_samples} / N ${n.negative_samples}` : `已调用正样本 B ${b.called_positive_samples} / N ${n.called_positive_samples}`));
     target.append(card);
   }
   const table = byId("breakdown"); table.replaceChildren();
@@ -83,9 +84,9 @@ function renderMetrics() {
       row(`${family === "memory" ? "Memory" : "Skill"} · ${label}`, b.by_tool_family[family][key], n.by_tool_family[family][key], unit);
     }
   }
-  row("全部有效案例 · 平均耗时（非配对）", b.end_to_end_ms.mean, n.end_to_end_ms.mean, "time");
-  row("全部有效案例 · 中位耗时", b.end_to_end_ms.median, n.end_to_end_ms.median, "time");
-  row("全部有效案例 · P95 耗时", b.end_to_end_ms.p95, n.end_to_end_ms.p95, "time");
+  row("全部有效任务 · 平均耗时（非配对）", b.end_to_end_ms.mean, n.end_to_end_ms.mean, "time");
+  row("全部有效任务 · 中位耗时", b.end_to_end_ms.median, n.end_to_end_ms.median, "time");
+  row("全部有效任务 · P95 耗时", b.end_to_end_ms.p95, n.end_to_end_ms.p95, "time");
   table.append(body);
 }
 
@@ -123,11 +124,11 @@ function runCell(run, variant) {
 function renderCases() {
   const pairs = filteredPairs();
   const pages = Math.max(1, Math.ceil(pairs.length / PAGE_SIZE)); state.page = Math.min(state.page, pages);
-  byId("case-count").textContent = `${pairs.length} / ${state.pairs.length} 个案例 × 重复编号`;
+  byId("case-count").textContent = `${pairs.length} / ${state.pairs.length} 个任务 × 重复编号`;
   byId("page-label").textContent = `${state.page} / ${pages} 页`;
   byId("prev").disabled = state.page <= 1; byId("next").disabled = state.page >= pages;
   const list = byId("case-list"); list.replaceChildren();
-  if (!pairs.length) { list.append(node("p", "empty-list", "没有符合筛选条件的案例")); return; }
+  if (!pairs.length) { list.append(node("p", "empty-list", "没有符合筛选条件的任务")); return; }
   for (const pair of pairs.slice((state.page - 1) * PAGE_SIZE, state.page * PAGE_SIZE)) {
     const row = node("button", "case-row"); row.type = "button";
     row.setAttribute("aria-label", `${pair.case_id} · 第 ${pair.repeat} 次 · 查看对比`);
@@ -256,23 +257,29 @@ byId("case-dialog").addEventListener("click", e => {
 const initial = new URLSearchParams(location.search);
 state.experiment = initial.get("experiment") ?? ""; state.suite = initial.get("suite") ?? "";
 const dataset = initDataset();
+const review = initReview();
 async function selectView(view) {
+  if (state.view === "review") {
+    if (!review.canLeave()) return;
+    review.discard();
+  }
   state.view = view;
-  for (const name of ["dataset", "results"]) {
+  for (const name of ["dataset", "review", "results"]) {
     byId(`${name}-view`).hidden = name !== view;
     if (name === view) byId(`nav-${name}`).setAttribute("aria-current", "page");
     else byId(`nav-${name}`).removeAttribute("aria-current");
   }
   updateUrl();
   if (view === "dataset") await dataset.load();
+  else if (view === "review") await review.load();
   else if (!state.data) await refresh();
 }
-for (const view of ["dataset", "results"]) byId(`nav-${view}`).addEventListener("click", e => {
+for (const view of ["dataset", "review", "results"]) byId(`nav-${view}`).addEventListener("click", e => {
   // 修饰键点击仍遵循链接的原生行为，便于单独打开另一页。
   if (e.ctrlKey || e.metaKey || e.shiftKey || e.altKey) return;
   e.preventDefault(); void selectView(view);
 });
-// 已有案例链接仍打开评测结果；没有实验参数时默认进入数据集概览。
-await selectView(initial.get("view") === "results" || (!initial.has("view") && state.experiment) ? "results" : "dataset");
+// 外部打开和刷新统一进入结果页；其他页面通过站内导航切换。
+await selectView("results");
 const initialPair = state.pairs.find(p => p.case_id === initial.get("case") && String(p.repeat) === (initial.get("repeat") ?? "1"));
 if (state.view === "results" && state.data && initialPair) await showPair(initialPair);
