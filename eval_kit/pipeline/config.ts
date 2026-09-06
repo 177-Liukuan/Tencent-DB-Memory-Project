@@ -22,12 +22,15 @@ const schema = z.object({
   allow_bash: z.boolean().default(false),
   start_services: z.boolean().default(false),
   restart_proxies: z.boolean().default(false),
+  reuse_preparation: z.string().min(1).optional(),
+  team_member_user_ids: z.array(z.string().min(1)).default([]),
   variants: z.object({ baseline: endpoint, native: endpoint }).strict(),
 }).strict();
 export type PilotConfig = z.infer<typeof schema>;
 export async function loadPilotConfig(path: string): Promise<PilotConfig> {
   const config = schema.parse(yaml.load(await readFile(path, "utf8")));
   const base = dirname(resolve(path));
+  if (config.reuse_preparation) config.reuse_preparation = resolve(base,config.reuse_preparation);
   for (const key of ["lab_root", "dataset", "asset_base", "skills", "memories", "results_dir", "claude_binary", "uv_binary"] as const) {
     config[key] = resolve(base, config[key]);
   }

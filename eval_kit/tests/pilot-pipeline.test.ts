@@ -19,6 +19,10 @@ it("一键入口默认只观测工具，准备预算保留 4096 且拒绝 16384"
     expect(await loadPilotConfig(file)).toMatchObject({ measurement: "tool_calls", preparation_max_tokens: 4096, restart_proxies:false });
     await writeFile(file, JSON.stringify({...config,restart_proxies:true}));
     expect((await loadPilotConfig(file)).restart_proxies).toBe(true);
+    await writeFile(file, JSON.stringify({...config,reuse_preparation:"frozen/pilot"}));
+    expect((await loadPilotConfig(file)).reuse_preparation).toBe(join(d,"frozen/pilot"));
+    await writeFile(file, JSON.stringify({...config,team_member_user_ids:["usr-f7iwo2muhb"]}));
+    expect((await loadPilotConfig(file)).team_member_user_ids).toEqual(["usr-f7iwo2muhb"]);
     await writeFile(file, JSON.stringify({ ...config, preparation_max_tokens: 16384 }));
     await expect(loadPilotConfig(file)).rejects.toThrow();
   } finally { await rm(d, { recursive: true, force: true }); }
@@ -61,14 +65,32 @@ it("只复制指定 Agent 的 L0/L1/索引/画像，目标非空时拒绝重用"
       db.close();
     }
     const profile = join(source.profilesRoot, encodeURIComponent("team:t1|agent:a1"));
-    await mkdir(profile, {recursive:true}); await writeFile(join(profile, "persona.md"), "画像内容");
+    await mkdir(profile, {recursive:true}); await writeFile(join(profile, "persona.md"), "画像内容 r1");
     const original = await inspectMemorySeed(source);
     const copied = await copyMemorySeed(source, target);
     expect(copied.digest).toBe(original.digest);
     expect(copied.counts).toMatchObject({l0_conversations:1,l1_records:1,l0_fts:1,l1_fts:1});
     const db = new DatabaseSync(target.dbPath, {readOnly:true});
     expect({...db.prepare("SELECT * FROM l1_records").get()}).toEqual({record_id:"r1",team_id:"t2",user_id:"u2",agent_id:"a2",content:"保留正文"}); db.close();
-    expect(await readFile(join(target.profilesRoot, encodeURIComponent("team:t2|agent:a2"), "persona.md"), "utf8")).toBe("画像内容");
+    expect(await readFile(join(target.profilesRoot, encodeURIComponent("team:t2|agent:a2"), "persona.md"), "utf8")).toBe("画像内容 r1");
     await expect(copyMemorySeed(source, target)).rejects.toThrow("非空");
+    const additional = new DatabaseSync(source.dbPath);
+    for (const t of ["l0_conversations","l1_records","l0_fts","l1_fts"]) {
+      additional.exec(`INSERT INTO ${t} VALUES('r3','t1','u1','a1','第二条记忆')`);
+    }
+    additional.close();
+    // 同一 Core 留着上一轮数据时，新 Agent 必须能复制相同事实而不撞全局主键。
+    const next = {...target,identity:{team_id:"t3",agent_id:"a3",user_id:"u3"}};
+    const replay = await copyMemorySeed(source,next,"replay-1");
+    expect(replay.counts.l1_records).toBe(2);
+    const check = new DatabaseSync(target.dbPath,{readOnly:true});
+    const copiedRecord = check.prepare("SELECT record_id,content FROM l1_records WHERE agent_id='a3' AND content='保留正文'").get()!;
+    expect(copiedRecord.record_id).not.toBe("r1");
+    expect(copiedRecord.content).toBe("保留正文");
+    expect(await readFile(join(next.profilesRoot,encodeURIComponent("team:t3|agent:a3"),"persona.md"),"utf8"))
+      .toBe("画像内容 "+copiedRecord.record_id);
+    expect(check.prepare("SELECT record_id FROM l1_fts WHERE agent_id='a3' AND content='保留正文'").get()!.record_id).toBe(copiedRecord.record_id);
+    expect(check.prepare("SELECT count(*) AS n FROM l1_records WHERE agent_id='a2'").get()!.n).toBe(1);
+    check.close();
   } finally { await rm(root, {recursive:true,force:true}); }
 });

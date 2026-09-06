@@ -4,6 +4,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 import { loadDataset } from "../runner/dataset-loader.js";
 import { discoverSkillPackages } from "../importers/skills/importer.js";
 import type { EvalCase } from "../types.js";
+import { loadTaskInputs } from "../pipeline/inputs.js";
 
 const root = resolve(import.meta.dirname, "../dataset");
 let cases: EvalCase[];
@@ -27,11 +28,17 @@ describe("正式运行前的数据质量检查", () => {
     expect(leaks).toEqual([]);
   });
 
-  it("Main 正例只评首次选择，Skill 可以直接读取，三类候选数量相同", () => {
-    const invalid = cases.filter(c => c.candidate_skills?.length !== 6 || (c.suite === "main" && c.should_call
-      && (!c.allowed_first_tools?.length || c.expected_tool_sequence?.length || c.allowed_sequences)));
+  it("Main 正例只评首次选择，Skill 可以直接读取", () => {
+    const invalid = cases.filter(c => c.suite === "main" && c.should_call
+      && (!c.allowed_first_tools?.length || c.expected_tool_sequence?.length || c.allowed_sequences));
     expect(invalid.map(c => c.case_id)).toEqual([]);
     for (const c of cases.filter(c => c.tool_family === "skill")) expect(c.allowed_first_tools).toEqual(["skill_search", "skill_view"]);
+  });
+
+  it("300 个任务的真实准备输入包含同一完整 Skill 库，不按标签筛选", async () => {
+    const inputs = await loadTaskInputs({skills:join(root,"skills"),memories:join(root,"memories"),asset_base:join(root,"..")},cases);
+    const packages = await discoverSkillPackages(join(root,"skills"));
+    for (const input of inputs) expect(input.skills).toEqual(packages);
   });
 
   it("所有预期 Skill 资源都能由实际导入器发现，不只是在磁盘存在", async () => {

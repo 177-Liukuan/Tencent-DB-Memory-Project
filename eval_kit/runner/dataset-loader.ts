@@ -62,6 +62,7 @@ const caseSchema = z.object({
   scenario_id: z.string().optional(),
   asset_path: z.string().nullable().optional(),
   source_memory_sessions: z.array(z.string()).optional(),
+  // 保留旧数据字段以便读回历史任务；不再参与 Skill 导入或模型输入构造。
   candidate_skills: z.array(z.string()).optional(),
   expected_skills: z.array(z.string()).optional(),
   expected_skill_files: z.array(z.string()).optional(),

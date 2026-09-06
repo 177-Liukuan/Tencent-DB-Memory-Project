@@ -10,6 +10,8 @@
 
 修订数据的 30 题复查使用 `bash run-pipeline.sh configs/pilot-30.yaml`：Memory、Skill、None 各 10 题，首次调用即停止，按允许的首次工具选择评分。`sample_seed` 固定抽样，`per_family: all` 可运行全部 Main，Probe 仍单列。数据变化与标签边界见 [v2 修订说明](dataset/review/v2-revision.md)。
 
+当前 Pipeline 给每个任务的两组独立 Agent 导入配置 `skills` 目录中的完整 Skill 库，不再按 `candidate_skills` 筛选。默认数据集有15个 Skill；旧字段仍可读取，但不影响导入和评分。`reuse_preparation` 只复用原任务、Memory 和工作区，Skill 始终取当前配置目录，因此从旧6个候选切换为完整库时不需要重新提炼 Memory，也不再属于原 Skill 环境的原样重跑。
+
 已完成 30 题 × 两组的真实运行，逐题调用、指标、修复记录与正式评测前仍需解决的问题见 [30 题实测报告](docs/pilot-30-task-report.md)。
 
 这个目录统一保存评测配置、Skill/Memory 数据、批量导入工具、A/B 运行程序、指标计算和结果页面。`tencentdb-memory-lab` 继续负责运行 Baseline、Native 和数据构建服务，不在这里保存密钥、数据库或日志。

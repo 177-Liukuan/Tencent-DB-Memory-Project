@@ -38,7 +38,9 @@ npm run score -- --experiment results/pilot-2026-09-05T10-26-56-763Z
 | 每组 `core_url` / `proxy_url` | Core API 地址和 Claude Code 接入地址 |
 | `lab_root` / `service_id` | 当前本地服务数据与凭据布局 |
 | `dataset` / `asset_base` | Task JSONL 及其 `asset_path` 的解析根目录 |
-| `skills` / `memories` | 候选 Skill 包、原始对话目录 |
+| `skills` / `memories` | 完整 Skill 库、原始对话目录；所有任务导入同一份 Skill 库 |
+| `reuse_preparation` | 可选，旧实验的 preparation 目录；复用任务、Memory 和工作区，Skill 仍从当前 `skills` 目录读取 |
+| `team_member_user_ids` | 新 Team 中额外加入的查看成员；评测使用 `[usr-f7iwo2muhb]`，不替代每个任务的独立执行账号 |
 | `results_dir` | 准备记录和运行结果位置 |
 | `claude_binary` / `uv_binary` | 本机可执行文件路径 |
 | `model` / `client_image` | 两组共用模型配置和隔离镜像 |
@@ -61,19 +63,23 @@ npm run score -- --experiment results/pilot-2026-09-05T10-26-56-763Z
 
 1. 校验引用、服务、认证、观测目录，记录两项目 HEAD/diff，检查真实客户端镜像。
 2. 每个 Task × 版本新建普通用户、Team、Agent、Task。Agent 使用“通用Coding Agent”和“一个通用Coding Agent”；每个导入 Session 也独立。
-3. 导入相同候选 Skill，含正文与 `references/`、`scripts/`、`assets/`、旧 `files/`；逐个读回核对。
+3. 每个 Task 的两组 Agent 都导入 `skills` 目录中的全部 Skill，含正文与 `references/`、`scripts/`、`assets/`、旧 `files/`；按名称排序、逐个读回核对。`candidate_skills` 不再筛选导入内容，`expected_skills` 和工具选择标签仍只用于核验和评分，不发送给模型。
 4. 在独立进程/目录复用 Baseline Core 原有函数：L0 → 全部 L1 → L2 → L3。不启动在线调度器、不修改生产等待规则，没有固定 90/95 秒空等。
 5. 检查实际记录和场景/画像，把唯一一份结果复制到两组空 Agent，核对正文、索引、文件和 API 数量。不整体替换 Core，不重复提炼两次。
 6. 固定 Task 的初始项目副本和校验值，每次运行再复制成自己的可写 Workspace；两组交替先运行，不共用已修改文件或缓存。
 7. 真正启动 CLI。Native 保留官方 Hooks；独立 Session、设置、鉴权；只挂载当前素材、设置和 CLI，不挂载 dataset/标签/结果根目录。
 8. 按指定点停止或等最终回答，保存 Bridge/CLI 原始记录，核对身份、事件归属及客户端 Native Tool 是否隐藏，再汇总指标和静态 Token。
-9. 单独读回首次实际模型输入中的动态 Memory 与候选 Skill 顺序，保存到 `input-review/`。逐字命中只作审核线索；摘要中换一种说法给出答案仍需人工判断，程序不自动重写标签。
+9. 单独读回首次实际模型输入中的动态 Memory 与完整 Skill 目录，保存到 `input-review/`。`skill-catalog-check.json` 核对两组目录是否缺项、顺序是否一致；`matched` 表示核对通过，`mismatch` 需排查，`unavailable` 表示未取得完整观测，不能当作通过。该检查不修改工具分数。逐字命中只作 Memory 审核线索；摘要中换一种说法给出答案仍需人工判断，程序不自动重写标签。
 
 工具模式主动结束时，`stopped_on_observation=true`、`completed=false`、`end_to_end_ms=null`。后续 Coding 失败但已有可靠调用时，`observation_valid=true`，错误另外保存。没有调用且 API 失败/超时则无效，不计作正常 None。
 
 ### 公平性与隔离
 
 同一 Task 两组共享同一初始 Memory、Skill 和素材内容，但不共用 Agent/Session；不同 Task、重复实验均不共用 Agent。原始素材只用于复制，Claude 改动的是单次运行副本。下次实验重新提炼可能产生不同内容，准备记录中的版本需保留。
+
+配置 `reuse_preparation: ../results/preparation/pilot-...` 可复用该实验的任务、工作区和独立 builder Memory，不复用已运行过的 Agent。复用时校验 Memory 和工作区仍与原实验一致；旧目录中的 Skill 子集不会读取，每个新 Agent 都导入当前 `skills` 完整库，并计算新的 `seed_version`。因此可以保留冻结 Memory、切换到完整库，但旧6个候选的结果与新完整库结果应分开报告。若需要环境完全相同的重复实验，还应保持 `skills` 目录版本不变。
+
+完整导入不等于把所有 Skill 正文写进 System。仍由项目原有流程注入名称和描述，正文及资源由工具按需读取。首次输入核对依赖 Langfuse；导入两组内容相同，并不能替代实际目录核对。
 
 容器非 root、只读根目录、临时缓存。镜像缺失时自动构建，存在则实际检查；构建时间不计入延迟。使用 host 网络访问本机服务，因此不是恶意素材网络安全沙箱，仅适合专用机器与可信数据。
 
@@ -100,6 +106,7 @@ MAX_THINKING_TOKENS=0 claude
 results/
 ├── preparation/pilot-<UTC>/
 │   ├── pipeline-config.json / revisions-before.json
+│   ├── skill-library.json            # 本轮完整库的来源目录及排序后的名称
 │   ├── cases.jsonl / manifest.pending.json / manifest.json
 │   ├── keys/                         # 每个 Task 的密钥，禁止公开
 │   ├── inputs/task-XX/                # Skill、对话、固定项目副本
@@ -111,7 +118,7 @@ results/
     ├── report.md / summary.json / manifest.json
     ├── data-preparation.json / revisions-after.json
     ├── pipeline-audit.json / static-token-check.json
-    ├── input-review/                # 首次输入的 Memory、候选顺序和目标事实，供标签审核
+    ├── input-review/                # 首次输入的 Memory、完整 Skill 目录核对和目标事实
     ├── runs/task-XX-<variant>.json
     └── raw/task-XX-<variant>/         # CLI、Bridge、设置、可写项目
 ```

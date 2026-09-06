@@ -1,7 +1,7 @@
 import { DatabaseSync, type SQLInputValue } from "node:sqlite";
 import { createRequire } from "node:module";
 import { createHash } from "node:crypto";
-import { cp, readFile, readdir, stat } from "node:fs/promises";
+import { cp, readFile, readdir, stat, writeFile } from "node:fs/promises";
 import { join, relative } from "node:path";
 
 export type SeedEndpoint = {
@@ -68,13 +68,29 @@ export async function inspectMemorySeed(endpoint: SeedEndpoint) {
 }
 
 // 只向刚创建的 Agent 追加种子；不替换 Core 数据目录，也不改动原有人工会话。
-export async function copyMemorySeed(source: SeedEndpoint, target: SeedEndpoint) {
+export async function copyMemorySeed(source: SeedEndpoint, target: SeedEndpoint, recordIdNamespace?: string) {
   if (source.dbPath === target.dbPath) throw new Error("种子复制只支持独立数据库");
   const sourceDb = open(source, true); const targetDb = open(target, false);
   try {
     sourceDb.exec("BEGIN");
     const data = rows(sourceDb, source); const existing = rows(targetDb, target);
     const files = await profileFiles(profilePath(source));
+    // record_id 是 Core 全局主键。重复实验只更换内部编号，正文、时间及画像不变；
+    // 同一映射同时用于记录、索引及场景中的记忆引用，避免引用仍指向旧 Agent。
+    if (recordIdNamespace) {
+      const ids = new Map(Object.values(data).flat().map(row => [String(row.record_id),
+        "eval-"+createHash("sha256").update(recordIdNamespace+":"+row.record_id).digest("hex")]));
+      const replace = (text:string) => {
+        for (const [before,after] of ids) text=text.replaceAll(before,after);
+        return text;
+      };
+      for (const records of Object.values(data)) for (const row of records) {
+        for (const key of Object.keys(row)) if (typeof row[key] === "string") row[key]=replace(row[key]);
+      }
+      // 换号后按新 ID 排序，与读回时的 SQL ORDER BY 保持一致；不改变消息时间。
+      for (const records of Object.values(data)) records.sort((a,b)=>String(a.record_id)<String(b.record_id)?-1:String(a.record_id)>String(b.record_id)?1:0);
+      for (const file of files) file.content=Buffer.from(replace(Buffer.from(file.content,"base64").toString("utf8"))).toString("base64");
+    }
     if (Object.values(existing).some(r=>r.length) || (await profileFiles(profilePath(target))).length) throw new Error("目标 Agent 非空，不允许复用");
     if (Object.keys(data).join() !== Object.keys(existing).join()) throw new Error("两组记忆存储模式不一致");
     targetDb.exec("BEGIN IMMEDIATE");
@@ -92,6 +108,7 @@ export async function copyMemorySeed(source: SeedEndpoint, target: SeedEndpoint)
     } catch (error) { targetDb.exec("ROLLBACK"); throw error; }
     sourceDb.exec("COMMIT");
     if (files.length) await cp(profilePath(source), profilePath(target), {recursive:true,errorOnExist:true,force:false});
+    if (recordIdNamespace) for (const file of files) await writeFile(join(profilePath(target),file.path),Buffer.from(file.content,"base64"));
     const copied = await inspectMemorySeed(target);
     if (copied.digest !== digestRows(data,files)) throw new Error("种子内容核对失败，不开始评测");
     return copied;
