@@ -8,12 +8,13 @@ import { DatabaseSync, backup } from "node:sqlite";
 import yaml from "js-yaml";
 import { loadPilotConfig, selectPilotCases, type PilotConfig } from "./config.js";
 import { copyMemorySeed, inspectMemorySeed, type SeedEndpoint } from "./memory-seed.js";
-import { isolateSeedSessions, loadTaskInputs } from "./inputs.js";
+import { isolateSeedSessions, loadTaskInputs, resolveSessionQuery } from "./inputs.js";
 import { waitForHttp } from "./readiness.js";
 import { prepareClientImage } from "./container-image.js";
 import { captureStaticTokenCheck } from "./static-tokens.js";
 import { captureInputReviews } from "./input-review.js";
 import { auditPilotResults } from "./audit.js";
+import { coreApi as api, createEvaluationTeam, createEvaluationTask, type Connection } from "./identity.js";
 import { snapshotWorkspace } from "./workspace.js";
 import { parseEnvFile } from "../runner/config.js";
 import { loadDataset } from "../runner/dataset-loader.js";
@@ -25,17 +26,6 @@ import type { Variant } from "../types.js";
 
 const exec = promisify(execFile);
 const variants: Variant[] = ["baseline", "native"];
-type Connection = { variant:Variant; userKey:string; gatewayKey:string; userId:string; baseUrl:string; serviceId:string };
-async function api<T>(connection: Connection, path: string, body: unknown): Promise<T> {
-  const response = await fetch(connection.baseUrl + path, {
-    method:"POST", headers:{"content-type":"application/json","x-tdai-service-id":connection.serviceId,
-      "x-tdai-user-key":connection.userKey,authorization:"Bearer " + connection.gatewayKey},
-    body:JSON.stringify(body), signal:AbortSignal.timeout(60_000),
-  });
-  const result = await response.json() as { code:number;message?:string;data:T };
-  if (!response.ok || result.code !== 0) throw new Error(`${connection.variant} ${path}: ${result.code ?? response.status} ${result.message ?? ""}`);
-  return result.data;
-}
 async function revision(project: string) {
   const head = (await exec("git", ["-C",project,"rev-parse","HEAD"])).stdout.trim();
   const diff = (await exec("git", ["-C",project,"diff","HEAD","--binary"], {maxBuffer:20*1024*1024})).stdout;
@@ -97,7 +87,7 @@ export async function runPilotPipeline(configPath: string) {
     await waitForHttp(new URL("/health",config.variants[variant].proxy_url).href);
     const secret = join(config.lab_root,variant,"secrets");
     const connection: Connection = {variant,baseUrl:config.variants[variant].core_url.replace(/\/$/,""),serviceId:config.service_id,userId:"",
-      userKey:(await readFile(join(secret,"admin-user.key"),"utf8")).trim(),gatewayKey:(await readFile(join(secret,"core-gateway.key"),"utf8")).trim()};
+      userKey:(await readFile(join(secret,"memory-user.key"),"utf8")).trim(),gatewayKey:(await readFile(join(secret,"core-gateway.key"),"utf8")).trim()};
     connection.userId = (await api<{user_id:string}>(connection,"/v3/meta/user/get",{user_key:connection.userKey})).user_id;
     const health = await fetch(new URL("/health",config.variants[variant].proxy_url),{signal:AbortSignal.timeout(10_000)});
     const h = await health.json() as {toolObservation?:{enabled:boolean;healthy:boolean;started_at:string}};
@@ -115,14 +105,20 @@ export async function runPilotPipeline(configPath: string) {
   // 保存本轮实际完整库，不能用任务标签或旧准备目录推断 Skill 范围。
   const skillNames = taskInputs[0]!.skills.map(skill=>skill.name);
   await secureWriteJson(join(preparation,"skill-library.json"),{directory:config.skills,names:skillNames});
-  const runConnections = new Map<string,Connection>();
+  const teamIds = {} as Record<Variant,string>;
   const runs: PreparedRun[] = [];
+  const executionCases = [];
   const imports: unknown[] = [];
   const pairChecks: unknown[] = [];
   const workspaces = new Map<string,Awaited<ReturnType<typeof snapshotWorkspace>>>();
   process.stderr.write(`[pipeline] ${id}: ${selected.length} Tasks / ${selected.length*2} runs\n`);
   try {
     await secureWriteJson(join(preparation,"client-environment.json"),await prepareClientImage(config.client_image,config.uv_binary,config.claude_binary));
+    // 一轮两组各建一个 Team；后续只增加任务与 Agent，不随题数增加 Team 或账号。
+    for (const variant of variants) {
+      teamIds[variant] = await createEvaluationTeam(connections[variant],id,config.team_member_user_ids);
+      await secureWriteJson(join(preparation,"teams.json"),teamIds);
+    }
     for (const [index,c] of selected.entries()) {
       const label = "task-" + String(index+1).padStart(2,"0");
       const input = join(preparation,"inputs",label);
@@ -141,25 +137,17 @@ export async function runPilotPipeline(configPath: string) {
         await cp(join(frozen,"inputs",label,"memories/sessions.json"),join(input,"memories/sessions.json"));
         await cp(join(frozen,"inputs",label,"memory-session-map.json"),join(input,"memory-session-map.json"));
       }
+      // 两组共用相同执行 Query；原始数据不写死某次实验生成的会话 ID。
+      const sessionMap = JSON.parse(await readFile(join(input,"memory-session-map.json"),"utf8"));
+      executionCases.push({...c,query:resolveSessionQuery(c.query,sessionMap)});
       for (const variant of variants) {
-        // 每个 Task 单独建号，Session Init 只会列出自己的资源，不扫描其他评测任务。
-        const user = await api<{user_id:string;default_user_key:string}>(connections[variant],"/v3/meta/user/create",{username:id+"-"+label});
-        const connection = {...connections[variant],userKey:user.default_user_key,userId:user.user_id};
-        const keyFile = join(preparation,"keys",label+"-"+variant+".key");
-        await secureWrite(keyFile,connection.userKey);
-        // 名称和描述不包含 Memory/Skill/None 标签，避免把答案通过 session_context 提示给模型。
-        const team = await api<{team_id:string}>(connection,"/v3/meta/team/create",{name:id+"-"+label,owner_user_id:connection.userId,description:"独立项目工作区"});
-        // 查看资产的成员不参与任务执行，仍由每个 Task 的独立账号运行。
-        for (const userId of config.team_member_user_ids) {
-          await api(connection,"/v3/meta/team-member/add",{team_id:team.team_id,user_id:userId,role:"member"});
-        }
-        const agent = await api<{agent_id:string}>(connection,"/v3/meta/agent/create",{team_id:team.team_id,owner_user_id:connection.userId,name:"通用Coding Agent",description:"一个通用Coding Agent"});
-        const task = await api<{task_id:string}>(connection,"/v3/meta/task/create",{team_id:team.team_id,creator_user_id:connection.userId,title:"项目维护",description:"完成当前用户请求",linked_agents:[{agent_id:agent.agent_id}]});
+        const connection = connections[variant];
+        const keyFile = join(config.lab_root,variant,"secrets/memory-user.key");
+        const identity = await createEvaluationTask(connection,teamIds[variant],index+1);
         const run: PreparedRun = {run_id:label+"-"+variant,case_id:c.case_id,variant,repeat:1,seed_version:"pending",
           auth_key_file:keyFile,
           ...(config.stop_after_tools[c.case_id] ? {stop_after_tools:config.stop_after_tools[c.case_id]} : {}),
-          workspace:workspace.directory,identity:{service_id:config.service_id,team_id:team.team_id,agent_id:agent.agent_id,task_id:task.task_id}};
-        runConnections.set(run.run_id,connection);
+          workspace:workspace.directory,identity};
         runs.push(run); await secureWriteJson(join(preparation,"manifest.pending.json"),runs);
         const target = importTarget(connection,run);
         const skillImport = taskSkills.length ? await importSkillDirectory({directory:join(input,"skills"),target,onConflict:"error",dryRun:false}) : null;
@@ -175,7 +163,7 @@ export async function runPilotPipeline(configPath: string) {
       const directory=join(preparation,"builder",label);
       const inputFile=join(directory,"input.json");
       const builderSessions=JSON.parse(await readFile(join(preparation,"inputs",label,"memories/sessions.json"),"utf8"));
-      const baselineTarget=endpoint(config,runConnections.get(baseline.run_id)!,baseline);
+      const baselineTarget=endpoint(config,connections.baseline,baseline);
       let source:SeedEndpoint;
       if (frozen) {
         const originalDirectory=join(frozen,"builder",label);
@@ -204,7 +192,7 @@ export async function runPilotPipeline(configPath: string) {
         process.stderr.write(`[pipeline] prepared ${label}: ${ready.cache?.status??"cache disabled"}, elapsed=${ready.elapsed_ms}ms\n`);
         source={...baselineTarget,dbPath:join(directory,"vectors.db"),profilesRoot:join(directory,"profiles")};
       }
-      const target = endpoint(config,runConnections.get(native.run_id)!,native);
+      const target = endpoint(config,connections.native,native);
       const seed = await inspectMemorySeed(source);
       const expectedMessages = taskInputs[index]!.sessions.reduce((n,s)=>n+s.messages.length,0);
       if (seed.counts.l0_conversations !== expectedMessages || (expectedMessages && (!seed.counts.l1_records || !seed.profileFiles.some(p=>p.startsWith("scene_blocks/")) || !seed.profileFiles.includes("persona.md")))) {
@@ -215,11 +203,11 @@ export async function runPilotPipeline(configPath: string) {
       const copied = await copyMemorySeed(source,target,recordIdNamespace);
       if (baselineCopied.digest !== copied.digest) throw new Error(c.case_id + " 两组复制后的 Memory 内容不同");
       const taskSkills = taskInputs[index]!.skills;
-      const skillDigests = await Promise.all([baseline,native].map(r=>verifySkills(runConnections.get(r.run_id)!,r,taskSkills)));
+      const skillDigests = await Promise.all([baseline,native].map(r=>verifySkills(connections[r.variant],r,taskSkills)));
       if (skillDigests[0] !== skillDigests[1]) throw new Error(c.case_id + " 两组 Skill 内容不同");
       const apiChecks = [];
       for (const [v,r] of [["baseline",baseline],["native",native]] as const) {
-        const connection = runConnections.get(r.run_id)!;
+        const connection = connections[v];
         const body = {user_id:connection.userId,team_id:r.identity.team_id,agent_id:r.identity.agent_id};
         const l0 = await api<{total:number}>(connection,"/v3/conversation/count",body);
         const l1 = await api<{total:number}>(connection,"/v3/atomic/count",body);
@@ -241,6 +229,7 @@ export async function runPilotPipeline(configPath: string) {
     // 配对执行且交替谁先跑，避免始终让同一组承受冷启动或固定时段的负载。
     const ordered = selected.flatMap((c,index)=>(index%2 ? ["native","baseline"] : ["baseline","native"]).map(v=>runs.find(r=>r.case_id===c.case_id && r.variant===v)!));
     await secureWriteJson(join(preparation,"manifest.json"),ordered);
+    await secureWriteJsonl(join(preparation,"cases.jsonl"),executionCases);
     const observationConfig = {
       version:2,experiment_id:id,dataset:join(preparation,"cases.jsonl"),run_manifest:join(preparation,"manifest.json"),results_dir:config.results_dir,
       claude_binary:config.claude_binary,model:config.model,timeout_ms:config.timeout_ms,allow_bash:config.allow_bash,client_image:config.client_image,
@@ -264,7 +253,7 @@ export async function runPilotPipeline(configPath: string) {
     await secureWriteJson(join(result.experimentDirectory,"revisions-after.json"),after);
     const unchanged = JSON.stringify(after) === JSON.stringify(revisions);
     const lines = result.runs.map(r=>`| ${r.case_id} | ${r.variant} | ${r.observation_valid ? "有效" : "无效"} | ${r.completed ? "已返回最终回答" : r.stopped_on_observation ? "到观测点停止" : "未完成，查看错误记录"} | ${r.actual_tools.join(" → ") || "无"} | ${r.end_to_end_ms === null ? "—" : (r.end_to_end_ms/1000).toFixed(2)} |`);
-    await secureWrite(join(result.experimentDirectory,"report.md"),`# ${selected.length} Task Pipeline 实际运行\n\n实验：${id}\n\n准备记录：${relative(result.experimentDirectory,preparation)}\n\n两组工具代码是否保持不变：${unchanged}\n\n模式：${config.measurement}。工具观测有效不等于 Coding 成功；CLI 返回最终回答也没有经过代码正确性验收。\n\n每次运行使用独立 Team、Agent、Session 和工作区。真实业务服务，不 Mock；tool_calls 模式在指定事件出现后停止客户端，end_to_end 模式等待最终回答。准备数据不计入延迟。统计只用于检查流程，不作为正式效果结论。\n\n| Task | 版本 | 工具观测 | CLI 状态 | 实际 Proxy 调用顺序 | 端到端秒 |\n|---|---|---|---|---|---|\n${lines.join("\n")}\n\n详细指标见 summary.json；原始 CLI 和 Bridge 事件见 raw/；初始数据核对见 data-preparation.json。\n`);
+    await secureWrite(join(result.experimentDirectory,"report.md"),`# ${selected.length} Task Pipeline 实际运行\n\n实验：${id}\n\n准备记录：${relative(result.experimentDirectory,preparation)}\n\n两组工具代码是否保持不变：${unchanged}\n\n模式：${config.measurement}。工具观测有效不等于 Coding 成功；CLI 返回最终回答也没有经过代码正确性验收。\n\n每组每轮共用一个 Team 和资产拥有者账号，每个任务使用独立 Agent、Task、Session 和工作区。真实业务服务，不 Mock；tool_calls 模式在指定事件出现后停止客户端，end_to_end 模式等待最终回答。准备数据不计入延迟。统计只用于检查流程，不作为正式效果结论。\n\n| Task | 版本 | 工具观测 | CLI 状态 | 实际 Proxy 调用顺序 | 端到端秒 |\n|---|---|---|---|---|---|\n${lines.join("\n")}\n\n详细指标见 summary.json；原始 CLI 和 Bridge 事件见 raw/；初始数据核对见 data-preparation.json。\n`);
     process.stderr.write(`[pipeline] report: ${join(result.experimentDirectory,"report.md")}\n`);
     if (!unchanged) throw new Error("实验中项目代码发生变化，请核对 revisions-before/after");
     if (audit.issues.length) throw new Error("运行记录核对未通过，请检查 pipeline-audit.json");

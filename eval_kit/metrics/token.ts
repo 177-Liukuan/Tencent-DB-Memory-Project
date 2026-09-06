@@ -4,13 +4,13 @@ import type { CaseRun, ModelCall, StaticDefinitionSummary, Variant } from "../ty
 import { MANAGED_TOOL_NAMES } from "../recorder/tool-registry.js";
 
 // 只统计真实注入块，避免把正文中提到的 `<skill_tools>` 等标签当作块起点。
-const TOOL_BLOCKS = /^[\t ]*<(tdai_memory_tools|memory-tools-guide|skill_tools|knowledge_tools|tdai_profile_memory|knowledge_catalog)\b[^>]*>[\s\S]*?<\/\1>/gimu;
+const TOOL_BLOCKS = /^[\t ]*<(tdai_memory_tools|memory-tools-guide|skill_tools|knowledge_tools|tdai_profile_memory|knowledge_catalog|native_tool_usage)\b[^>]*>[\s\S]*?<\/\1>/gimu;
 
 // Skill 的调用引导位于目录标签之外；按现有渲染器的标题和末句限定范围，
 // 不把后面的 Claude Code 提示词一起计入。渲染器变更时需同步这两个边界。
 const SKILL_GUIDANCE = [
   /^## Skills \(mandatory\)\r?\n[\s\S]*?^Only proceed without loading a skill if genuinely none are relevant to the task\.[\t ]*(?=\r?$)/gm,
-  /^## Available Cloud Skills\r?\n[\s\S]*?^只有在实际读取 Skill 内容后，才能声称已经使用该 Skill。[\t ]*(?=\r?$)/gm,
+  /^## Available Cloud Skills(?:，[^\r\n]*)?\r?\n[\s\S]*?^只有在实际读取 Skill 内容后，才能声称已经使用该 Skill。[\t ]*(?=\r?$)/gm,
 ];
 
 const HEADER_PLACEHOLDERS: Record<string, string> = {

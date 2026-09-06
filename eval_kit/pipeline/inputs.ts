@@ -36,3 +36,12 @@ export function isolateSeedSessions(sessions: MemorySession[], experimentId: str
   return sessions.map((session,index) => ({source_session_id:session.sessionId,
     session_id:`seed-${experimentId}-${taskLabel}-${index+1}`,messages:session.messages}));
 }
+
+export function resolveSessionQuery(query: string, sessions: Array<{source_session_id: string; session_id: string}>): string {
+  // 使用已落盘的映射，冻结 Memory 重跑时仍指向旧种子；一次替换避免 ID 串改。
+  const ids = new Map(sessions.map(s => [s.source_session_id, s.session_id]));
+  if (!ids.size) return query;
+  const escaped = [...ids.keys()].sort((a,b) => b.length-a.length).map(id => id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+  const pattern = new RegExp(`(?<![A-Za-z0-9_.-])(?:${escaped.join("|")})(?![A-Za-z0-9_.-])`, "g");
+  return query.replace(pattern, id => ids.get(id)!);
+}

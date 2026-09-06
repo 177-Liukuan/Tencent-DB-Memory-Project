@@ -15,12 +15,14 @@ it("正式评测启用 Native Hooks，隔离设置，不使用会禁用 Hooks �
       binary, variant: "native", sessionId: "test-session", workDirectory: d, claudeConfigDirectory: join(d,"settings"),
       envFile: join(d,"env"), authKeyFile: join(d,"key"), baseUrl: "http://localhost:18096/claude-code/space",
       identity: {service_id:"space",team_id:"team",agent_id:"agent",task_id:"task"}, timeoutMs: 5000,
-      streamPath: join(d,"stream.jsonl"), testCase: { schema_version:1,case_id:"c",suite:"smoke",query:"hi",should_call:false,expected_tools:[] },
+      streamPath: join(d,"stream.jsonl"), testCase: { schema_version:1,case_id:"c",suite:"smoke",query:"hi",reason:"PRIVATE_REVIEW_REASON",should_call:false,expected_tools:[] },
       evaluation: { model: "test-model", allowBash: true },
     });
     const output = JSON.parse(String(result.events[0]!.result));
     expect(output.args).not.toContain("--bare");
     expect(output.args).toContain("test-model");
+    expect(output.args.at(-1)).toBe("hi");
+    expect(JSON.stringify(output)).not.toContain("PRIVATE_REVIEW_REASON");
     expect(output.args[output.args.indexOf("--allowedTools") + 1]).toBe("Bash,Read,Write,Edit,Glob,Grep");
     expect(output.settings.hooks.UserPromptSubmit[0].hooks[0]).toMatchObject({type:"http",url:"http://localhost:18096/claude-code/space/hooks/claude-code/context"});
     expect(output.thinking).toBe("0");

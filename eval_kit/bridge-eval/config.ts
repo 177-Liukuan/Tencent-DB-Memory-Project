@@ -33,11 +33,11 @@ export function validateRunManifest(raw: unknown): PreparedRun[] {
   const seen = new Set<string>();
   const seeds = new Map<string, string>();
   for (const run of runs) {
-    // 数据准备只提供资产，本入口不复用公共 identity，避免前一个 Task 的新增记忆影响下一个。
+    // Team 和账号可在一轮内共用；Agent/Task 不能复用，避免历史写入落到其他任务。
     for (const key of [run.run_id, run.variant + ":agent:" + run.identity.service_id + ":" + run.identity.agent_id,
-      run.variant + ":team:" + run.identity.service_id + ":" + run.identity.team_id,
+      run.variant + ":task:" + run.identity.service_id + ":" + run.identity.task_id,
       run.variant + ":case:" + run.case_id + ":" + run.repeat]) {
-      if (seen.has(key)) throw new Error("Duplicate run/Agent/Team or case repetition in manifest: " + run.run_id);
+      if (seen.has(key)) throw new Error("Duplicate run/Agent/Task or case repetition in manifest: " + run.run_id);
       seen.add(key);
     }
     const pair = run.case_id + ":" + run.repeat;

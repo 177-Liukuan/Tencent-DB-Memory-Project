@@ -13,7 +13,7 @@ async function fixture() {
   const save = (name: string, value: unknown) => writeFile(join(exp, name), JSON.stringify(value));
   const prepared = (variant: "baseline" | "native", caseId = "case-a", repeat = 1) => ({
     run_id: `${caseId}-${variant}-${repeat}`, case_id: caseId, variant, repeat, seed_version: "seed-1", workspace: "/private/work",
-    identity: { service_id: "svc", team_id: `${caseId}-${variant}-${repeat}`, agent_id: `${caseId}-${variant}-${repeat}`, task_id: "task" },
+    identity: { service_id: "svc", team_id: `team-${variant}`, agent_id: `${caseId}-${variant}-${repeat}`, task_id: `${caseId}-${variant}-${repeat}` },
   });
   const result = (variant: "baseline" | "native", extra = {}) => ({
     ...prepared(variant), session_id: `session-${variant}`, suite: "main", tool_family: "memory", query: "查询偏好",

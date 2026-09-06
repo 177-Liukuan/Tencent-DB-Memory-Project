@@ -35,6 +35,13 @@ it("按完整 Skill 库核对实际目录，不能把使用说明中出现的名
   expect(result.missing_skills).toEqual(["alpha"]);
 });
 
+it("说明里的标签引用不能吞入实际目录或记忆正文", () => {
+  const result=reviewInjectedInput({system:'名称来自 <available_skills> 的 name；记忆见 <tdai_profile_memory>。\n- wrong: 只是说明\n<available_skills>\n- alpha: workflow\n</available_skills>\n<tdai_profile_memory>实际记忆</tdai_profile_memory>'},["alpha"],["实际记忆"]);
+  expect(result.skill_listing).toBe("- alpha: workflow");
+  expect(result.candidate_order).toEqual(["alpha"]);
+  expect(result.memory).toBe("<tdai_profile_memory>实际记忆</tdai_profile_memory>");
+});
+
 it.each([
   { name: "内容和顺序一致", listing: "- alpha: first\n- beta: second", status: "matched" },
   { name: "目录缺项", listing: "- alpha: first", status: "mismatch" },

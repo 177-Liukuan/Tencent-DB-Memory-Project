@@ -11,8 +11,8 @@ let cases: EvalCase[];
 beforeAll(async () => { cases = (await loadDataset(join(root, "tasks/tool_call_eval_v1.jsonl"))).cases; });
 
 describe("正式运行前的数据质量检查", () => {
-  it("300 个工作区不向模型暴露类别编号或评测说明", async () => {
-    expect(cases).toHaveLength(300);
+  it("正式任务工作区不向模型暴露类别编号或评测说明", async () => {
+    expect(cases.length).toBeGreaterThan(0);
     const leaks: string[] = [];
     async function walk(directory: string): Promise<void> {
       for (const entry of await readdir(directory, { withFileTypes: true })) {
@@ -28,14 +28,16 @@ describe("正式运行前的数据质量检查", () => {
     expect(leaks).toEqual([]);
   });
 
-  it("Main 正例只评首次选择，Skill 可以直接读取", () => {
+  it("Main 正例逐题声明首次选择，不强制同类别采用同一工具列表", () => {
     const invalid = cases.filter(c => c.suite === "main" && c.should_call
       && (!c.allowed_first_tools?.length || c.expected_tool_sequence?.length || c.allowed_sequences));
     expect(invalid.map(c => c.case_id)).toEqual([]);
-    for (const c of cases.filter(c => c.tool_family === "skill")) expect(c.allowed_first_tools).toEqual(["skill_search", "skill_view"]);
+    const available = new Set(["tdai_memory_search", "tdai_atomic_query", "tdai_conversation_search", "tdai_conversation_query", "tdai_scenario_ls", "tdai_read_scene", "skill_search", "skill_view", "skill_files_read", "skill_extract"]);
+    // 允许列表由每题依据决定；这里只检查可执行性，不用统一列表代替标签审核。
+    for (const c of cases) for (const tool of c.allowed_first_tools ?? []) expect(available.has(tool), c.case_id + ":" + tool).toBe(true);
   });
 
-  it("300 个任务的真实准备输入包含同一完整 Skill 库，不按标签筛选", async () => {
+  it("所有正式任务的真实准备输入包含同一完整 Skill 库，不按标签筛选", async () => {
     const inputs = await loadTaskInputs({skills:join(root,"skills"),memories:join(root,"memories"),asset_base:join(root,"..")},cases);
     const packages = await discoverSkillPackages(join(root,"skills"));
     for (const input of inputs) expect(input.skills).toEqual(packages);

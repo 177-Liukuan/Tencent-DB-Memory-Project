@@ -19,6 +19,7 @@ export function inspectClientToolCalls(events:Record<string,unknown>[],hiddenIds
 export async function auditPilotResults(directory:string,labRoot:string) {
   const manifest = JSON.parse(await readFile(join(directory,"manifest.json"),"utf8")) as PreparedRun[];
   const rows = []; const issues:string[] = []; const sessions = new Set<string>(); const users = new Set<string>();
+  const agents = new Set<string>(); const tasks = new Set<string>();
   for (const prepared of manifest) {
     const run = JSON.parse(await readFile(join(directory,"runs",prepared.run_id+".json"),"utf8"));
     const raw = join(directory,"raw",prepared.run_id);
@@ -35,8 +36,12 @@ export async function auditPilotResults(directory:string,labRoot:string) {
     try {
       initialization = verifySessionInitialization(join(labRoot,prepared.variant,"data/proxy/proxy.db"),run.session_id,prepared.identity);
       const key = prepared.variant+":"+initialization.user_id;
-      if (users.has(key)) issues.push(prepared.run_id+": 用户被其他 Task 复用");
       users.add(key);
+      // 共享查看账号是预期行为；隔离检查落在实际完成初始化的 Agent、Task 和 Session。
+      const agent = prepared.variant+":"+prepared.identity.service_id+":"+prepared.identity.agent_id;
+      const task = prepared.variant+":"+prepared.identity.service_id+":"+prepared.identity.task_id;
+      if (agents.has(agent) || tasks.has(task)) issues.push(prepared.run_id+": Agent 或 Task 被其他运行复用");
+      agents.add(agent); tasks.add(task);
     } catch(error) {issues.push(prepared.run_id+": "+String(error));}
     rows.push({run_id:prepared.run_id,session_id:run.session_id,initialization,raw_events:recorded.length,observed_calls:calls.length,...output});
   }

@@ -1,5 +1,6 @@
-# 读取当前校验后的数据集，不设置 reuse_preparation；每类 10 题。
-# 每组只建一个 Team，Agent 归各组 secrets/memory-user.key 对应的 rhino-researcher 所有。
+# 最小 Native 适配复测：沿用原 30 题、标签和冻结资产，每次新建运行身份。
+reuse_preparation: ../results/preparation/pilot-2026-09-05T18-38-31-734Z
+team_member_user_ids: [usr-f7iwo2muhb]
 lab_root: /storage1/liukuan/tencentdb-memory-lab
 dataset: ../dataset/tasks/tool_call_eval_v1.jsonl
 asset_base: ..

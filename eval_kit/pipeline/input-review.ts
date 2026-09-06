@@ -16,9 +16,10 @@ export function reviewInjectedInput(input: unknown, skillNames: string[], target
   const system = typeof body.system === "string" ? body.system : Array.isArray(body.system)
     ? body.system.map(b => typeof b?.text === "string" ? b.text : "").join("\n") : "";
   // 只保存需要审核的动态内容，不把完整请求和 Fake curl 中可能出现的身份头复制进报告。
-  const memory = system.match(/<tdai_profile_memory>[\s\S]*?<\/tdai_profile_memory>/)?.[0] ?? "";
+  // 说明文字也可能引用起始标签；遇到真正的下一处起始标签时，不能把前文一起吞入。
+  const memory = system.match(/<tdai_profile_memory>(?:(?!<tdai_profile_memory>)[\s\S])*?<\/tdai_profile_memory>/)?.[0] ?? "";
   // 只认实际目录条目；工具使用说明或用户文本里提到名称，不代表该 Skill 已被注入。
-  const listing = system.match(/<available_skills>([\s\S]*?)<\/available_skills>/)?.[1] ?? "";
+  const listing = system.match(/<available_skills>((?:(?!<available_skills>)[\s\S])*?)<\/available_skills>/)?.[1] ?? "";
   const order = [...listing.matchAll(/^\s*-\s+([^:\n]+):/gm)].map(match => match[1]!.trim());
   return {
     memory,

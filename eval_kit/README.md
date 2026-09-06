@@ -5,10 +5,20 @@
 > 一键准备并评测：`bash run-pipeline.sh configs/pilot.example.yaml`，详见 [Pipeline 使用说明](docs/pilot-pipeline.md)。
 > 小样本入口默认只测 Tool Calling，到指定事件即停止；已有 9 条 × 两组的实际结果、修复和未解决问题见 [试跑报告](docs/pilot-9-task-report.md)。
 > 已有独立身份运行表时：`npm run run -- --config configs/bridge-observation.local.yaml`。
-> Viewer 提供可筛选的数据集概览和当前 Bridge 实验结果对比：`npm run viewer -- --results results --port 4173`。可用 `--dataset` 指定任务文件，见 [页面使用说明](docs/viewer.md)。
+
+每轮 Baseline、Native 各创建一个 Team，30 题对应每组 30 个 Task 和 30 个 Agent。两组分别使用 `lab_root/<variant>/secrets/memory-user.key` 所属账号作为 Team/Agent 的拥有者和运行账号；本机该账号为 `rhino-researcher`。MemoryHub 的 Agent 资产页只显示自己拥有的 Agent，因此不再为每题建号后仅把研究者加为 member。
+
+Task 命名为 `task_n`（描述“完成用户请求”），Agent 命名为 `agent_n`（描述“处理通用开发任务与日常协作”）。每题仍使用全新的 Agent、Task、Session 和工作区副本，Memory 各自保存，不绑定其他任务的 Memory；Skill 各 Agent 独立导入并保持私有。团队可复用，Agent/Task/Session 不可跨题复用。`team_member_user_ids` 可以添加其他成员，但成员身份不保证能查看私有 Agent 资产。
+
+评测期间不要把任务 Skill 共享为团队资产，否则 `skill_search` 会把这些共享内容也作为候选。当前 Bridge 仍先在团队内搜索再过滤，候选较多时可能影响搜索召回；不能把“同组一个 Team”解释成所有业务 API 都按账号强隔离。此限制不修改两组工具核心实现。
+
+使用最新校验后的数据运行 30 题：`bash run-pipeline.sh configs/pilot-30.yaml`。该配置不含 `reuse_preparation`，会读取当前 Query、标签、Memory 和 Assets；未变的 Memory 默认自动复用。含 `reuse_preparation` 的配置则有意复用旧题，不能用于最新数据集评测。
+
+Memory 缓存默认开启（`memory_cache: true`），底稿保存在 `results_dir/memory-cache/`。同一组 L0 会话内容、顺序、原始时间和提炼配置/源码相同时，只提炼一次；后续任务或实验复制已有 L0～L3，不调用 LLM。每个 Agent 仍得到独立副本，记录和会话编号随新任务改写；不会复制正式运行后新增的 Memory，也不会复用旧任务、标签或 Assets。`builder/task-XX/ready.json` 中的 `cache.status` 为 `hit` 或 `miss`，命中时旧提炼耗时单列为 `source_elapsed_ms`。需要重新提炼时设置 `memory_cache: false`。详情见 [Memory 复用说明](docs/pilot-pipeline.md#memory-自动复用)。
+> Viewer 提供数据集概览、任务标注与人工审查、当前 Bridge 实验结果对比：`npm run viewer -- --results results --port 4173`。可用 `--dataset` 指定任务文件；标注保存会备份并更新此文件，见 [页面使用说明](docs/viewer.md)。
 > 下方旧实验中的 `npm run run` 现应使用 `npm run legacy:run`；dataset 与 data-preparation 用法不变。
 
-修订数据的 30 题复查使用 `bash run-pipeline.sh configs/pilot-30.yaml`：Memory、Skill、None 各 10 题，首次调用即停止，按允许的首次工具选择评分。`sample_seed` 固定抽样，`per_family: all` 可运行全部 Main，Probe 仍单列。数据变化与标签边界见 [v2 修订说明](dataset/review/v2-revision.md)。
+此前 30 题复查使用 `bash run-pipeline.sh configs/pilot-30.yaml`，每类 10 题，首次调用即停止。原300题改写、清理并核对剩余62题实际注入后，当前保留279条 Main：Memory 42、Skill 162、None 75；正式运行前请阅读[实际注入核对与适用条件](dataset/review/input-validation-62-report.md)。`sample_seed` 固定抽样，`per_family: all` 会选中当前全部 Main；历史数据说明见 [v2 修订记录](dataset/review/v2-revision.md)。
 
 当前 Pipeline 给每个任务的两组独立 Agent 导入配置 `skills` 目录中的完整 Skill 库，不再按 `candidate_skills` 筛选。默认数据集有15个 Skill；旧字段仍可读取，但不影响导入和评分。`reuse_preparation` 只复用原任务、Memory 和工作区，Skill 始终取当前配置目录，因此从旧6个候选切换为完整库时不需要重新提炼 Memory，也不再属于原 Skill 环境的原样重跑。
 
@@ -33,8 +43,6 @@ eval_kit/
 ├── tests/
 └── results/                 # 本地结果，不提交 Git
 ```
-
-Memory 缓存默认开启（`memory_cache: true`），底稿保存在 `results_dir/memory-cache/`。同一组 L0 会话内容、顺序、原始时间和提炼配置/源码相同时，只提炼一次；后续任务或实验复制已有 L0～L3，不调用 LLM。每个 Agent 仍得到独立副本，记录和会话编号随新任务改写；不会复制正式运行后新增的 Memory，也不会复用旧任务、标签或 Assets。`builder/task-XX/ready.json` 中的 `cache.status` 为 `hit` 或 `miss`，命中时旧提炼耗时单列为 `source_elapsed_ms`。需要重新提炼时设置 `memory_cache: false`。详情见 [Memory 复用说明](docs/pilot-pipeline.md#memory-自动复用)。
 
 ## Commands
 

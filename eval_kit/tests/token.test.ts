@@ -22,7 +22,7 @@ const baselineListing = (assets: string): string => [
 ].join("\n");
 
 const nativeListing = (assets: string): string => [
-  "## Available Cloud Skills",
+  "## Available Cloud Skills，提供完成任务的方法、操作流程和参考文件",
   "需要读取云端 Skill 时使用 skill_view。",
   "<available_skills>",
   assets,
@@ -31,6 +31,11 @@ const nativeListing = (assets: string): string => [
 ].join("\n");
 
 describe("definition token estimator", () => {
+  it("counts Native tool-family usage guidance once without unrelated context", () => {
+    const guide = "<native_tool_usage>\nSkill and Memory usage.\n</native_tool_usage>";
+    expect(estimateDefinitionTokens("native", { system: `Client instructions\n${guide}\nOther context` }))
+      .toBe(tokens(guide));
+  });
   it("counts actual Fake guidance even if a historical request is labelled Native", () => {
     const guide = "<skill_tools>curl example</skill_tools>";
     expect(estimateDefinitionTokens("native", { system: guide, tools: [{ name: "Bash" }] })).toBe(tokens(guide));

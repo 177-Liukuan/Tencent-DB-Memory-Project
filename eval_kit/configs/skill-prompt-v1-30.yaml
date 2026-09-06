@@ -1,5 +1,5 @@
-# 读取当前校验后的数据集，不设置 reuse_preparation；每类 10 题。
-# 每组只建一个 Team，Agent 归各组 secrets/memory-user.key 对应的 rhino-researcher 所有。
+# 重跑原 30 题：复用冻结输入和提炼结果，仍为每次运行新建 Agent、Session、工作区。
+reuse_preparation: ../results/preparation/pilot-2026-09-05T18-38-31-734Z
 lab_root: /storage1/liukuan/tencentdb-memory-lab
 dataset: ../dataset/tasks/tool_call_eval_v1.jsonl
 asset_base: ..
@@ -7,6 +7,7 @@ skills: ../dataset/skills
 memories: ../dataset/memories
 results_dir: ../results
 service_id: rhino-ab
+# 使用当前已安装版本；两组共用同一二进制，实际版本写入 client-environment.json。
 claude_binary: /home/liukuan/.npm-global/bin/claude
 uv_binary: /home/liukuan/.local/bin/uv
 client_image: tdai-eval-cli:node22-py312

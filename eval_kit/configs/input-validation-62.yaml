@@ -1,7 +1,6 @@
-# 读取当前校验后的数据集，不设置 reuse_preparation；每类 10 题。
-# 每组只建一个 Team，Agent 归各组 secrets/memory-user.key 对应的 rhino-researcher 所有。
+# 只运行本轮冻结的62条待核对题，不改变正式数据集的抽样规则。
 lab_root: /storage1/liukuan/tencentdb-memory-lab
-dataset: ../dataset/tasks/tool_call_eval_v1.jsonl
+dataset: ../results/input-validation-62/tasks.jsonl
 asset_base: ..
 skills: ../dataset/skills
 memories: ../dataset/memories
@@ -11,8 +10,8 @@ claude_binary: /home/liukuan/.npm-global/bin/claude
 uv_binary: /home/liukuan/.local/bin/uv
 client_image: tdai-eval-cli:node22-py312
 model: deepseek-v4-flash[1m]
-per_family: 10
-sample_seed: pilot-30-20260905
+per_family: all
+sample_seed: input-validation-62
 timeout_ms: 180000
 processing_timeout_ms: 1800000
 preparation_max_tokens: 4096
