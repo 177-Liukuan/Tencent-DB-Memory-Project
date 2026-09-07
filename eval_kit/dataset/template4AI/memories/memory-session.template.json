@@ -1,0 +1,15 @@
+{
+  "session_id": "{{session-id}}",
+  "messages": [
+    {
+      "role": "user",
+      "content": "{{user-message}}",
+      "timestamp": "{{user-timestamp}}"
+    },
+    {
+      "role": "assistant",
+      "content": "{{assistant-message}}",
+      "timestamp": "{{assistant-timestamp}}"
+    }
+  ]
+}

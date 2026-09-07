@@ -1,0 +1,37 @@
+{
+  "name": "tencentdb-agent-memory-eval-kit",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "pipeline": "tsx cli.ts pipeline",
+    "run": "tsx cli.ts run",
+    "legacy:run": "tsx cli.ts legacy-run",
+    "score": "tsx cli.ts score",
+    "skills:import": "tsx cli.ts skills import",
+    "memories:import": "tsx cli.ts memories import",
+    "data:prepare": "tsx cli.ts data prepare",
+    "viewer": "tsx cli.ts viewer",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@clickhouse/client": "^1.22.0",
+    "@hono/node-server": "^1.13.7",
+    "hono": "^4.7.10",
+    "js-tiktoken": "^1.0.21",
+    "js-yaml": "^4.1.0",
+    "zod": "^4.0.0"
+  },
+  "devDependencies": {
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "^22.15.29",
+    "tsx": "^4.19.4",
+    "typescript": "^5.8.3",
+    "vitest": "^3.2.2"
+  }
+}

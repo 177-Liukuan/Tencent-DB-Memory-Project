@@ -1,0 +1,205 @@
+{
+  "session_id": "memory-proxy-evaluation-60-rounds",
+  "messages": [
+    {
+      "role": "user",
+      "content": "项目决定更新：A/B 公平性比较除 model/query/asset snapshot/权限外，还必须保持 user identity 与 system-prompt revision 完全一致。 后续相关改动按这条执行。",
+      "timestamp": "2026-08-23T09:00:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录：A/B 公平性比较除 model/query/asset snapshot/权限外，还必须保持 user identity 与 system-prompt revision 完全一致。",
+      "timestamp": "2026-08-23T09:01:00Z"
+    },
+    {
+      "role": "user",
+      "content": "今天复查了实现，补充一条注意事项：每个评测案例使用独立的会话和 Agent，不能让上一题新增的记忆进入下一题。",
+      "timestamp": "2026-08-23T09:07:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录：每个评测案例使用独立的会话和 Agent，不能让上一题新增的记忆进入下一题。",
+      "timestamp": "2026-08-23T09:08:00Z"
+    },
+    {
+      "role": "user",
+      "content": "关于测试安排，有个约定要记下来：工具调用记录保存原始时间和工具名，后续统计不从最终回答文字里猜测调用。",
+      "timestamp": "2026-08-23T09:14:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录：工具调用记录保存原始时间和工具名，后续统计不从最终回答文字里猜测调用。",
+      "timestamp": "2026-08-23T09:15:00Z"
+    },
+    {
+      "role": "user",
+      "content": "项目决定更新：Native 工具清单只能读取 MemoryProxy 正式 tool-registry.ts；评测代码不得维护第二套 Schema。 后续涉及这部分时按该决定执行。",
+      "timestamp": "2026-08-23T09:21:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录：Native 工具清单只能读取 MemoryProxy 正式 tool-registry.ts；评测代码不得维护第二套 Schema。",
+      "timestamp": "2026-08-23T09:22:00Z"
+    },
+    {
+      "role": "user",
+      "content": "这次评审还确认了：服务失败与没有调用工具分开计数，不能把网关超时算作模型漏调用。",
+      "timestamp": "2026-08-23T09:28:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录：服务失败与没有调用工具分开计数，不能把网关超时算作模型漏调用。",
+      "timestamp": "2026-08-23T09:29:00Z"
+    },
+    {
+      "role": "user",
+      "content": "后续维护时请保留这个处理方式：工作区只复制当前任务的资产，模型不能读取标签文件或其他案例的结果。",
+      "timestamp": "2026-08-23T09:35:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录：工作区只复制当前任务的资产，模型不能读取标签文件或其他案例的结果。",
+      "timestamp": "2026-08-23T09:36:00Z"
+    },
+    {
+      "role": "user",
+      "content": "今天复查了实现，补充一条注意事项：两组实验使用相同初始记忆，先提炼一次再复制，避免各自生成不同内容。",
+      "timestamp": "2026-08-23T09:42:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录：两组实验使用相同初始记忆，先提炼一次再复制，避免各自生成不同内容。",
+      "timestamp": "2026-08-23T09:43:00Z"
+    },
+    {
+      "role": "user",
+      "content": "项目决定更新：Baseline curl 归一化必须覆盖 tdai_memory_search、tdai_atomic_query、tdai_conversation_search、tdai_conversation_query、tdai_scenario_ls、tdai_read_scene 与三类 Skill 读工具。 后续相关改动按这条执行。",
+      "timestamp": "2026-08-23T09:49:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录：Baseline curl 归一化必须覆盖 tdai_memory_search、tdai_atomic_query、tdai_conversation_search、tdai_conversation_query、tdai_scenario_ls、tdai_read_scene 与三类 Skill 读工具。",
+      "timestamp": "2026-08-23T09:50:00Z"
+    },
+    {
+      "role": "user",
+      "content": "关于测试安排，有个约定要记下来：同一题多次调用工具仍只算一个发生调用的案例，原始次数可以另外分析。",
+      "timestamp": "2026-08-23T09:56:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录：同一题多次调用工具仍只算一个发生调用的案例，原始次数可以另外分析。",
+      "timestamp": "2026-08-23T09:57:00Z"
+    },
+    {
+      "role": "user",
+      "content": "这次评审还确认了：实验配置保留模型名称与协议，不能在结果变差后悄悄切换模型再合并统计。",
+      "timestamp": "2026-08-23T10:03:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录：实验配置保留模型名称与协议，不能在结果变差后悄悄切换模型再合并统计。",
+      "timestamp": "2026-08-23T10:04:00Z"
+    },
+    {
+      "role": "user",
+      "content": "后续维护时请保留这个处理方式：静态提示词成本与运行中工具返回正文分开计算，避免比较范围不同。",
+      "timestamp": "2026-08-23T10:10:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录：静态提示词成本与运行中工具返回正文分开计算，避免比较范围不同。",
+      "timestamp": "2026-08-23T10:11:00Z"
+    },
+    {
+      "role": "user",
+      "content": "项目决定更新：主报告固定输出 valid-call、wrong-tool、false-positive 和 injected-token 四组指标，并分别统计 Memory/Skill/overall。 后续涉及这部分时按该决定执行。",
+      "timestamp": "2026-08-23T10:17:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录：主报告固定输出 valid-call、wrong-tool、false-positive 和 injected-token 四组指标，并分别统计 Memory/Skill/overall。",
+      "timestamp": "2026-08-23T10:18:00Z"
+    },
+    {
+      "role": "user",
+      "content": "今天复查了实现，补充一条注意事项：数据准备的耗时不混入单题延迟，它发生在用户提交任务之前。",
+      "timestamp": "2026-08-23T10:24:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录：数据准备的耗时不混入单题延迟，它发生在用户提交任务之前。",
+      "timestamp": "2026-08-23T10:25:00Z"
+    },
+    {
+      "role": "user",
+      "content": "关于测试安排，有个约定要记下来：负例也提供项目文件和正常工具权限，不能靠缺少资源提示模型不调用。",
+      "timestamp": "2026-08-23T10:31:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录：负例也提供项目文件和正常工具权限，不能靠缺少资源提示模型不调用。",
+      "timestamp": "2026-08-23T10:32:00Z"
+    },
+    {
+      "role": "user",
+      "content": "这次评审还确认了：异常重试产生的重复记录需要按调用标识检查，不能直接把日志行数当成任务数。",
+      "timestamp": "2026-08-23T10:38:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录：异常重试产生的重复记录需要按调用标识检查，不能直接把日志行数当成任务数。",
+      "timestamp": "2026-08-23T10:39:00Z"
+    },
+    {
+      "role": "user",
+      "content": "复盘记录（2026-08-23）：2026-08-20 混合工具事故复盘：同一 assistant content block 的原始顺序必须先完整保留，再按归属拆分 Proxy/客户端工具。 后续相关改动都按这条执行。",
+      "timestamp": "2026-08-23T10:45:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录：2026-08-20 混合工具事故复盘：同一 assistant content block 的原始顺序必须先完整保留，再按归属拆分 Proxy/客户端工具。",
+      "timestamp": "2026-08-23T10:46:00Z"
+    },
+    {
+      "role": "user",
+      "content": "后续维护时请保留这个处理方式：抽样在运行前固定，不能看到模型表现后再替换成容易成功的题目。",
+      "timestamp": "2026-08-23T10:52:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录：抽样在运行前固定，不能看到模型表现后再替换成容易成功的题目。",
+      "timestamp": "2026-08-23T10:53:00Z"
+    },
+    {
+      "role": "user",
+      "content": "今天复查了实现，补充一条注意事项：报告保留失败案例的原始证据，不能只展示最终成功的那次运行。",
+      "timestamp": "2026-08-23T10:59:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录：报告保留失败案例的原始证据，不能只展示最终成功的那次运行。",
+      "timestamp": "2026-08-23T11:00:00Z"
+    },
+    {
+      "role": "user",
+      "content": "关于测试安排，有个约定要记下来：实验结束核对代码版本，确保评测过程中没有改变某一组工具行为。",
+      "timestamp": "2026-08-23T11:06:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录：实验结束核对代码版本，确保评测过程中没有改变某一组工具行为。",
+      "timestamp": "2026-08-23T11:07:00Z"
+    },
+    {
+      "role": "user",
+      "content": "复盘记录（2026-08-23）：2026-08-22 评审确认：正式评测关闭 Skill 写权限，skill_extract 不向任一方案暴露。 后续相关改动都按这条执行。",
+      "timestamp": "2026-08-23T11:13:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录：2026-08-22 评审确认：正式评测关闭 Skill 写权限，skill_extract 不向任一方案暴露。",
+      "timestamp": "2026-08-23T11:14:00Z"
+    }
+  ]
+}

@@ -1,0 +1,81 @@
+/* 标注区沿用 Viewer 蓝色主题；长文本和代码允许换行，避免挤压编辑区。 */
+.review-heading { display:flex; justify-content:space-between; align-items:center; gap:20px; padding:28px 0; }
+.review-heading h1 { font-size:28px; margin:4px 0 10px; letter-spacing:-.7px; }
+.review-actions { display:flex; gap:10px; flex-wrap:wrap; }
+.review-layout { display:grid; grid-template-columns:240px minmax(0, 1fr) 300px; gap:16px; align-items:start; }
+.review-layout .panel { min-width:0; padding:20px; }
+.review-layout h2 { font-size:17px; margin:0 0 16px; overflow-wrap:anywhere; }
+.review-layout .muted { font-size:12px; line-height:1.65; }
+.review-sidebar { position:sticky; top:16px; }
+/* 工具说明可越过卡片，但不能被通用 panel 的圆角裁切。 */
+.review-layout .review-catalog { overflow:visible; position:relative; z-index:3; }
+.review-sidebar > input, .review-sidebar > select { width:100%; margin-bottom:10px; font-size:12px; }
+.review-filters { display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-bottom:10px; }
+.review-filters select { min-width:0; width:100%; padding:5px; font-size:12px; }
+#review-count { color:var(--muted); font-weight:400; font-size:12px; }
+#review-list { max-height:62vh; overflow-y:auto; margin:0 -8px; padding:2px 8px; }
+.review-task { display:flex; flex-direction:column; gap:7px; width:100%; text-align:left; margin:6px 0; padding:12px 10px; border:1px solid transparent; background:#f7fbff; }
+.review-task strong { font-size:12px; font-weight:600; overflow-wrap:anywhere; }
+.review-task[aria-pressed=true] { background:#eaf5ff; border-color:#67b6e7; box-shadow:inset 3px 0 #258de0; }
+.review-task-query { color:var(--muted); font-size:12px; line-height:1.5; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+.review-task-heading { display:flex; align-items:flex-start; justify-content:space-between; gap:10px; border-bottom:1px solid var(--line); margin-bottom:20px; }
+.review-task-heading h2 { font-size:17px; }
+.review-task-heading .source-pill { font-size:11px; white-space:nowrap; }
+.review-task-heading .is-dirty { background:#fff5dd; color:#94630c; }
+.review-field { display:flex; flex-direction:column; gap:8px; font-size:13px; font-weight:600; margin:16px 0; min-width:0; }
+.review-field small { color:var(--muted); font-weight:400; font-size:11px; }
+.review-field textarea, .review-json textarea, .review-field select { font:inherit; font-weight:400; line-height:1.7; width:100%; min-width:0; padding:10px 12px; color:var(--ink); background:#fbfdff; border:1px solid #d4e3ef; border-radius:9px; }
+.review-field textarea, .review-json textarea { resize:vertical; min-height:100px; }
+.review-field textarea:focus, .review-json textarea:focus { outline:2px solid #80c7f3; outline-offset:2px; background:#fff; }
+.review-field-row { display:grid; grid-template-columns:1fr 1.3fr 1fr; gap:10px; }
+.review-selected { display:flex; flex-wrap:wrap; gap:7px; border-radius:8px; padding:12px; background:#f0f7fd; min-height:48px; align-items:center; }
+.review-tool-chip { font-family:monospace; font-size:11px; padding:6px 10px; min-height:30px; color:#176bb0; border-color:#b5d9f2; }
+.review-rule-value { white-space:pre-wrap; word-break:break-word; margin:0; font-size:12px; }
+.review-json { margin-top:22px; border-top:1px solid var(--line); padding-top:16px; }
+.review-json summary { cursor:pointer; font-size:13px; font-weight:600; }
+.review-json p { font-size:12px; }
+.review-json textarea { font-family:ui-monospace,monospace; font-size:12px; margin:8px 0; }
+.review-savebar { display:flex; gap:8px; flex-wrap:wrap; position:sticky; bottom:0; padding:16px 0 12px; background:#fff; border-top:1px solid var(--line); margin-top:24px; z-index:2; }
+.review-savebar button { font-size:12px; padding:8px 10px; }
+.review-save-spacer { flex:1; }
+.review-footnote { font-size:11px; line-height:1.7; color:var(--muted); }
+.review-tool-group { margin-top:18px; border-top:1px solid var(--line); padding-top:12px; }
+.review-tool-group > summary { cursor:pointer; font-size:13px; color:#36678c; font-weight:600; }
+.review-tool-card { position:relative; margin-top:12px; padding:12px; border:1px solid #deebf6; border-radius:10px; background:#fbfdff; }
+.review-tool-card:focus { outline:2px solid #80c7f3; outline-offset:2px; }
+.review-tool-card button { display:block; font-family:ui-monospace,monospace; font-size:12px; min-height:28px; padding:3px 5px; text-align:left; border-color:transparent; color:#186daa; overflow-wrap:anywhere; max-width:100%; }
+.review-tool-card button[aria-pressed=true] { background:#dcefff; border-color:#75bbed; }
+.review-tool-card p { font-size:12px; color:#526e83; line-height:1.7; margin:6px 0 0; }
+.review-tool-card button:disabled { opacity:.7; }
+.review-tooltip { display:none; position:absolute; right:0; bottom:calc(100% + 6px); width:100%; max-height:300px; overflow:auto; background:#163850; color:white; padding:15px; border-radius:10px; font-size:12px; line-height:1.75; z-index:10; box-shadow:0 8px 28px #12364b33; white-space:pre-wrap; overflow-wrap:anywhere; }
+/* 鼠标点击留下的焦点不应让说明常驻；键盘聚焦仍可查看。 */
+.review-tool-card:not(.tooltip-dismissed):is(:hover, :focus-visible, :has(:focus-visible)) .review-tooltip { display:block; }
+#review-notice { white-space:pre-wrap; overflow-wrap:anywhere; }
+#review-import-dialog { width:min(760px,95vw); padding:26px; }
+#review-import-dialog .review-field input { font-weight:400; font-size:13px; }
+#review-import-dialog textarea { font-family:ui-monospace,monospace; font-size:13px; }
+.review-replace { display:flex; align-items:center; gap:8px; font-size:13px; }
+.review-replace input { width:17px; min-height:17px; }
+#review-import-result { white-space:pre-wrap; font-size:13px; line-height:1.6; overflow-wrap:anywhere; }
+@media (max-width:1150px) {
+  .review-layout { grid-template-columns:210px minmax(0,1fr); }
+  .review-catalog { grid-column:2; }
+  #review-tools { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .review-tool-group { min-width:0; }
+}
+@media (max-width:720px) {
+  .review-heading { align-items:flex-start; flex-direction:column; }
+  .review-heading h1 { font-size:23px; }
+  .review-layout { grid-template-columns:minmax(0,1fr); }
+  .review-sidebar { position:static; }
+  #review-list { max-height:210px; }
+  .review-catalog { grid-column:auto; }
+  #review-tools { display:block; }
+  .review-field-row { grid-template-columns:minmax(0,1fr); gap:0; }
+  .review-field-row .review-field { margin:7px 0; }
+  .review-save-spacer { display:none; }
+  .review-savebar button { flex:1; white-space:nowrap; }
+  .review-layout .panel { padding:16px; }
+  .review-task-heading { flex-direction:column; padding-bottom:12px; }
+  #review-import-dialog { padding:18px; }
+}

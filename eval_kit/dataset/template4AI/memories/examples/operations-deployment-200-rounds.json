@@ -1,0 +1,2005 @@
+{
+  "session_id": "example-operations-deployment-200-rounds",
+  "messages": [
+    {
+      "role": "user",
+      "content": "public-gateway 生产环境监听 8100 端口，部署采用滚动更新，maxUnavailable 固定为 0。",
+      "timestamp": "2026-03-02T09:00:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录 public-gateway 的端口和滚动更新限制；发布时不会同时下线旧实例。",
+      "timestamp": "2026-03-02T09:01:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "public-gateway 的就绪检查路径是 /ready，连续 3 次成功才接收流量；存活检查使用 /health。",
+      "timestamp": "2026-03-02T09:05:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "后续检查 public-gateway 时会区分 /ready 与 /health，不会用存活检查替代就绪检查。",
+      "timestamp": "2026-03-02T09:06:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "public-gateway 常态副本数为 2，工作日高峰期扩到 4，缩容前要确认队列已经清空。",
+      "timestamp": "2026-03-02T09:10:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录 public-gateway 的常态和高峰副本数，缩容前会先检查待处理任务。",
+      "timestamp": "2026-03-02T09:11:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "public-gateway 单实例 CPU request 为 250m，memory request 为 256Mi，不能无依据提高 limit。",
+      "timestamp": "2026-03-02T09:15:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "资源调整会以 public-gateway 的监控数据为依据，并保留 request 与 limit 的变更记录。",
+      "timestamp": "2026-03-02T09:16:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "public-gateway 的 P95 延迟目标是低于 180ms，5 分钟错误率超过 1% 就停止发布。",
+      "timestamp": "2026-03-02T09:20:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录 public-gateway 的延迟目标和 1% 错误率停止条件，灰度期间会重点观察这两项。",
+      "timestamp": "2026-03-02T09:21:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "public-gateway 告警先发到 ops-primary，持续 10 分钟仍未恢复时升级到对应服务负责人。",
+      "timestamp": "2026-03-02T09:25:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "后续处理 public-gateway 告警时会先通知 ops-primary，并按 10 分钟规则升级。",
+      "timestamp": "2026-03-02T09:26:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "public-gateway 日志保留 14 天，默认不记录请求正文；排障临时提高日志级别最多保持 30 分钟。",
+      "timestamp": "2026-03-02T09:30:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录 public-gateway 的日志保留和临时调级限制，排障结束后会及时恢复日志级别。",
+      "timestamp": "2026-03-02T09:31:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "public-gateway 依赖的数据每天 02:00 UTC 备份，恢复演练安排在每月第一个周三。",
+      "timestamp": "2026-03-02T09:35:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录 public-gateway 的备份和恢复演练时间；不能把“备份成功”直接当作“可恢复”。",
+      "timestamp": "2026-03-02T09:36:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "public-gateway 回滚使用上一份已验证镜像和配置版本，数据库迁移必须在发布前确认是否可逆。",
+      "timestamp": "2026-03-02T09:40:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "后续为 public-gateway 制定回滚方案时会同时锁定镜像、配置和数据库兼容条件。",
+      "timestamp": "2026-03-02T09:41:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "public-gateway 的计划维护窗口是周四 16:00–18:00 UTC，涉及中断的操作需提前 24 小时通知。",
+      "timestamp": "2026-03-02T09:45:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录 public-gateway 的维护窗口和提前通知要求，计划外中断操作会先走紧急变更流程。",
+      "timestamp": "2026-03-02T09:46:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "account-api 生产环境监听 8101 端口，部署采用滚动更新，maxUnavailable 固定为 0。",
+      "timestamp": "2026-03-02T09:50:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录 account-api 的端口和滚动更新限制；发布时不会同时下线旧实例。",
+      "timestamp": "2026-03-02T09:51:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "account-api 的就绪检查路径是 /ready，连续 3 次成功才接收流量；存活检查使用 /health。",
+      "timestamp": "2026-03-02T09:55:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "后续检查 account-api 时会区分 /ready 与 /health，不会用存活检查替代就绪检查。",
+      "timestamp": "2026-03-02T09:56:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "account-api 常态副本数为 3，工作日高峰期扩到 5，缩容前要确认队列已经清空。",
+      "timestamp": "2026-03-02T10:00:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录 account-api 的常态和高峰副本数，缩容前会先检查待处理任务。",
+      "timestamp": "2026-03-02T10:01:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "account-api 单实例 CPU request 为 260m，memory request 为 384Mi，不能无依据提高 limit。",
+      "timestamp": "2026-03-02T10:05:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "资源调整会以 account-api 的监控数据为依据，并保留 request 与 limit 的变更记录。",
+      "timestamp": "2026-03-02T10:06:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "account-api 的 P95 延迟目标是低于 190ms，5 分钟错误率超过 1% 就停止发布。",
+      "timestamp": "2026-03-02T10:10:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录 account-api 的延迟目标和 1% 错误率停止条件，灰度期间会重点观察这两项。",
+      "timestamp": "2026-03-02T10:11:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "account-api 告警先发到 ops-primary，持续 10 分钟仍未恢复时升级到对应服务负责人。",
+      "timestamp": "2026-03-02T10:15:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "后续处理 account-api 告警时会先通知 ops-primary，并按 10 分钟规则升级。",
+      "timestamp": "2026-03-02T10:16:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "account-api 日志保留 14 天，默认不记录请求正文；排障临时提高日志级别最多保持 30 分钟。",
+      "timestamp": "2026-03-02T10:20:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录 account-api 的日志保留和临时调级限制，排障结束后会及时恢复日志级别。",
+      "timestamp": "2026-03-02T10:21:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "account-api 依赖的数据每天 02:00 UTC 备份，恢复演练安排在每月第一个周三。",
+      "timestamp": "2026-03-02T10:25:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录 account-api 的备份和恢复演练时间；不能把“备份成功”直接当作“可恢复”。",
+      "timestamp": "2026-03-02T10:26:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "account-api 回滚使用上一份已验证镜像和配置版本，数据库迁移必须在发布前确认是否可逆。",
+      "timestamp": "2026-03-02T10:30:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "后续为 account-api 制定回滚方案时会同时锁定镜像、配置和数据库兼容条件。",
+      "timestamp": "2026-03-02T10:31:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "account-api 的计划维护窗口是周四 16:00–18:00 UTC，涉及中断的操作需提前 24 小时通知。",
+      "timestamp": "2026-03-02T10:35:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录 account-api 的维护窗口和提前通知要求，计划外中断操作会先走紧急变更流程。",
+      "timestamp": "2026-03-02T10:36:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "order-api 生产环境监听 8102 端口，部署采用滚动更新，maxUnavailable 固定为 0。",
+      "timestamp": "2026-03-02T10:40:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录 order-api 的端口和滚动更新限制；发布时不会同时下线旧实例。",
+      "timestamp": "2026-03-02T10:41:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "order-api 的就绪检查路径是 /ready，连续 3 次成功才接收流量；存活检查使用 /health。",
+      "timestamp": "2026-03-02T10:45:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "后续检查 order-api 时会区分 /ready 与 /health，不会用存活检查替代就绪检查。",
+      "timestamp": "2026-03-02T10:46:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "order-api 常态副本数为 4，工作日高峰期扩到 6，缩容前要确认队列已经清空。",
+      "timestamp": "2026-03-02T10:50:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录 order-api 的常态和高峰副本数，缩容前会先检查待处理任务。",
+      "timestamp": "2026-03-02T10:51:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "order-api 单实例 CPU request 为 270m，memory request 为 512Mi，不能无依据提高 limit。",
+      "timestamp": "2026-03-02T10:55:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "资源调整会以 order-api 的监控数据为依据，并保留 request 与 limit 的变更记录。",
+      "timestamp": "2026-03-02T10:56:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "order-api 的 P95 延迟目标是低于 200ms，5 分钟错误率超过 1% 就停止发布。",
+      "timestamp": "2026-03-02T11:00:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录 order-api 的延迟目标和 1% 错误率停止条件，灰度期间会重点观察这两项。",
+      "timestamp": "2026-03-02T11:01:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "order-api 告警先发到 ops-primary，持续 10 分钟仍未恢复时升级到对应服务负责人。",
+      "timestamp": "2026-03-02T11:05:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "后续处理 order-api 告警时会先通知 ops-primary，并按 10 分钟规则升级。",
+      "timestamp": "2026-03-02T11:06:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "order-api 日志保留 14 天，默认不记录请求正文；排障临时提高日志级别最多保持 30 分钟。",
+      "timestamp": "2026-03-02T11:10:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录 order-api 的日志保留和临时调级限制，排障结束后会及时恢复日志级别。",
+      "timestamp": "2026-03-02T11:11:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "order-api 依赖的数据每天 02:00 UTC 备份，恢复演练安排在每月第一个周三。",
+      "timestamp": "2026-03-02T11:15:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录 order-api 的备份和恢复演练时间；不能把“备份成功”直接当作“可恢复”。",
+      "timestamp": "2026-03-02T11:16:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "order-api 回滚使用上一份已验证镜像和配置版本，数据库迁移必须在发布前确认是否可逆。",
+      "timestamp": "2026-03-02T11:20:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "后续为 order-api 制定回滚方案时会同时锁定镜像、配置和数据库兼容条件。",
+      "timestamp": "2026-03-02T11:21:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "order-api 的计划维护窗口是周四 16:00–18:00 UTC，涉及中断的操作需提前 24 小时通知。",
+      "timestamp": "2026-03-02T11:25:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录 order-api 的维护窗口和提前通知要求，计划外中断操作会先走紧急变更流程。",
+      "timestamp": "2026-03-02T11:26:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "inventory-worker 生产环境监听 8103 端口，部署采用滚动更新，maxUnavailable 固定为 0。",
+      "timestamp": "2026-03-02T11:30:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录 inventory-worker 的端口和滚动更新限制；发布时不会同时下线旧实例。",
+      "timestamp": "2026-03-02T11:31:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "inventory-worker 的就绪检查路径是 /ready，连续 3 次成功才接收流量；存活检查使用 /health。",
+      "timestamp": "2026-03-02T11:35:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "后续检查 inventory-worker 时会区分 /ready 与 /health，不会用存活检查替代就绪检查。",
+      "timestamp": "2026-03-02T11:36:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "inventory-worker 常态副本数为 2，工作日高峰期扩到 4，缩容前要确认队列已经清空。",
+      "timestamp": "2026-03-02T11:40:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录 inventory-worker 的常态和高峰副本数，缩容前会先检查待处理任务。",
+      "timestamp": "2026-03-02T11:41:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "inventory-worker 单实例 CPU request 为 280m，memory request 为 640Mi，不能无依据提高 limit。",
+      "timestamp": "2026-03-02T11:45:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "资源调整会以 inventory-worker 的监控数据为依据，并保留 request 与 limit 的变更记录。",
+      "timestamp": "2026-03-02T11:46:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "inventory-worker 的 P95 延迟目标是低于 210ms，5 分钟错误率超过 1% 就停止发布。",
+      "timestamp": "2026-03-02T11:50:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录 inventory-worker 的延迟目标和 1% 错误率停止条件，灰度期间会重点观察这两项。",
+      "timestamp": "2026-03-02T11:51:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "inventory-worker 告警先发到 ops-primary，持续 10 分钟仍未恢复时升级到对应服务负责人。",
+      "timestamp": "2026-03-02T11:55:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "后续处理 inventory-worker 告警时会先通知 ops-primary，并按 10 分钟规则升级。",
+      "timestamp": "2026-03-02T11:56:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "inventory-worker 日志保留 14 天，默认不记录请求正文；排障临时提高日志级别最多保持 30 分钟。",
+      "timestamp": "2026-03-02T12:00:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录 inventory-worker 的日志保留和临时调级限制，排障结束后会及时恢复日志级别。",
+      "timestamp": "2026-03-02T12:01:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "inventory-worker 依赖的数据每天 02:00 UTC 备份，恢复演练安排在每月第一个周三。",
+      "timestamp": "2026-03-02T12:05:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录 inventory-worker 的备份和恢复演练时间；不能把“备份成功”直接当作“可恢复”。",
+      "timestamp": "2026-03-02T12:06:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "inventory-worker 回滚使用上一份已验证镜像和配置版本，数据库迁移必须在发布前确认是否可逆。",
+      "timestamp": "2026-03-02T12:10:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "后续为 inventory-worker 制定回滚方案时会同时锁定镜像、配置和数据库兼容条件。",
+      "timestamp": "2026-03-02T12:11:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "inventory-worker 的计划维护窗口是周四 16:00–18:00 UTC，涉及中断的操作需提前 24 小时通知。",
+      "timestamp": "2026-03-02T12:15:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录 inventory-worker 的维护窗口和提前通知要求，计划外中断操作会先走紧急变更流程。",
+      "timestamp": "2026-03-02T12:16:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "payment-api 生产环境监听 8104 端口，部署采用滚动更新，maxUnavailable 固定为 0。",
+      "timestamp": "2026-03-02T12:20:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录 payment-api 的端口和滚动更新限制；发布时不会同时下线旧实例。",
+      "timestamp": "2026-03-02T12:21:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "payment-api 的就绪检查路径是 /ready，连续 3 次成功才接收流量；存活检查使用 /health。",
+      "timestamp": "2026-03-02T12:25:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "后续检查 payment-api 时会区分 /ready 与 /health，不会用存活检查替代就绪检查。",
+      "timestamp": "2026-03-02T12:26:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "payment-api 常态副本数为 3，工作日高峰期扩到 5，缩容前要确认队列已经清空。",
+      "timestamp": "2026-03-02T12:30:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录 payment-api 的常态和高峰副本数，缩容前会先检查待处理任务。",
+      "timestamp": "2026-03-02T12:31:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "payment-api 单实例 CPU request 为 290m，memory request 为 256Mi，不能无依据提高 limit。",
+      "timestamp": "2026-03-02T12:35:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "资源调整会以 payment-api 的监控数据为依据，并保留 request 与 limit 的变更记录。",
+      "timestamp": "2026-03-02T12:36:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "payment-api 的 P95 延迟目标是低于 220ms，5 分钟错误率超过 1% 就停止发布。",
+      "timestamp": "2026-03-02T12:40:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录 payment-api 的延迟目标和 1% 错误率停止条件，灰度期间会重点观察这两项。",
+      "timestamp": "2026-03-02T12:41:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "payment-api 告警先发到 ops-primary，持续 10 分钟仍未恢复时升级到对应服务负责人。",
+      "timestamp": "2026-03-02T12:45:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "后续处理 payment-api 告警时会先通知 ops-primary，并按 10 分钟规则升级。",
+      "timestamp": "2026-03-02T12:46:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "payment-api 日志保留 14 天，默认不记录请求正文；排障临时提高日志级别最多保持 30 分钟。",
+      "timestamp": "2026-03-02T12:50:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录 payment-api 的日志保留和临时调级限制，排障结束后会及时恢复日志级别。",
+      "timestamp": "2026-03-02T12:51:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "payment-api 依赖的数据每天 02:00 UTC 备份，恢复演练安排在每月第一个周三。",
+      "timestamp": "2026-03-02T12:55:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录 payment-api 的备份和恢复演练时间；不能把“备份成功”直接当作“可恢复”。",
+      "timestamp": "2026-03-02T12:56:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "payment-api 回滚使用上一份已验证镜像和配置版本，数据库迁移必须在发布前确认是否可逆。",
+      "timestamp": "2026-03-02T13:00:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "后续为 payment-api 制定回滚方案时会同时锁定镜像、配置和数据库兼容条件。",
+      "timestamp": "2026-03-02T13:01:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "payment-api 的计划维护窗口是周四 16:00–18:00 UTC，涉及中断的操作需提前 24 小时通知。",
+      "timestamp": "2026-03-02T13:05:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录 payment-api 的维护窗口和提前通知要求，计划外中断操作会先走紧急变更流程。",
+      "timestamp": "2026-03-02T13:06:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "notification-worker 生产环境监听 8105 端口，部署采用滚动更新，maxUnavailable 固定为 0。",
+      "timestamp": "2026-03-02T13:10:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录 notification-worker 的端口和滚动更新限制；发布时不会同时下线旧实例。",
+      "timestamp": "2026-03-02T13:11:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "notification-worker 的就绪检查路径是 /ready，连续 3 次成功才接收流量；存活检查使用 /health。",
+      "timestamp": "2026-03-02T13:15:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "后续检查 notification-worker 时会区分 /ready 与 /health，不会用存活检查替代就绪检查。",
+      "timestamp": "2026-03-02T13:16:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "notification-worker 常态副本数为 4，工作日高峰期扩到 6，缩容前要确认队列已经清空。",
+      "timestamp": "2026-03-02T13:20:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录 notification-worker 的常态和高峰副本数，缩容前会先检查待处理任务。",
+      "timestamp": "2026-03-02T13:21:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "notification-worker 单实例 CPU request 为 300m，memory request 为 384Mi，不能无依据提高 limit。",
+      "timestamp": "2026-03-02T13:25:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "资源调整会以 notification-worker 的监控数据为依据，并保留 request 与 limit 的变更记录。",
+      "timestamp": "2026-03-02T13:26:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "notification-worker 的 P95 延迟目标是低于 230ms，5 分钟错误率超过 1% 就停止发布。",
+      "timestamp": "2026-03-02T13:30:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录 notification-worker 的延迟目标和 1% 错误率停止条件，灰度期间会重点观察这两项。",
+      "timestamp": "2026-03-02T13:31:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "notification-worker 告警先发到 ops-primary，持续 10 分钟仍未恢复时升级到对应服务负责人。",
+      "timestamp": "2026-03-02T13:35:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "后续处理 notification-worker 告警时会先通知 ops-primary，并按 10 分钟规则升级。",
+      "timestamp": "2026-03-02T13:36:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "notification-worker 日志保留 14 天，默认不记录请求正文；排障临时提高日志级别最多保持 30 分钟。",
+      "timestamp": "2026-03-02T13:40:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录 notification-worker 的日志保留和临时调级限制，排障结束后会及时恢复日志级别。",
+      "timestamp": "2026-03-02T13:41:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "notification-worker 依赖的数据每天 02:00 UTC 备份，恢复演练安排在每月第一个周三。",
+      "timestamp": "2026-03-02T13:45:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录 notification-worker 的备份和恢复演练时间；不能把“备份成功”直接当作“可恢复”。",
+      "timestamp": "2026-03-02T13:46:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "notification-worker 回滚使用上一份已验证镜像和配置版本，数据库迁移必须在发布前确认是否可逆。",
+      "timestamp": "2026-03-02T13:50:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "后续为 notification-worker 制定回滚方案时会同时锁定镜像、配置和数据库兼容条件。",
+      "timestamp": "2026-03-02T13:51:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "notification-worker 的计划维护窗口是周四 16:00–18:00 UTC，涉及中断的操作需提前 24 小时通知。",
+      "timestamp": "2026-03-02T13:55:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录 notification-worker 的维护窗口和提前通知要求，计划外中断操作会先走紧急变更流程。",
+      "timestamp": "2026-03-02T13:56:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "search-api 生产环境监听 8106 端口，部署采用滚动更新，maxUnavailable 固定为 0。",
+      "timestamp": "2026-03-02T14:00:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录 search-api 的端口和滚动更新限制；发布时不会同时下线旧实例。",
+      "timestamp": "2026-03-02T14:01:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "search-api 的就绪检查路径是 /ready，连续 3 次成功才接收流量；存活检查使用 /health。",
+      "timestamp": "2026-03-02T14:05:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "后续检查 search-api 时会区分 /ready 与 /health，不会用存活检查替代就绪检查。",
+      "timestamp": "2026-03-02T14:06:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "search-api 常态副本数为 2，工作日高峰期扩到 4，缩容前要确认队列已经清空。",
+      "timestamp": "2026-03-02T14:10:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录 search-api 的常态和高峰副本数，缩容前会先检查待处理任务。",
+      "timestamp": "2026-03-02T14:11:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "search-api 单实例 CPU request 为 310m，memory request 为 512Mi，不能无依据提高 limit。",
+      "timestamp": "2026-03-02T14:15:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "资源调整会以 search-api 的监控数据为依据，并保留 request 与 limit 的变更记录。",
+      "timestamp": "2026-03-02T14:16:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "search-api 的 P95 延迟目标是低于 240ms，5 分钟错误率超过 1% 就停止发布。",
+      "timestamp": "2026-03-02T14:20:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录 search-api 的延迟目标和 1% 错误率停止条件，灰度期间会重点观察这两项。",
+      "timestamp": "2026-03-02T14:21:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "search-api 告警先发到 ops-primary，持续 10 分钟仍未恢复时升级到对应服务负责人。",
+      "timestamp": "2026-03-02T14:25:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "后续处理 search-api 告警时会先通知 ops-primary，并按 10 分钟规则升级。",
+      "timestamp": "2026-03-02T14:26:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "search-api 日志保留 14 天，默认不记录请求正文；排障临时提高日志级别最多保持 30 分钟。",
+      "timestamp": "2026-03-02T14:30:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录 search-api 的日志保留和临时调级限制，排障结束后会及时恢复日志级别。",
+      "timestamp": "2026-03-02T14:31:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "search-api 依赖的数据每天 02:00 UTC 备份，恢复演练安排在每月第一个周三。",
+      "timestamp": "2026-03-02T14:35:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录 search-api 的备份和恢复演练时间；不能把“备份成功”直接当作“可恢复”。",
+      "timestamp": "2026-03-02T14:36:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "search-api 回滚使用上一份已验证镜像和配置版本，数据库迁移必须在发布前确认是否可逆。",
+      "timestamp": "2026-03-02T14:40:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "后续为 search-api 制定回滚方案时会同时锁定镜像、配置和数据库兼容条件。",
+      "timestamp": "2026-03-02T14:41:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "search-api 的计划维护窗口是周四 16:00–18:00 UTC，涉及中断的操作需提前 24 小时通知。",
+      "timestamp": "2026-03-02T14:45:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录 search-api 的维护窗口和提前通知要求，计划外中断操作会先走紧急变更流程。",
+      "timestamp": "2026-03-02T14:46:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "recommendation-api 生产环境监听 8107 端口，部署采用滚动更新，maxUnavailable 固定为 0。",
+      "timestamp": "2026-03-02T14:50:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录 recommendation-api 的端口和滚动更新限制；发布时不会同时下线旧实例。",
+      "timestamp": "2026-03-02T14:51:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "recommendation-api 的就绪检查路径是 /ready，连续 3 次成功才接收流量；存活检查使用 /health。",
+      "timestamp": "2026-03-02T14:55:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "后续检查 recommendation-api 时会区分 /ready 与 /health，不会用存活检查替代就绪检查。",
+      "timestamp": "2026-03-02T14:56:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "recommendation-api 常态副本数为 3，工作日高峰期扩到 5，缩容前要确认队列已经清空。",
+      "timestamp": "2026-03-02T15:00:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录 recommendation-api 的常态和高峰副本数，缩容前会先检查待处理任务。",
+      "timestamp": "2026-03-02T15:01:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "recommendation-api 单实例 CPU request 为 320m，memory request 为 640Mi，不能无依据提高 limit。",
+      "timestamp": "2026-03-02T15:05:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "资源调整会以 recommendation-api 的监控数据为依据，并保留 request 与 limit 的变更记录。",
+      "timestamp": "2026-03-02T15:06:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "recommendation-api 的 P95 延迟目标是低于 250ms，5 分钟错误率超过 1% 就停止发布。",
+      "timestamp": "2026-03-02T15:10:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录 recommendation-api 的延迟目标和 1% 错误率停止条件，灰度期间会重点观察这两项。",
+      "timestamp": "2026-03-02T15:11:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "recommendation-api 告警先发到 ops-primary，持续 10 分钟仍未恢复时升级到对应服务负责人。",
+      "timestamp": "2026-03-02T15:15:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "后续处理 recommendation-api 告警时会先通知 ops-primary，并按 10 分钟规则升级。",
+      "timestamp": "2026-03-02T15:16:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "recommendation-api 日志保留 14 天，默认不记录请求正文；排障临时提高日志级别最多保持 30 分钟。",
+      "timestamp": "2026-03-02T15:20:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录 recommendation-api 的日志保留和临时调级限制，排障结束后会及时恢复日志级别。",
+      "timestamp": "2026-03-02T15:21:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "recommendation-api 依赖的数据每天 02:00 UTC 备份，恢复演练安排在每月第一个周三。",
+      "timestamp": "2026-03-02T15:25:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录 recommendation-api 的备份和恢复演练时间；不能把“备份成功”直接当作“可恢复”。",
+      "timestamp": "2026-03-02T15:26:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "recommendation-api 回滚使用上一份已验证镜像和配置版本，数据库迁移必须在发布前确认是否可逆。",
+      "timestamp": "2026-03-02T15:30:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "后续为 recommendation-api 制定回滚方案时会同时锁定镜像、配置和数据库兼容条件。",
+      "timestamp": "2026-03-02T15:31:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "recommendation-api 的计划维护窗口是周四 16:00–18:00 UTC，涉及中断的操作需提前 24 小时通知。",
+      "timestamp": "2026-03-02T15:35:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录 recommendation-api 的维护窗口和提前通知要求，计划外中断操作会先走紧急变更流程。",
+      "timestamp": "2026-03-02T15:36:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "pricing-api 生产环境监听 8108 端口，部署采用滚动更新，maxUnavailable 固定为 0。",
+      "timestamp": "2026-03-02T15:40:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录 pricing-api 的端口和滚动更新限制；发布时不会同时下线旧实例。",
+      "timestamp": "2026-03-02T15:41:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "pricing-api 的就绪检查路径是 /ready，连续 3 次成功才接收流量；存活检查使用 /health。",
+      "timestamp": "2026-03-02T15:45:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "后续检查 pricing-api 时会区分 /ready 与 /health，不会用存活检查替代就绪检查。",
+      "timestamp": "2026-03-02T15:46:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "pricing-api 常态副本数为 4，工作日高峰期扩到 6，缩容前要确认队列已经清空。",
+      "timestamp": "2026-03-02T15:50:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录 pricing-api 的常态和高峰副本数，缩容前会先检查待处理任务。",
+      "timestamp": "2026-03-02T15:51:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "pricing-api 单实例 CPU request 为 330m，memory request 为 256Mi，不能无依据提高 limit。",
+      "timestamp": "2026-03-02T15:55:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "资源调整会以 pricing-api 的监控数据为依据，并保留 request 与 limit 的变更记录。",
+      "timestamp": "2026-03-02T15:56:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "pricing-api 的 P95 延迟目标是低于 260ms，5 分钟错误率超过 1% 就停止发布。",
+      "timestamp": "2026-03-02T16:00:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录 pricing-api 的延迟目标和 1% 错误率停止条件，灰度期间会重点观察这两项。",
+      "timestamp": "2026-03-02T16:01:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "pricing-api 告警先发到 ops-primary，持续 10 分钟仍未恢复时升级到对应服务负责人。",
+      "timestamp": "2026-03-02T16:05:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "后续处理 pricing-api 告警时会先通知 ops-primary，并按 10 分钟规则升级。",
+      "timestamp": "2026-03-02T16:06:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "pricing-api 日志保留 14 天，默认不记录请求正文；排障临时提高日志级别最多保持 30 分钟。",
+      "timestamp": "2026-03-02T16:10:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录 pricing-api 的日志保留和临时调级限制，排障结束后会及时恢复日志级别。",
+      "timestamp": "2026-03-02T16:11:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "pricing-api 依赖的数据每天 02:00 UTC 备份，恢复演练安排在每月第一个周三。",
+      "timestamp": "2026-03-02T16:15:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录 pricing-api 的备份和恢复演练时间；不能把“备份成功”直接当作“可恢复”。",
+      "timestamp": "2026-03-02T16:16:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "pricing-api 回滚使用上一份已验证镜像和配置版本，数据库迁移必须在发布前确认是否可逆。",
+      "timestamp": "2026-03-02T16:20:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "后续为 pricing-api 制定回滚方案时会同时锁定镜像、配置和数据库兼容条件。",
+      "timestamp": "2026-03-02T16:21:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "pricing-api 的计划维护窗口是周四 16:00–18:00 UTC，涉及中断的操作需提前 24 小时通知。",
+      "timestamp": "2026-03-02T16:25:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录 pricing-api 的维护窗口和提前通知要求，计划外中断操作会先走紧急变更流程。",
+      "timestamp": "2026-03-02T16:26:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "coupon-api 生产环境监听 8109 端口，部署采用滚动更新，maxUnavailable 固定为 0。",
+      "timestamp": "2026-03-02T16:30:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录 coupon-api 的端口和滚动更新限制；发布时不会同时下线旧实例。",
+      "timestamp": "2026-03-02T16:31:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "coupon-api 的就绪检查路径是 /ready，连续 3 次成功才接收流量；存活检查使用 /health。",
+      "timestamp": "2026-03-02T16:35:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "后续检查 coupon-api 时会区分 /ready 与 /health，不会用存活检查替代就绪检查。",
+      "timestamp": "2026-03-02T16:36:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "coupon-api 常态副本数为 2，工作日高峰期扩到 4，缩容前要确认队列已经清空。",
+      "timestamp": "2026-03-02T16:40:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录 coupon-api 的常态和高峰副本数，缩容前会先检查待处理任务。",
+      "timestamp": "2026-03-02T16:41:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "coupon-api 单实例 CPU request 为 340m，memory request 为 384Mi，不能无依据提高 limit。",
+      "timestamp": "2026-03-02T16:45:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "资源调整会以 coupon-api 的监控数据为依据，并保留 request 与 limit 的变更记录。",
+      "timestamp": "2026-03-02T16:46:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "coupon-api 的 P95 延迟目标是低于 270ms，5 分钟错误率超过 1% 就停止发布。",
+      "timestamp": "2026-03-02T16:50:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录 coupon-api 的延迟目标和 1% 错误率停止条件，灰度期间会重点观察这两项。",
+      "timestamp": "2026-03-02T16:51:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "coupon-api 告警先发到 ops-primary，持续 10 分钟仍未恢复时升级到对应服务负责人。",
+      "timestamp": "2026-03-02T16:55:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "后续处理 coupon-api 告警时会先通知 ops-primary，并按 10 分钟规则升级。",
+      "timestamp": "2026-03-02T16:56:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "coupon-api 日志保留 14 天，默认不记录请求正文；排障临时提高日志级别最多保持 30 分钟。",
+      "timestamp": "2026-03-02T17:00:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录 coupon-api 的日志保留和临时调级限制，排障结束后会及时恢复日志级别。",
+      "timestamp": "2026-03-02T17:01:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "coupon-api 依赖的数据每天 02:00 UTC 备份，恢复演练安排在每月第一个周三。",
+      "timestamp": "2026-03-02T17:05:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录 coupon-api 的备份和恢复演练时间；不能把“备份成功”直接当作“可恢复”。",
+      "timestamp": "2026-03-02T17:06:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "coupon-api 回滚使用上一份已验证镜像和配置版本，数据库迁移必须在发布前确认是否可逆。",
+      "timestamp": "2026-03-02T17:10:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "后续为 coupon-api 制定回滚方案时会同时锁定镜像、配置和数据库兼容条件。",
+      "timestamp": "2026-03-02T17:11:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "coupon-api 的计划维护窗口是周四 16:00–18:00 UTC，涉及中断的操作需提前 24 小时通知。",
+      "timestamp": "2026-03-02T17:15:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录 coupon-api 的维护窗口和提前通知要求，计划外中断操作会先走紧急变更流程。",
+      "timestamp": "2026-03-02T17:16:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "fulfillment-worker 生产环境监听 8110 端口，部署采用滚动更新，maxUnavailable 固定为 0。",
+      "timestamp": "2026-03-02T17:20:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录 fulfillment-worker 的端口和滚动更新限制；发布时不会同时下线旧实例。",
+      "timestamp": "2026-03-02T17:21:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "fulfillment-worker 的就绪检查路径是 /ready，连续 3 次成功才接收流量；存活检查使用 /health。",
+      "timestamp": "2026-03-02T17:25:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "后续检查 fulfillment-worker 时会区分 /ready 与 /health，不会用存活检查替代就绪检查。",
+      "timestamp": "2026-03-02T17:26:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "fulfillment-worker 常态副本数为 3，工作日高峰期扩到 5，缩容前要确认队列已经清空。",
+      "timestamp": "2026-03-02T17:30:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录 fulfillment-worker 的常态和高峰副本数，缩容前会先检查待处理任务。",
+      "timestamp": "2026-03-02T17:31:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "fulfillment-worker 单实例 CPU request 为 350m，memory request 为 512Mi，不能无依据提高 limit。",
+      "timestamp": "2026-03-02T17:35:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "资源调整会以 fulfillment-worker 的监控数据为依据，并保留 request 与 limit 的变更记录。",
+      "timestamp": "2026-03-02T17:36:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "fulfillment-worker 的 P95 延迟目标是低于 280ms，5 分钟错误率超过 1% 就停止发布。",
+      "timestamp": "2026-03-02T17:40:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录 fulfillment-worker 的延迟目标和 1% 错误率停止条件，灰度期间会重点观察这两项。",
+      "timestamp": "2026-03-02T17:41:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "fulfillment-worker 告警先发到 ops-primary，持续 10 分钟仍未恢复时升级到对应服务负责人。",
+      "timestamp": "2026-03-02T17:45:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "后续处理 fulfillment-worker 告警时会先通知 ops-primary，并按 10 分钟规则升级。",
+      "timestamp": "2026-03-02T17:46:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "fulfillment-worker 日志保留 14 天，默认不记录请求正文；排障临时提高日志级别最多保持 30 分钟。",
+      "timestamp": "2026-03-02T17:50:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录 fulfillment-worker 的日志保留和临时调级限制，排障结束后会及时恢复日志级别。",
+      "timestamp": "2026-03-02T17:51:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "fulfillment-worker 依赖的数据每天 02:00 UTC 备份，恢复演练安排在每月第一个周三。",
+      "timestamp": "2026-03-02T17:55:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录 fulfillment-worker 的备份和恢复演练时间；不能把“备份成功”直接当作“可恢复”。",
+      "timestamp": "2026-03-02T17:56:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "fulfillment-worker 回滚使用上一份已验证镜像和配置版本，数据库迁移必须在发布前确认是否可逆。",
+      "timestamp": "2026-03-02T18:00:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "后续为 fulfillment-worker 制定回滚方案时会同时锁定镜像、配置和数据库兼容条件。",
+      "timestamp": "2026-03-02T18:01:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "fulfillment-worker 的计划维护窗口是周四 16:00–18:00 UTC，涉及中断的操作需提前 24 小时通知。",
+      "timestamp": "2026-03-02T18:05:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录 fulfillment-worker 的维护窗口和提前通知要求，计划外中断操作会先走紧急变更流程。",
+      "timestamp": "2026-03-02T18:06:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "logistics-sync 生产环境监听 8111 端口，部署采用滚动更新，maxUnavailable 固定为 0。",
+      "timestamp": "2026-03-02T18:10:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录 logistics-sync 的端口和滚动更新限制；发布时不会同时下线旧实例。",
+      "timestamp": "2026-03-02T18:11:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "logistics-sync 的就绪检查路径是 /ready，连续 3 次成功才接收流量；存活检查使用 /health。",
+      "timestamp": "2026-03-02T18:15:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "后续检查 logistics-sync 时会区分 /ready 与 /health，不会用存活检查替代就绪检查。",
+      "timestamp": "2026-03-02T18:16:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "logistics-sync 常态副本数为 4，工作日高峰期扩到 6，缩容前要确认队列已经清空。",
+      "timestamp": "2026-03-02T18:20:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录 logistics-sync 的常态和高峰副本数，缩容前会先检查待处理任务。",
+      "timestamp": "2026-03-02T18:21:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "logistics-sync 单实例 CPU request 为 360m，memory request 为 640Mi，不能无依据提高 limit。",
+      "timestamp": "2026-03-02T18:25:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "资源调整会以 logistics-sync 的监控数据为依据，并保留 request 与 limit 的变更记录。",
+      "timestamp": "2026-03-02T18:26:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "logistics-sync 的 P95 延迟目标是低于 290ms，5 分钟错误率超过 1% 就停止发布。",
+      "timestamp": "2026-03-02T18:30:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录 logistics-sync 的延迟目标和 1% 错误率停止条件，灰度期间会重点观察这两项。",
+      "timestamp": "2026-03-02T18:31:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "logistics-sync 告警先发到 ops-primary，持续 10 分钟仍未恢复时升级到对应服务负责人。",
+      "timestamp": "2026-03-02T18:35:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "后续处理 logistics-sync 告警时会先通知 ops-primary，并按 10 分钟规则升级。",
+      "timestamp": "2026-03-02T18:36:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "logistics-sync 日志保留 14 天，默认不记录请求正文；排障临时提高日志级别最多保持 30 分钟。",
+      "timestamp": "2026-03-02T18:40:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录 logistics-sync 的日志保留和临时调级限制，排障结束后会及时恢复日志级别。",
+      "timestamp": "2026-03-02T18:41:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "logistics-sync 依赖的数据每天 02:00 UTC 备份，恢复演练安排在每月第一个周三。",
+      "timestamp": "2026-03-02T18:45:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录 logistics-sync 的备份和恢复演练时间；不能把“备份成功”直接当作“可恢复”。",
+      "timestamp": "2026-03-02T18:46:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "logistics-sync 回滚使用上一份已验证镜像和配置版本，数据库迁移必须在发布前确认是否可逆。",
+      "timestamp": "2026-03-02T18:50:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "后续为 logistics-sync 制定回滚方案时会同时锁定镜像、配置和数据库兼容条件。",
+      "timestamp": "2026-03-02T18:51:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "logistics-sync 的计划维护窗口是周四 16:00–18:00 UTC，涉及中断的操作需提前 24 小时通知。",
+      "timestamp": "2026-03-02T18:55:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录 logistics-sync 的维护窗口和提前通知要求，计划外中断操作会先走紧急变更流程。",
+      "timestamp": "2026-03-02T18:56:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "invoice-worker 生产环境监听 8112 端口，部署采用滚动更新，maxUnavailable 固定为 0。",
+      "timestamp": "2026-03-02T19:00:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录 invoice-worker 的端口和滚动更新限制；发布时不会同时下线旧实例。",
+      "timestamp": "2026-03-02T19:01:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "invoice-worker 的就绪检查路径是 /ready，连续 3 次成功才接收流量；存活检查使用 /health。",
+      "timestamp": "2026-03-02T19:05:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "后续检查 invoice-worker 时会区分 /ready 与 /health，不会用存活检查替代就绪检查。",
+      "timestamp": "2026-03-02T19:06:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "invoice-worker 常态副本数为 2，工作日高峰期扩到 4，缩容前要确认队列已经清空。",
+      "timestamp": "2026-03-02T19:10:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录 invoice-worker 的常态和高峰副本数，缩容前会先检查待处理任务。",
+      "timestamp": "2026-03-02T19:11:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "invoice-worker 单实例 CPU request 为 370m，memory request 为 256Mi，不能无依据提高 limit。",
+      "timestamp": "2026-03-02T19:15:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "资源调整会以 invoice-worker 的监控数据为依据，并保留 request 与 limit 的变更记录。",
+      "timestamp": "2026-03-02T19:16:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "invoice-worker 的 P95 延迟目标是低于 300ms，5 分钟错误率超过 1% 就停止发布。",
+      "timestamp": "2026-03-02T19:20:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录 invoice-worker 的延迟目标和 1% 错误率停止条件，灰度期间会重点观察这两项。",
+      "timestamp": "2026-03-02T19:21:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "invoice-worker 告警先发到 ops-primary，持续 10 分钟仍未恢复时升级到对应服务负责人。",
+      "timestamp": "2026-03-02T19:25:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "后续处理 invoice-worker 告警时会先通知 ops-primary，并按 10 分钟规则升级。",
+      "timestamp": "2026-03-02T19:26:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "invoice-worker 日志保留 14 天，默认不记录请求正文；排障临时提高日志级别最多保持 30 分钟。",
+      "timestamp": "2026-03-02T19:30:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录 invoice-worker 的日志保留和临时调级限制，排障结束后会及时恢复日志级别。",
+      "timestamp": "2026-03-02T19:31:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "invoice-worker 依赖的数据每天 02:00 UTC 备份，恢复演练安排在每月第一个周三。",
+      "timestamp": "2026-03-02T19:35:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录 invoice-worker 的备份和恢复演练时间；不能把“备份成功”直接当作“可恢复”。",
+      "timestamp": "2026-03-02T19:36:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "invoice-worker 回滚使用上一份已验证镜像和配置版本，数据库迁移必须在发布前确认是否可逆。",
+      "timestamp": "2026-03-02T19:40:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "后续为 invoice-worker 制定回滚方案时会同时锁定镜像、配置和数据库兼容条件。",
+      "timestamp": "2026-03-02T19:41:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "invoice-worker 的计划维护窗口是周四 16:00–18:00 UTC，涉及中断的操作需提前 24 小时通知。",
+      "timestamp": "2026-03-02T19:45:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录 invoice-worker 的维护窗口和提前通知要求，计划外中断操作会先走紧急变更流程。",
+      "timestamp": "2026-03-02T19:46:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "report-api 生产环境监听 8113 端口，部署采用滚动更新，maxUnavailable 固定为 0。",
+      "timestamp": "2026-03-02T19:50:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录 report-api 的端口和滚动更新限制；发布时不会同时下线旧实例。",
+      "timestamp": "2026-03-02T19:51:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "report-api 的就绪检查路径是 /ready，连续 3 次成功才接收流量；存活检查使用 /health。",
+      "timestamp": "2026-03-02T19:55:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "后续检查 report-api 时会区分 /ready 与 /health，不会用存活检查替代就绪检查。",
+      "timestamp": "2026-03-02T19:56:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "report-api 常态副本数为 3，工作日高峰期扩到 5，缩容前要确认队列已经清空。",
+      "timestamp": "2026-03-02T20:00:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录 report-api 的常态和高峰副本数，缩容前会先检查待处理任务。",
+      "timestamp": "2026-03-02T20:01:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "report-api 单实例 CPU request 为 380m，memory request 为 384Mi，不能无依据提高 limit。",
+      "timestamp": "2026-03-02T20:05:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "资源调整会以 report-api 的监控数据为依据，并保留 request 与 limit 的变更记录。",
+      "timestamp": "2026-03-02T20:06:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "report-api 的 P95 延迟目标是低于 310ms，5 分钟错误率超过 1% 就停止发布。",
+      "timestamp": "2026-03-02T20:10:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录 report-api 的延迟目标和 1% 错误率停止条件，灰度期间会重点观察这两项。",
+      "timestamp": "2026-03-02T20:11:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "report-api 告警先发到 ops-primary，持续 10 分钟仍未恢复时升级到对应服务负责人。",
+      "timestamp": "2026-03-02T20:15:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "后续处理 report-api 告警时会先通知 ops-primary，并按 10 分钟规则升级。",
+      "timestamp": "2026-03-02T20:16:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "report-api 日志保留 14 天，默认不记录请求正文；排障临时提高日志级别最多保持 30 分钟。",
+      "timestamp": "2026-03-02T20:20:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录 report-api 的日志保留和临时调级限制，排障结束后会及时恢复日志级别。",
+      "timestamp": "2026-03-02T20:21:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "report-api 依赖的数据每天 02:00 UTC 备份，恢复演练安排在每月第一个周三。",
+      "timestamp": "2026-03-02T20:25:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录 report-api 的备份和恢复演练时间；不能把“备份成功”直接当作“可恢复”。",
+      "timestamp": "2026-03-02T20:26:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "report-api 回滚使用上一份已验证镜像和配置版本，数据库迁移必须在发布前确认是否可逆。",
+      "timestamp": "2026-03-02T20:30:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "后续为 report-api 制定回滚方案时会同时锁定镜像、配置和数据库兼容条件。",
+      "timestamp": "2026-03-02T20:31:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "report-api 的计划维护窗口是周四 16:00–18:00 UTC，涉及中断的操作需提前 24 小时通知。",
+      "timestamp": "2026-03-02T20:35:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录 report-api 的维护窗口和提前通知要求，计划外中断操作会先走紧急变更流程。",
+      "timestamp": "2026-03-02T20:36:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "audit-consumer 生产环境监听 8114 端口，部署采用滚动更新，maxUnavailable 固定为 0。",
+      "timestamp": "2026-03-02T20:40:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录 audit-consumer 的端口和滚动更新限制；发布时不会同时下线旧实例。",
+      "timestamp": "2026-03-02T20:41:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "audit-consumer 的就绪检查路径是 /ready，连续 3 次成功才接收流量；存活检查使用 /health。",
+      "timestamp": "2026-03-02T20:45:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "后续检查 audit-consumer 时会区分 /ready 与 /health，不会用存活检查替代就绪检查。",
+      "timestamp": "2026-03-02T20:46:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "audit-consumer 常态副本数为 4，工作日高峰期扩到 6，缩容前要确认队列已经清空。",
+      "timestamp": "2026-03-02T20:50:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录 audit-consumer 的常态和高峰副本数，缩容前会先检查待处理任务。",
+      "timestamp": "2026-03-02T20:51:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "audit-consumer 单实例 CPU request 为 390m，memory request 为 512Mi，不能无依据提高 limit。",
+      "timestamp": "2026-03-02T20:55:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "资源调整会以 audit-consumer 的监控数据为依据，并保留 request 与 limit 的变更记录。",
+      "timestamp": "2026-03-02T20:56:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "audit-consumer 的 P95 延迟目标是低于 320ms，5 分钟错误率超过 1% 就停止发布。",
+      "timestamp": "2026-03-02T21:00:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录 audit-consumer 的延迟目标和 1% 错误率停止条件，灰度期间会重点观察这两项。",
+      "timestamp": "2026-03-02T21:01:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "audit-consumer 告警先发到 ops-primary，持续 10 分钟仍未恢复时升级到对应服务负责人。",
+      "timestamp": "2026-03-02T21:05:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "后续处理 audit-consumer 告警时会先通知 ops-primary，并按 10 分钟规则升级。",
+      "timestamp": "2026-03-02T21:06:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "audit-consumer 日志保留 14 天，默认不记录请求正文；排障临时提高日志级别最多保持 30 分钟。",
+      "timestamp": "2026-03-02T21:10:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录 audit-consumer 的日志保留和临时调级限制，排障结束后会及时恢复日志级别。",
+      "timestamp": "2026-03-02T21:11:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "audit-consumer 依赖的数据每天 02:00 UTC 备份，恢复演练安排在每月第一个周三。",
+      "timestamp": "2026-03-02T21:15:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录 audit-consumer 的备份和恢复演练时间；不能把“备份成功”直接当作“可恢复”。",
+      "timestamp": "2026-03-02T21:16:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "audit-consumer 回滚使用上一份已验证镜像和配置版本，数据库迁移必须在发布前确认是否可逆。",
+      "timestamp": "2026-03-02T21:20:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "后续为 audit-consumer 制定回滚方案时会同时锁定镜像、配置和数据库兼容条件。",
+      "timestamp": "2026-03-02T21:21:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "audit-consumer 的计划维护窗口是周四 16:00–18:00 UTC，涉及中断的操作需提前 24 小时通知。",
+      "timestamp": "2026-03-02T21:25:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录 audit-consumer 的维护窗口和提前通知要求，计划外中断操作会先走紧急变更流程。",
+      "timestamp": "2026-03-02T21:26:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "config-server 生产环境监听 8115 端口，部署采用滚动更新，maxUnavailable 固定为 0。",
+      "timestamp": "2026-03-02T21:30:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录 config-server 的端口和滚动更新限制；发布时不会同时下线旧实例。",
+      "timestamp": "2026-03-02T21:31:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "config-server 的就绪检查路径是 /ready，连续 3 次成功才接收流量；存活检查使用 /health。",
+      "timestamp": "2026-03-02T21:35:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "后续检查 config-server 时会区分 /ready 与 /health，不会用存活检查替代就绪检查。",
+      "timestamp": "2026-03-02T21:36:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "config-server 常态副本数为 2，工作日高峰期扩到 4，缩容前要确认队列已经清空。",
+      "timestamp": "2026-03-02T21:40:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录 config-server 的常态和高峰副本数，缩容前会先检查待处理任务。",
+      "timestamp": "2026-03-02T21:41:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "config-server 单实例 CPU request 为 400m，memory request 为 640Mi，不能无依据提高 limit。",
+      "timestamp": "2026-03-02T21:45:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "资源调整会以 config-server 的监控数据为依据，并保留 request 与 limit 的变更记录。",
+      "timestamp": "2026-03-02T21:46:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "config-server 的 P95 延迟目标是低于 330ms，5 分钟错误率超过 1% 就停止发布。",
+      "timestamp": "2026-03-02T21:50:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录 config-server 的延迟目标和 1% 错误率停止条件，灰度期间会重点观察这两项。",
+      "timestamp": "2026-03-02T21:51:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "config-server 告警先发到 ops-primary，持续 10 分钟仍未恢复时升级到对应服务负责人。",
+      "timestamp": "2026-03-02T21:55:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "后续处理 config-server 告警时会先通知 ops-primary，并按 10 分钟规则升级。",
+      "timestamp": "2026-03-02T21:56:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "config-server 日志保留 14 天，默认不记录请求正文；排障临时提高日志级别最多保持 30 分钟。",
+      "timestamp": "2026-03-02T22:00:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录 config-server 的日志保留和临时调级限制，排障结束后会及时恢复日志级别。",
+      "timestamp": "2026-03-02T22:01:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "config-server 依赖的数据每天 02:00 UTC 备份，恢复演练安排在每月第一个周三。",
+      "timestamp": "2026-03-02T22:05:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录 config-server 的备份和恢复演练时间；不能把“备份成功”直接当作“可恢复”。",
+      "timestamp": "2026-03-02T22:06:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "config-server 回滚使用上一份已验证镜像和配置版本，数据库迁移必须在发布前确认是否可逆。",
+      "timestamp": "2026-03-02T22:10:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "后续为 config-server 制定回滚方案时会同时锁定镜像、配置和数据库兼容条件。",
+      "timestamp": "2026-03-02T22:11:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "config-server 的计划维护窗口是周四 16:00–18:00 UTC，涉及中断的操作需提前 24 小时通知。",
+      "timestamp": "2026-03-02T22:15:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录 config-server 的维护窗口和提前通知要求，计划外中断操作会先走紧急变更流程。",
+      "timestamp": "2026-03-02T22:16:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "job-scheduler 生产环境监听 8116 端口，部署采用滚动更新，maxUnavailable 固定为 0。",
+      "timestamp": "2026-03-02T22:20:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录 job-scheduler 的端口和滚动更新限制；发布时不会同时下线旧实例。",
+      "timestamp": "2026-03-02T22:21:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "job-scheduler 的就绪检查路径是 /ready，连续 3 次成功才接收流量；存活检查使用 /health。",
+      "timestamp": "2026-03-02T22:25:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "后续检查 job-scheduler 时会区分 /ready 与 /health，不会用存活检查替代就绪检查。",
+      "timestamp": "2026-03-02T22:26:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "job-scheduler 常态副本数为 3，工作日高峰期扩到 5，缩容前要确认队列已经清空。",
+      "timestamp": "2026-03-02T22:30:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录 job-scheduler 的常态和高峰副本数，缩容前会先检查待处理任务。",
+      "timestamp": "2026-03-02T22:31:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "job-scheduler 单实例 CPU request 为 410m，memory request 为 256Mi，不能无依据提高 limit。",
+      "timestamp": "2026-03-02T22:35:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "资源调整会以 job-scheduler 的监控数据为依据，并保留 request 与 limit 的变更记录。",
+      "timestamp": "2026-03-02T22:36:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "job-scheduler 的 P95 延迟目标是低于 340ms，5 分钟错误率超过 1% 就停止发布。",
+      "timestamp": "2026-03-02T22:40:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录 job-scheduler 的延迟目标和 1% 错误率停止条件，灰度期间会重点观察这两项。",
+      "timestamp": "2026-03-02T22:41:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "job-scheduler 告警先发到 ops-primary，持续 10 分钟仍未恢复时升级到对应服务负责人。",
+      "timestamp": "2026-03-02T22:45:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "后续处理 job-scheduler 告警时会先通知 ops-primary，并按 10 分钟规则升级。",
+      "timestamp": "2026-03-02T22:46:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "job-scheduler 日志保留 14 天，默认不记录请求正文；排障临时提高日志级别最多保持 30 分钟。",
+      "timestamp": "2026-03-02T22:50:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录 job-scheduler 的日志保留和临时调级限制，排障结束后会及时恢复日志级别。",
+      "timestamp": "2026-03-02T22:51:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "job-scheduler 依赖的数据每天 02:00 UTC 备份，恢复演练安排在每月第一个周三。",
+      "timestamp": "2026-03-02T22:55:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录 job-scheduler 的备份和恢复演练时间；不能把“备份成功”直接当作“可恢复”。",
+      "timestamp": "2026-03-02T22:56:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "job-scheduler 回滚使用上一份已验证镜像和配置版本，数据库迁移必须在发布前确认是否可逆。",
+      "timestamp": "2026-03-02T23:00:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "后续为 job-scheduler 制定回滚方案时会同时锁定镜像、配置和数据库兼容条件。",
+      "timestamp": "2026-03-02T23:01:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "job-scheduler 的计划维护窗口是周四 16:00–18:00 UTC，涉及中断的操作需提前 24 小时通知。",
+      "timestamp": "2026-03-02T23:05:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录 job-scheduler 的维护窗口和提前通知要求，计划外中断操作会先走紧急变更流程。",
+      "timestamp": "2026-03-02T23:06:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "event-consumer 生产环境监听 8117 端口，部署采用滚动更新，maxUnavailable 固定为 0。",
+      "timestamp": "2026-03-02T23:10:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录 event-consumer 的端口和滚动更新限制；发布时不会同时下线旧实例。",
+      "timestamp": "2026-03-02T23:11:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "event-consumer 的就绪检查路径是 /ready，连续 3 次成功才接收流量；存活检查使用 /health。",
+      "timestamp": "2026-03-02T23:15:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "后续检查 event-consumer 时会区分 /ready 与 /health，不会用存活检查替代就绪检查。",
+      "timestamp": "2026-03-02T23:16:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "event-consumer 常态副本数为 4，工作日高峰期扩到 6，缩容前要确认队列已经清空。",
+      "timestamp": "2026-03-02T23:20:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录 event-consumer 的常态和高峰副本数，缩容前会先检查待处理任务。",
+      "timestamp": "2026-03-02T23:21:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "event-consumer 单实例 CPU request 为 420m，memory request 为 384Mi，不能无依据提高 limit。",
+      "timestamp": "2026-03-02T23:25:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "资源调整会以 event-consumer 的监控数据为依据，并保留 request 与 limit 的变更记录。",
+      "timestamp": "2026-03-02T23:26:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "event-consumer 的 P95 延迟目标是低于 350ms，5 分钟错误率超过 1% 就停止发布。",
+      "timestamp": "2026-03-02T23:30:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录 event-consumer 的延迟目标和 1% 错误率停止条件，灰度期间会重点观察这两项。",
+      "timestamp": "2026-03-02T23:31:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "event-consumer 告警先发到 ops-primary，持续 10 分钟仍未恢复时升级到对应服务负责人。",
+      "timestamp": "2026-03-02T23:35:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "后续处理 event-consumer 告警时会先通知 ops-primary，并按 10 分钟规则升级。",
+      "timestamp": "2026-03-02T23:36:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "event-consumer 日志保留 14 天，默认不记录请求正文；排障临时提高日志级别最多保持 30 分钟。",
+      "timestamp": "2026-03-02T23:40:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录 event-consumer 的日志保留和临时调级限制，排障结束后会及时恢复日志级别。",
+      "timestamp": "2026-03-02T23:41:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "event-consumer 依赖的数据每天 02:00 UTC 备份，恢复演练安排在每月第一个周三。",
+      "timestamp": "2026-03-02T23:45:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录 event-consumer 的备份和恢复演练时间；不能把“备份成功”直接当作“可恢复”。",
+      "timestamp": "2026-03-02T23:46:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "event-consumer 回滚使用上一份已验证镜像和配置版本，数据库迁移必须在发布前确认是否可逆。",
+      "timestamp": "2026-03-02T23:50:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "后续为 event-consumer 制定回滚方案时会同时锁定镜像、配置和数据库兼容条件。",
+      "timestamp": "2026-03-02T23:51:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "event-consumer 的计划维护窗口是周四 16:00–18:00 UTC，涉及中断的操作需提前 24 小时通知。",
+      "timestamp": "2026-03-02T23:55:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录 event-consumer 的维护窗口和提前通知要求，计划外中断操作会先走紧急变更流程。",
+      "timestamp": "2026-03-02T23:56:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "admin-api 生产环境监听 8118 端口，部署采用滚动更新，maxUnavailable 固定为 0。",
+      "timestamp": "2026-03-03T00:00:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录 admin-api 的端口和滚动更新限制；发布时不会同时下线旧实例。",
+      "timestamp": "2026-03-03T00:01:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "admin-api 的就绪检查路径是 /ready，连续 3 次成功才接收流量；存活检查使用 /health。",
+      "timestamp": "2026-03-03T00:05:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "后续检查 admin-api 时会区分 /ready 与 /health，不会用存活检查替代就绪检查。",
+      "timestamp": "2026-03-03T00:06:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "admin-api 常态副本数为 2，工作日高峰期扩到 4，缩容前要确认队列已经清空。",
+      "timestamp": "2026-03-03T00:10:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录 admin-api 的常态和高峰副本数，缩容前会先检查待处理任务。",
+      "timestamp": "2026-03-03T00:11:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "admin-api 单实例 CPU request 为 430m，memory request 为 512Mi，不能无依据提高 limit。",
+      "timestamp": "2026-03-03T00:15:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "资源调整会以 admin-api 的监控数据为依据，并保留 request 与 limit 的变更记录。",
+      "timestamp": "2026-03-03T00:16:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "admin-api 的 P95 延迟目标是低于 360ms，5 分钟错误率超过 1% 就停止发布。",
+      "timestamp": "2026-03-03T00:20:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录 admin-api 的延迟目标和 1% 错误率停止条件，灰度期间会重点观察这两项。",
+      "timestamp": "2026-03-03T00:21:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "admin-api 告警先发到 ops-primary，持续 10 分钟仍未恢复时升级到对应服务负责人。",
+      "timestamp": "2026-03-03T00:25:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "后续处理 admin-api 告警时会先通知 ops-primary，并按 10 分钟规则升级。",
+      "timestamp": "2026-03-03T00:26:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "admin-api 日志保留 14 天，默认不记录请求正文；排障临时提高日志级别最多保持 30 分钟。",
+      "timestamp": "2026-03-03T00:30:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录 admin-api 的日志保留和临时调级限制，排障结束后会及时恢复日志级别。",
+      "timestamp": "2026-03-03T00:31:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "admin-api 依赖的数据每天 02:00 UTC 备份，恢复演练安排在每月第一个周三。",
+      "timestamp": "2026-03-03T00:35:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录 admin-api 的备份和恢复演练时间；不能把“备份成功”直接当作“可恢复”。",
+      "timestamp": "2026-03-03T00:36:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "admin-api 回滚使用上一份已验证镜像和配置版本，数据库迁移必须在发布前确认是否可逆。",
+      "timestamp": "2026-03-03T00:40:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "后续为 admin-api 制定回滚方案时会同时锁定镜像、配置和数据库兼容条件。",
+      "timestamp": "2026-03-03T00:41:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "admin-api 的计划维护窗口是周四 16:00–18:00 UTC，涉及中断的操作需提前 24 小时通知。",
+      "timestamp": "2026-03-03T00:45:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录 admin-api 的维护窗口和提前通知要求，计划外中断操作会先走紧急变更流程。",
+      "timestamp": "2026-03-03T00:46:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "web-frontend 生产环境监听 8119 端口，部署采用滚动更新，maxUnavailable 固定为 0。",
+      "timestamp": "2026-03-03T00:50:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录 web-frontend 的端口和滚动更新限制；发布时不会同时下线旧实例。",
+      "timestamp": "2026-03-03T00:51:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "web-frontend 的就绪检查路径是 /ready，连续 3 次成功才接收流量；存活检查使用 /health。",
+      "timestamp": "2026-03-03T00:55:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "后续检查 web-frontend 时会区分 /ready 与 /health，不会用存活检查替代就绪检查。",
+      "timestamp": "2026-03-03T00:56:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "web-frontend 常态副本数为 3，工作日高峰期扩到 5，缩容前要确认队列已经清空。",
+      "timestamp": "2026-03-03T01:00:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录 web-frontend 的常态和高峰副本数，缩容前会先检查待处理任务。",
+      "timestamp": "2026-03-03T01:01:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "web-frontend 单实例 CPU request 为 440m，memory request 为 640Mi，不能无依据提高 limit。",
+      "timestamp": "2026-03-03T01:05:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "资源调整会以 web-frontend 的监控数据为依据，并保留 request 与 limit 的变更记录。",
+      "timestamp": "2026-03-03T01:06:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "web-frontend 的 P95 延迟目标是低于 370ms，5 分钟错误率超过 1% 就停止发布。",
+      "timestamp": "2026-03-03T01:10:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录 web-frontend 的延迟目标和 1% 错误率停止条件，灰度期间会重点观察这两项。",
+      "timestamp": "2026-03-03T01:11:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "web-frontend 告警先发到 ops-primary，持续 10 分钟仍未恢复时升级到对应服务负责人。",
+      "timestamp": "2026-03-03T01:15:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "后续处理 web-frontend 告警时会先通知 ops-primary，并按 10 分钟规则升级。",
+      "timestamp": "2026-03-03T01:16:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "web-frontend 日志保留 14 天，默认不记录请求正文；排障临时提高日志级别最多保持 30 分钟。",
+      "timestamp": "2026-03-03T01:20:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录 web-frontend 的日志保留和临时调级限制，排障结束后会及时恢复日志级别。",
+      "timestamp": "2026-03-03T01:21:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "web-frontend 依赖的数据每天 02:00 UTC 备份，恢复演练安排在每月第一个周三。",
+      "timestamp": "2026-03-03T01:25:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录 web-frontend 的备份和恢复演练时间；不能把“备份成功”直接当作“可恢复”。",
+      "timestamp": "2026-03-03T01:26:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "web-frontend 回滚使用上一份已验证镜像和配置版本，数据库迁移必须在发布前确认是否可逆。",
+      "timestamp": "2026-03-03T01:30:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "后续为 web-frontend 制定回滚方案时会同时锁定镜像、配置和数据库兼容条件。",
+      "timestamp": "2026-03-03T01:31:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "web-frontend 的计划维护窗口是周四 16:00–18:00 UTC，涉及中断的操作需提前 24 小时通知。",
+      "timestamp": "2026-03-03T01:35:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录 web-frontend 的维护窗口和提前通知要求，计划外中断操作会先走紧急变更流程。",
+      "timestamp": "2026-03-03T01:36:00.000Z"
+    }
+  ]
+}

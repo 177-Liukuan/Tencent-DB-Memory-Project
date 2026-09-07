@@ -25,3 +25,21 @@ Thumbs.db
 *.swo
 .idea/
 .vscode/
+
+# Browser checks generate local screenshots and page snapshots.
+.playwright-mcp/
+
+# Eval Kit dependencies and generated artifacts
+eval_kit/node_modules/
+eval_kit/coverage/
+eval_kit/.work/
+eval_kit/tmp/
+**/.review-backups/
+*.review.lock
+eval_kit/dataset/tasks/*.tmp
+eval_kit/results/**
+!eval_kit/results/.gitkeep
+
+# Optional local Eval Kit configuration.
+eval_kit/configs/*.local.yaml
+eval_kit/configs/experiments/*.local.yaml

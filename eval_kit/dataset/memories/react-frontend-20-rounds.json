@@ -1,0 +1,205 @@
+{
+  "session_id": "react-frontend-20-rounds",
+  "messages": [
+    {
+      "role": "user",
+      "content": "项目决定更新：用户中心新增组件统一放在 src/features/users/components，并通过该 feature 的 index.ts 导出；禁止继续把业务组件堆到 src/components 根目录。 后续涉及这部分时按该决定执行。",
+      "timestamp": "2026-04-19T09:00:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录：用户中心新增组件统一放在 src/features/users/components，并通过该 feature 的 index.ts 导出；禁止继续把业务组件堆到 src/components 根目录。",
+      "timestamp": "2026-04-19T09:01:00Z"
+    },
+    {
+      "role": "user",
+      "content": "今天复查了实现，补充一条注意事项：用户卡片的头像加载失败时显示姓名首字，不把断图图标留在界面上。",
+      "timestamp": "2026-04-19T09:07:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录：用户卡片的头像加载失败时显示姓名首字，不把断图图标留在界面上。",
+      "timestamp": "2026-04-19T09:08:00Z"
+    },
+    {
+      "role": "user",
+      "content": "关于测试安排，有个约定要记下来：错误提示除了颜色还要有文字，灰阶显示和色觉障碍用户也应能理解状态。",
+      "timestamp": "2026-04-19T09:14:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录：错误提示除了颜色还要有文字，灰阶显示和色觉障碍用户也应能理解状态。",
+      "timestamp": "2026-04-19T09:15:00Z"
+    },
+    {
+      "role": "user",
+      "content": "项目决定更新：用户资料表单不引入额外表单库，跨步骤草稿状态由 UsersProvider 保存，字段内部状态保持在组件内。 后续涉及这部分时按该决定执行。",
+      "timestamp": "2026-04-19T09:21:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录：用户资料表单不引入额外表单库，跨步骤草稿状态由 UsersProvider 保存，字段内部状态保持在组件内。",
+      "timestamp": "2026-04-19T09:22:00Z"
+    },
+    {
+      "role": "user",
+      "content": "这次评审还确认了：列表渲染使用稳定的用户编号作为 key，不能使用会随排序变化的数组下标。",
+      "timestamp": "2026-04-19T09:28:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录：列表渲染使用稳定的用户编号作为 key，不能使用会随排序变化的数组下标。",
+      "timestamp": "2026-04-19T09:29:00Z"
+    },
+    {
+      "role": "user",
+      "content": "后续维护时请保留这个处理方式：网络请求在组件卸载时取消，避免旧响应覆盖刚切换到的新用户资料。",
+      "timestamp": "2026-04-19T09:35:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录：网络请求在组件卸载时取消，避免旧响应覆盖刚切换到的新用户资料。",
+      "timestamp": "2026-04-19T09:36:00Z"
+    },
+    {
+      "role": "user",
+      "content": "今天复查了实现，补充一条注意事项：移动端对话框要让正文可以滚动，提交按钮不能被虚拟键盘永久遮住。",
+      "timestamp": "2026-04-19T09:42:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录：移动端对话框要让正文可以滚动，提交按钮不能被虚拟键盘永久遮住。",
+      "timestamp": "2026-04-19T09:43:00Z"
+    },
+    {
+      "role": "user",
+      "content": "项目决定更新：用户状态徽标只能使用 --usr-status-active / --usr-status-disabled 两个主题 token，组件内不得写十六进制业务颜色。 后续相关改动按这条执行。",
+      "timestamp": "2026-04-19T09:49:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录：用户状态徽标只能使用 --usr-status-active / --usr-status-disabled 两个主题 token，组件内不得写十六进制业务颜色。",
+      "timestamp": "2026-04-19T09:50:00Z"
+    },
+    {
+      "role": "user",
+      "content": "关于测试安排，有个约定要记下来：表单提交失败后保留用户已经输入的内容，重试不应要求重新填写。",
+      "timestamp": "2026-04-19T09:56:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录：表单提交失败后保留用户已经输入的内容，重试不应要求重新填写。",
+      "timestamp": "2026-04-19T09:57:00Z"
+    },
+    {
+      "role": "user",
+      "content": "这次评审还确认了：展示日期由统一的格式化函数处理，组件内部不重复拼接年月日。",
+      "timestamp": "2026-04-19T10:03:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录：展示日期由统一的格式化函数处理，组件内部不重复拼接年月日。",
+      "timestamp": "2026-04-19T10:04:00Z"
+    },
+    {
+      "role": "user",
+      "content": "后续维护时请保留这个处理方式：测试等待可见状态变化，不使用任意毫秒数的 sleep 来掩盖异步问题。",
+      "timestamp": "2026-04-19T10:10:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录：测试等待可见状态变化，不使用任意毫秒数的 sleep 来掩盖异步问题。",
+      "timestamp": "2026-04-19T10:11:00Z"
+    },
+    {
+      "role": "user",
+      "content": "项目决定更新：用户模块可访问性 id 统一采用 usr- 前缀，label 必须通过 htmlFor 关联真实 input id。 后续涉及这部分时按该决定执行。",
+      "timestamp": "2026-04-19T10:17:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录：用户模块可访问性 id 统一采用 usr- 前缀，label 必须通过 htmlFor 关联真实 input id。",
+      "timestamp": "2026-04-19T10:18:00Z"
+    },
+    {
+      "role": "user",
+      "content": "今天复查了实现，补充一条注意事项：搜索结果为空和请求失败使用不同提示，前者不应该展示重试按钮。",
+      "timestamp": "2026-04-19T10:24:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录：搜索结果为空和请求失败使用不同提示，前者不应该展示重试按钮。",
+      "timestamp": "2026-04-19T10:25:00Z"
+    },
+    {
+      "role": "user",
+      "content": "关于测试安排，有个约定要记下来：大段用户备注以文本方式渲染，不使用未经清理的 innerHTML。",
+      "timestamp": "2026-04-19T10:31:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录：大段用户备注以文本方式渲染，不使用未经清理的 innerHTML。",
+      "timestamp": "2026-04-19T10:32:00Z"
+    },
+    {
+      "role": "user",
+      "content": "这次评审还确认了：点击下载后显示处理中状态，生成完成再开放链接，避免重复触发导出。",
+      "timestamp": "2026-04-19T10:38:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录：点击下载后显示处理中状态，生成完成再开放链接，避免重复触发导出。",
+      "timestamp": "2026-04-19T10:39:00Z"
+    },
+    {
+      "role": "user",
+      "content": "复盘记录（2026-04-19）：2026-02-22 hydration 故障后确认：window/localStorage 只能在 effect 或事件处理器里读取，首屏 render 不能依赖浏览器对象。 后续相关改动都按这条执行。",
+      "timestamp": "2026-04-19T10:45:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录：2026-02-22 hydration 故障后确认：window/localStorage 只能在 effect 或事件处理器里读取，首屏 render 不能依赖浏览器对象。",
+      "timestamp": "2026-04-19T10:46:00Z"
+    },
+    {
+      "role": "user",
+      "content": "后续维护时请保留这个处理方式：键盘用户关闭浮层后应回到触发它的控件，不能让焦点掉到页面开头。",
+      "timestamp": "2026-04-19T10:52:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录：键盘用户关闭浮层后应回到触发它的控件，不能让焦点掉到页面开头。",
+      "timestamp": "2026-04-19T10:53:00Z"
+    },
+    {
+      "role": "user",
+      "content": "今天复查了实现，补充一条注意事项：错误日志记录组件名称和请求编号，不附带用户填写的完整表单。",
+      "timestamp": "2026-04-19T10:59:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录：错误日志记录组件名称和请求编号，不附带用户填写的完整表单。",
+      "timestamp": "2026-04-19T11:00:00Z"
+    },
+    {
+      "role": "user",
+      "content": "关于测试安排，有个约定要记下来：加载占位内容保留主要元素的尺寸，减少数据返回时页面明显跳动。",
+      "timestamp": "2026-04-19T11:06:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录：加载占位内容保留主要元素的尺寸，减少数据返回时页面明显跳动。",
+      "timestamp": "2026-04-19T11:07:00Z"
+    },
+    {
+      "role": "user",
+      "content": "复盘记录（2026-04-19）：2026-02-24 测试评审确定：组件测试使用 Testing Library，交互元素优先按 role 与 accessible name 查询。 后续相关改动都按这条执行。",
+      "timestamp": "2026-04-19T11:13:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录：2026-02-24 测试评审确定：组件测试使用 Testing Library，交互元素优先按 role 与 accessible name 查询。",
+      "timestamp": "2026-04-19T11:14:00Z"
+    }
+  ]
+}

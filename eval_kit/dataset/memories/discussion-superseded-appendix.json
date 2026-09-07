@@ -1,0 +1,45 @@
+{
+  "session_id": "discussion-superseded-appendix",
+  "messages": [
+    {
+      "role": "user",
+      "content": "我们在核对附件版本纠正。早期会议把 annex-C 当作正式验收附件。",
+      "timestamp": "2026-09-01T19:30:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录：我们在核对附件版本纠正。早期会议把 annex-C 当作正式验收附件。",
+      "timestamp": "2026-09-01T19:31:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "补充审议结果：文档负责人纠正为 annex-D revision 3；annex-C 是草稿评注，未通过验收，不能继续作为验收依据。",
+      "timestamp": "2026-09-01T19:32:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录：补充审议结果：文档负责人纠正为 annex-D revision 3；annex-C 是草稿评注，未通过验收，不能继续作为验收依据。",
+      "timestamp": "2026-09-01T19:33:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "再明确一下边界：正文版本号不变不代表附件没变，本次纠正只涉及验收附件，不涉及价格附件。",
+      "timestamp": "2026-09-01T19:34:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录：再明确一下边界：正文版本号不变不代表附件没变，本次纠正只涉及验收附件，不涉及价格附件。",
+      "timestamp": "2026-09-01T19:35:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "复查附件版本纠正时区分提案、确认结果和适用边界。",
+      "timestamp": "2026-09-01T19:36:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录：复查附件版本纠正时区分提案、确认结果和适用边界。",
+      "timestamp": "2026-09-01T19:37:00.000Z"
+    }
+  ]
+}

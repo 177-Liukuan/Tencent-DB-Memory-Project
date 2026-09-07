@@ -1,441 +1,197 @@
 # Tencent-DB-Memory-Project
 
-> TencentDB Agent Memory 课题研究与开发工作区，当前聚焦于任务一“Proxy 系统提示词注入优化”：将基于 Prompt、Bash 与 curl 的 **Fake Tool** 改造为由 MemoryProxy 拦截执行的 **Native Proxy Tool**，并通过可复现的 A/B 实验验证工具行为、Token 成本和端到端延迟。
+TencentDB Agent Memory 课题研究与 A/B 评测工作区。当前采用任务一的第二条路线：将 System Prompt + Bash/curl 形式的 **Fake Proxy Tool** 改为模型原生结构化 **Native Proxy Tool**，比较调用表现、静态上下文成本和响应延迟。
 
-本目录不是 TencentDB Agent Memory 的单一源码仓库，而是一个用于源码阅读、问题定位、方案验证和 A/B 实验的 Git Superproject。工作区并列保留上游参考源码、固定 Baseline 和 Native 实验分支，并通过独立运行环境观察 MemoryProxy、MemoryCore、MemoryKnowledge 与 MemoryPanel 的完整链路。
+这里是研究工作区，不是产品的单一源码仓库。根仓库管理研究资料、数据集和评测代码；上游参考、Baseline、Native 通过三个 Git submodule 管理，部署环境由独立 Lab 仓库维护。
 
-当前状态（2026-08-30）：**Native Proxy Tool 执行闭环尚未完成**。Native 分支已经完成正式改造前的协议无损透传、Claude Code Session Init 兼容、代理环境兼容和 ClickHouse 开发环境准备，下一阶段将从单个只读 Memory Tool 的 Anthropic 闭环开始实现。
+## 1. 当前进展
 
-> **Native / Baseline 工程边界：** `TencentDB-Agent-Memory-Native/` 后续只实现 Native Proxy Tool，不保留原有 Fake Tool，不设计 `fake | native` 双模式或 Fake Tool 回退。Fake Tool 对照由与 Native 项目起点一致、独立保存的 `TencentDB-Agent-Memory-Baseline/` 承担；A/B 实验通过两套独立项目和运行环境完成，而不是在 Native 项目内部切换模式。
+更新日期：**2026-09-07**。
 
-![TencentDB Agent Memory 项目梳理图](手稿/fig/项目图解.png)
-
-## 1. 项目背景
-
-从最直接的系统视角看，本课题主要涉及三个实体：LLM、Coding Agent 客户端和 TencentDB Agent Memory。从 LLM 的视角看，Coding Agent 客户端与 TencentDB Agent Memory 又共同构成了广义的 **Agent Harness**：它们为模型提供环境观测、工具执行和上下文管理等能力，并共同维护 Agent 的运行状态。
-
-Memory 是 Agent Harness 中的重要模块，用于保存和复用跨会话的长期信息，例如个人习惯与偏好、团队规范、项目约定和已经验证过的任务经验。一个完善的 Memory 系统不仅要能从会话中提炼和保存有价值的信息，还需要在合适的时机检索并注入相关记忆。以 Claude Code 为例，许多 Coding Agent 已具备一定的本地或个人记忆能力，但在团队记忆的共享、分发、权限控制和可视化管理方面仍有提升空间。
-
-[TencentDB Agent Memory](https://github.com/Tencent/TencentDB-Agent-Memory) 正是围绕这些问题构建的。系统中的主要模块分工如下：
-
-| 模块 | 主要职责 |
+| 内容 | 当前状态 |
 |---|---|
-| MemoryCore | 负责 Memory、Skill 等内容的提炼、存储、检索与数据服务 |
-| MemoryKnowledge | 提供 Wiki、CodeGraph 等团队知识的构建与检索能力 |
-| MemoryPanel | 提供用户、团队、Agent、Task 和记忆资产的可视化管理界面 |
-| MemoryProxy | 接入不同 Agent 客户端，并将 Memory、Skill、Knowledge 等能力跨平台注入和共享 |
+| Native 工具执行 | 已实现 Schema 注入、调用解析、Bridge 执行、结果回填、模型重入及 Native / Client 混合调用 |
+| 工具范围 | 已实现 6 个 Memory、10 个 Skill、2 个 Knowledge 包装工具；实际开放受配置和权限控制 |
+| 隐藏历史与压缩 | Claude Code 路径使用 Hooks、Turn Marker、长期 Tool Ledger 恢复历史，普通请求与压缩输入共用恢复逻辑 |
+| 双环境与观测 | Baseline / Native 独立部署；Bridge 记录实际到达的资产工具调用，Langfuse 用于检查模型输入和链路 |
+| 评测流水线 | 已支持完整 Skill 库导入、统一 Memory 底稿、独立 Agent / Task / Session / 工作区、批量运行及汇总 |
+| 数据与实测 | 已完成多轮小样本和一轮 285 题双组运行；当前删改后的正式任务文件剩余 273 题，不等同于该轮冻结数据 |
+| Viewer | 已提供数据集浏览、标签审核、同题有效配对指标、原始记录与调用详情 |
+| 独立延迟实验 | 本机工作区已实现 5 题 × 每组 5 次的模式与页面衔接；尚未单独提交，也未进行该模式的真实 50 次测量 |
 
-从应用问题看，TencentDB Agent Memory 试图减少 Agent 使用中的重复劳动：项目背景、用户偏好、团队约定和已经跑通的操作流程，不应在每个新 Session 中重新解释或探索。
+**工程闭环已具备，不代表 Native 在各项指标上已优于 Baseline。** 当前重点是核对标签与实际输入、保持对照公平，并区分工具选择、参数错误、执行异常及采集边界。历史报告记录当时的数据和配置，不应直接当成最新版数据集的结果。
 
-系统将可以复用的信息组织为四类记忆资产：
-
-| 资产 | 作用 |
-|---|---|
-| Chat Memory | 保存事实、偏好、决策和交互历史，并按 L0～L3 逐层提炼 |
-| Skill | 从任务与工具调用中提炼可复用的执行流程和验证规则 |
-| Wiki | 将文档整理为可搜索、可沿链接下钻的知识页面 |
-| CodeGraph | 索引代码文件、符号、调用关系和影响路径 |
-
-这些资产由 Memory Hub 统一管理，再按用户、团队、Agent、权限和当前任务进行装配或召回。项目追求的不是“把所有历史都塞进 Prompt”，而是让 Agent 在需要时拿到正确、足量且有权限使用的信息。
-
-## 2. 当前课题
-
-### 2.1 课题目标
-
-当前选择的是任务一：**Proxy 系统提示词注入优化**。
-
-MemoryProxy 当前会向 Agent 请求注入 Memory、Skill、Knowledge 的工具描述及相关上下文。若仅从表面理解，这项任务是在压缩系统提示词；但从第一性原理出发，真正需要解决的是：
-
-> **如何在有限的上下文预算内，向模型传递完成记忆检索和工具决策所需的最小充分信息，并保证模型产生的工具调用能够被可靠执行。**
-
-因此，本课题的目标不是孤立地追求更短的 Prompt，而是在 Token 成本、信息充分性、工具选择正确性、协议正确性和用户等待时间之间取得平衡。理想状态下，模型应当在确实需要时调用正确工具，在普通编码任务或当前上下文已经充分时不误调用，并让每次调用都形成可以执行、回填和继续推理的完整 Tool Loop。
-
-本文统一使用 **Native Proxy Tool**，指由模型通过原生 Tool Call 协议发起、由 MemoryProxy 拦截并执行的 TencentDB Memory/Skill 工具。核心评测聚焦“模型是否在合适时机选择合适工具”；参数正确率、Tool Loop 完成率和最终任务完成率作为工程可靠性的辅助指标，帮助解释主指标的变化。
-
-### 2.2 核心指标
-
-| 指标 | 目标 | 含义 |
-|---|---:|---|
-| 有效调用率 | ↑ | 应调用工具时，模型实际发起调用的比例 |
-| 误调用率 | ↓ | 普通编码或上下文已经充分时，模型错误调用工具的比例 |
-| 工具选择正确率 | ↑ | 需要工具时，是否选中预期的 Memory、Skill，或两侧能力对称时的 Knowledge 工具 |
-| 工具描述 Token | ↓ | Baseline 的 Fake Tool 注入块与 Native 的结构化 Tool Definition 各自占用的上下文量 |
-| 端到端延迟 | 可接受 | 从评测启动器提交输入到收到最终完整输出的用户侧总耗时 |
-
-辅助指标包括参数正确率、Tool Loop 完成率、结果与 `call_id` 匹配率、Native Proxy Tool 泄漏率、异常恢复率和最终任务完成率。
-
-### 2.3 当前 Fake Tool 机制
-
-当前实现主要把工具调用方法写入系统提示词，让模型复用 Agent 已有的 Bash 能力执行 `curl`：
+## 2. 比较的两套方案
 
 ```text
-Injector
-  → 系统提示词中的工具说明和 curl 模板
-  → 模型选择 Bash
-  → Agent 客户端执行 curl
-  → MemoryProxy 的 memory-bridge / skill-bridge
-  → MemoryCore 或 Knowledge 服务
+Baseline：
+Claude Code → 模型生成 Bash/curl → Claude Code 执行
+            → MemoryProxy Bridge → 后端 → 返回客户端 → 模型继续
+
+Native：
+Claude Code → MemoryProxy 注入 tools → 模型生成结构化 Tool Call
+            → MemoryProxy 执行 Bridge → 后端 → 回填模型
+            → 最终回答或 Client Tool 调用交回 Claude Code
 ```
 
-主要注入块如下：
+Native 化改变工具的表达和执行位置，不重写 MemoryCore / Skill / Knowledge 的业务能力。身份、鉴权与 Bridge 地址由代理处理，模型提供工具所需的业务参数。
 
-| 注入块 | 当前内容 |
+对照实验尽量保留 Baseline 的工具用途、使用条件和语气，仅移除 Bash/curl、HTTP 等传输细节，将参数和用途迁移到 Schema。单独强化调用动机、增加限制或调整模型参数，都会引入额外变量，须与机制比较分开记录。
+
+### 工具范围
+
+| 分类 | 已实现的 Native 工具 |
 |---|---|
-| `<tdai_memory_tools>` | Memory 工具的 curl 模板与调用约束 |
-| `<memory-tools-guide>` | 什么情况下应当或不应查询记忆 |
-| `<tdai_profile_memory>` | L3 长期画像与 L2 场景索引 |
-| `<skill_tools>` | Skill 查询、读取和管理工具的 curl 模板 |
-| `<available_skills>` | 当前 Agent 可用或检索命中的 Skill 列表 |
-| `<knowledge_tools>` | Wiki、CodeGraph 资源及 `tools/list → tools/call` 使用方法 |
+| Memory | `tdai_memory_search`、`tdai_atomic_query`、`tdai_conversation_search`、`tdai_conversation_query`、`tdai_scenario_ls`、`tdai_read_scene` |
+| Skill 查询与提取 | `skill_search`、`skill_view`、`skill_files_read`、`skill_extract` |
+| Skill 写入（需额外开启） | `skill_create`、`skill_update`、`skill_patch`、`skill_delete`、`skill_files_write`、`skill_files_remove` |
+| Knowledge 包装 | `tdai_knowledge_tools_list`、`tdai_knowledge_tool_call` |
 
-这种方案能在不改 Agent 客户端的情况下工作，但存在明显代价：模板和约束占用较多 Token，模型需要理解 URL、参数、Shell 和错误处理，不同注入块之间也可能存在重复内容。
+`skill_extract` 会触发归档与异步提取，不是纯只读工具。Knowledge 已实现，但当前主评测仅统计 Memory / Skill。工具注册和参数以 [Native Registry](TencentDB-Agent-Memory-Native/MemoryProxy/src/native-proxy-tools/tool-registry.ts) 为准。
 
-#### Langfuse 注入 Token 基线
+### 历史恢复与已知边界
 
-基于当前人工测试会话在 Langfuse 中保存的原始 Generation observation，排除 Claude Code 原始系统提示词、原生工具定义、用户消息和对话历史后，MemoryProxy 的注入构成如下：
+Claude Code 保存它能看到的对话，MemoryProxy 额外保存隐藏的 Native 工具轨迹。短期 Runtime State 负责未完成调用与客户端续接；长期 Tool Ledger 负责后续请求的历史重建。通过 Turn、Round、Block、Call ID，以及前序 Client Tool 调用 ID，恢复调用位置和顺序。
 
-| MemoryProxy 注入内容 | Token | 是否计入严格 Fake Tool |
-|---|---:|---|
-| `<session_context>` | 874 | 否 |
-| `<skill_tools>` | 965 | 是 |
-| `<available_skills>` 及调用规则 | 472 | 否 |
-| `<tdai_memory_tools>` | 1,302 | 是 |
-| `<tdai_profile_memory>` | 835 | 否 |
-| `<memory-tools-guide>` | 712 | 否 |
-| **MemoryProxy 注入总量** | **5,160** |  |
-| **严格 Fake Tool 总量** | **2,267** |  |
+`UserPromptSubmit` 标记真实用户轮次，`PreCompact` / `PostCompact` 记录压缩生命周期和 Epoch 切换。恢复时查询当前 Epoch，不再依赖 compact 英文关键词或整段前缀 Hash。模型如何取舍摘要信息仍由模型决定，代理应保证送入摘要模型前的工具历史完整。
 
-严格按 `<skill_tools>` 和 `<tdai_memory_tools>` 两个基于 curl 描述的工具块计算：
+当前代码包含 Anthropic Messages、Chat Completions、Responses 的工具解析与处理路径，但**不等于任意协议组合均受支持**。Claude Code 的长期恢复也不能推广为所有客户端都已具备。主要边界包括：
 
-```text
-2,267 / 5,160 = 43.93%
-```
+- 新 Session 的 branch/fork 不自动继承父 Session 的隐藏历史。
+- Hook 缺失、Turn Marker 丢失或压缩状态不完整可能阻止恢复，应保留失败证据。
+- 长期 Ledger 表当前没有实际 TTL，不能写成已按长期 TTL 自动清理。
+- 协议路径与恢复行为需分别验证，不凭单条成功会话推断全部支持。
 
-同一会话中六个包含完整注入块的 Generation observation 均得到相同结果，注入内容哈希一致。分块 Token 使用 Langfuse 保存的实际 System 内容和 DeepSeek V3 官方 Tokenizer 计算；由于当前 `deepseek-v4-flash` 的分块计数接口不可用，这一结果是当前最接近实际模型口径、可复核的估算，而不是计费级绝对值。
+工程说明见 [技术复盘](Claude-Code-Native-Proxy-Tool工程技术复盘.md)，具体行为以当前源码和测试为准；该文档中的历史问题不代表都仍未修复。
 
-![Proxy 系统提示词注入优化图解](proxy-system-prompt-injection-optimization.png)
+## 3. 仓库与目录
 
-### 2.4 Native Proxy Tool 目标方案
-
-Native 项目将删除 Fake Tool 文本注入与 curl 指南，把 Memory、Skill 能力注册为模型协议中的结构化 Tool Schema。模型只提供 `query`、`limit` 等业务参数；Bridge URL、鉴权、用户、团队和 Agent 身份等可信上下文由 MemoryProxy 根据当前 Session 补充。Native Proxy Tool 继续通过现有 Memory Bridge 与 Skill Bridge 复用身份恢复、权限校验、业务路由和后端访问，不在 Proxy 中重写 MemoryCore 业务逻辑。
-
-```mermaid
-flowchart LR
-    CC[Claude Code] --> MP[MemoryProxy]
-    MP --> PA[Protocol Adapter]
-    PA <--> TR[Tool Registry]
-    PA <--> LLM[Upstream LLM]
-    PA --> TLC[Tool Loop Coordinator]
-    TLC --> TR
-    TLC --> TD[Native Proxy Tool Dispatcher]
-    TD --> MB[Memory Bridge]
-    TD --> SB[Skill Bridge]
-    MB --> MC[MemoryCore]
-    SB --> SS[MemoryCore Skill API]
-    TLC --> TS[Tool Execution State Store]
-    TS --> SA[Storage Adapter]
-    SA --> CK[(ClickHouse)]
-```
-
-一次模型响应按工具归属分为四种情况：
-
-1. 没有 Tool Call：直接返回最终回答；
-2. 只有 Claude Code Tool：保持响应原样，由客户端执行；
-3. 只有 Native Proxy Tool：MemoryProxy 内部执行，回填 Tool Result，并请求同一上游模型继续推理；
-4. 同时包含两类工具：保存完整 assistant 消息，执行 Native Proxy Tool，只向 Claude Code 暴露客户端工具；客户端结果返回后再恢复完整调用轨迹并继续推理。
-
-Provider Server Tool 仍由上游 Provider 执行，MemoryProxy 只负责无损透传。混合并发调用采用“消息骨架 + 有序槽位”：用协议中的唯一 `call_id` 匹配结果，用 `slot_index` 恢复模型生成时的原始顺序，不按工具名称或完成顺序拼接。
-
-客户端看不到被 Proxy 拦截的调用，因此未完成 Tool Loop 需要持久化。上层通过 `ToolExecutionStorageAdapter` 与具体数据库解耦，首期实现可靠读写的 ClickHouse Adapter；该运行状态不能复用现有遥测模块允许丢弃的异步缓冲路径。Context Compression 采用“先补全隐藏历史、再压缩、最后让已被新检查点覆盖的旧记录失效”的顺序。
-
-协议范围限定为 **Anthropic Messages** 与 **OpenAI-compatible Chat Completions**，本课题暂不实现 OpenAI Responses。流式首版采用“完整响应裁决”：MemoryProxy 缓存上游 SSE 到响应结束，确认不含 Native Proxy Tool 时再向客户端回放；若存在 Native Proxy Tool，则在代理内部完成执行和模型重入。完成后再以端到端数据判断是否有必要优化为更复杂的首工具裁决。
-
-### 2.5 范围与实施顺序
-
-当前范围包括 Memory Tool、Skill Tool、Anthropic/OpenAI-compatible 协议、混合工具调用、ClickHouse 状态恢复、Context Compression 补全和 A/B 评测。Knowledge Tool 只有在 Baseline 与 Native 两侧提供等价工具、数据与权限时才进入主评测，否则仅作为扩展实验。
-
-首期明确不做：Native 项目内的 Fake Tool 兼容或回退、MemoryCore/Bridge 业务重写、OpenAI Responses、写入型工具、长期审计、高可用集群，以及未经数据证明有必要的流式优化。
-
-实施按以下顺序收敛推进：
-
-1. 冻结 Baseline、评测口径和少量代表性数据；
-2. 完成单个只读 Memory Native Proxy Tool 的 Anthropic 闭环，并移除对应 Fake Tool；
-3. 完成混合调用、有序结果归并和 ClickHouse 持久化；
-4. 补齐 Memory/Skill 工具、OpenAI-compatible 适配、Compression 重建和 Provider Tool 回归；
-5. 实现完整响应裁决，运行 Baseline/Native A/B，再由实验结果决定后续优化。
-
-## 3. 系统结构
-
-| 模块 | 目录 | 主要职责 | 与当前课题的关系 |
-|---|---|---|---|
-| MemoryProxy | `MemoryProxy/` | 接收和转发模型请求；鉴权、Session Init、上下文注入、Bridge、观测与协议适配 | **课题主战场**，Native Proxy Tool 的注入、拦截、回填和重入主要在此实现 |
-| MemoryCore | `MemoryCore/` | Memory/Skill 数据面、提炼、存储、检索、用户与团队元数据 | 提供 Native Proxy Tool 最终调用的业务能力与 API |
-| MemoryKnowledge | `MemoryKnowledge/` | Wiki、CodeGraph 的构建、索引、检索和 Knowledge Tools | 提供知识资产与工具能力 |
-| MemoryPanel | `MemoryPanel/` | Team、User、Agent、Task 和资产的管理与可视化 | 用于准备、检查和绑定实验资产，不在核心请求链路中 |
-
-高层请求关系：
-
-```text
-Claude Code / 其他 Agent
-          ↕
-      MemoryProxy  ↔  Upstream LLM
-          ↕
-       MemoryCore  ↔  MemoryKnowledge
-          ↕                 ↕
-               MemoryPanel
-```
-
-MemoryProxy 的 Context Injection 内部先将 OpenAI/Anthropic 请求转换为协议无关的 `AgentContext`，再执行 Hook，最后序列化回原协议：
-
-```text
-Raw Request
-  → Protocol Adapter.parse()
-  → AgentContext
-  → HookRegistry 按优先级执行 InjectionHook
-  → AnchorTarget / InjectionPoint 注入
-  → Protocol Adapter.serialize()
-  → Upstream LLM
-```
-
-其中 `AgentContext` 统一承载消息、工具、请求参数和运行时元数据；`InjectionHook` 描述注入内容、位置、优先级和缓存策略；`tools.append` / `tools.prepend` 已为 Native Proxy Tool Schema 注入提供了基础坐标。当前框架已经具备“注入结构化工具”的抽象，但 Tool Call 返回后的拦截、执行、结果回填和模型重入仍需实现。
-
-本课题会扩展现有 Protocol Adapter、Bridge、Handler 和存储装配，不新建平行的协议或 Handler 体系。新增职责保持窄而清晰：
-
-| 组件 | 目标职责 |
+| 路径 | 管理方式与职责 |
 |---|---|
-| Protocol Adapter | 在 Anthropic/OpenAI-compatible 协议与统一内部 Tool 表示之间无损转换 |
-| Tool Registry | 记录工具名称、Schema、归属、执行方式和副作用属性 |
-| Native Proxy Tool Dispatcher | 将结构化调用映射到 Memory Bridge 或 Skill Bridge |
-| Tool Loop Coordinator | 负责响应分流、执行、结果归并、模型重入和循环限制 |
-| Tool Execution State Store | 管理未完成 Tool Loop、消息骨架、有序槽位和 Compression 检查点 |
-| Storage Adapter | 隔离数据库实现，首期使用 ClickHouse |
+| [TencentDB-Agent-Memory/](TencentDB-Agent-Memory/) | 官方上游参考 submodule |
+| [TencentDB-Agent-Memory-Baseline/](TencentDB-Agent-Memory-Baseline/) | Fake Tool 对照 submodule，包含已确认的兼容修复和评测埋点 |
+| [TencentDB-Agent-Memory-Native/](TencentDB-Agent-Memory-Native/) | Native Proxy Tool 实现 submodule |
+| [eval_kit/](eval_kit/) | 根仓库中的数据准备、评测、统计、Viewer 与测试 |
+| [手稿/](手稿/) | 课题材料、导师讨论、研究记录 |
+| [issues/](issues/) | 问题复现与修复证据 |
+| [docs/](docs/) | 配套工程资料 |
+| `tencentdb-memory-lab` | 指向本机 Lab 的符号链接，真实目录为 `/storage1/liukuan/tencentdb-memory-lab` |
 
-## 4. 工作区目录
+Lab 是独立私有仓库：[TencentDB-Memory-Lab](https://github.com/177-Liukuan/TencentDB-Memory-Lab)。其 README 与 OPERATIONS 提供当前部署入口，旧报告已归档。数据库、密钥、会话、日志和恢复备份不入库。
 
-根目录是私有 Git Superproject，统一管理研究文档、问题记录、图片、版本锁和 Lab 符号链接。三套源码以 submodule 固定到明确 commit；Lab 使用独立私有仓库管理可复用运维资产，根仓库只记录其符号链接和锁定版本。
-
-| 路径 | 版本管理 | 定位与使用原则 |
-|---|---|---|
-| [`TencentDB-Agent-Memory/`](TencentDB-Agent-Memory/) | 官方仓库 submodule，固定 `97f9465` | 上游参考源码，用于阅读实现和比较后续变化 |
-| [`TencentDB-Agent-Memory-Baseline/`](TencentDB-Agent-Memory-Baseline/) | 私有 submodule，`baseline/bugfix-sync`，固定 `41306b1` | A/B 固定基线；仅包含两侧共用修复并保留原始 Fake Tool，此后冻结 |
-| [`TencentDB-Agent-Memory-Native/`](TencentDB-Agent-Memory-Native/) | 私有 submodule，`research/native-tool`，固定 `6728810` | 课题实现目录；只实现 Native Proxy Tool，不保留 Fake Tool 双模式或回退 |
-| [`tencentdb-memory-lab`](tencentdb-memory-lab) | 符号链接 + 独立私有仓库，版本见 `workspace.lock.yaml` | 可复用脚本、文档和脱敏模板进入 Git；配置、凭据、数据、日志和会话历史留在运行环境 |
-| [`手稿/`](手稿/) | 课题说明、会议纪要、代码阅读笔记与图解 | 研究背景和设计依据 |
-| [`issues/`](issues/) | 已脱敏的问题、复现、根因、验收条件和上游协作记录 | 问题档案与修复证据 |
-| [`开发和日常使用.md`](开发和日常使用.md) | 当前机器上的服务、端口、调试和 A/B 操作手册 | 本地日常开发入口，包含环境相关信息 |
-
-Baseline 与 Native 从同一版本起点分离，并使用独立端口、配置、数据、日志、Claude 配置目录和 Session。这样既能控制实验变量，也能避免 Claude Code 自身上下文或记忆污染前后对比。Baseline 的 tracked 源码保持冻结；Native 的 `nativeProxyTools.enabled=false` 只表示关闭 Native Proxy Tool，不会回退到 Fake Tool。
-
-### 4.1 新机器恢复
+### 获取源码与查看版本
 
 ```bash
-git clone --recurse-submodules \
-  https://github.com/177-Liukuan/Tencent-DB-Memory-Project.git
+git clone --recurse-submodules https://github.com/177-Liukuan/Tencent-DB-Memory-Project.git
 cd Tencent-DB-Memory-Project
+git submodule status
 ```
 
-随后按照 [`workspace.lock.yaml`](workspace.lock.yaml) 将 Lab 私有仓库克隆到 `/storage1/liukuan/tencentdb-memory-lab`，检出其中锁定的 commit，并在根目录不存在同名路径时创建符号链接：
+访问私有子仓库需要相应权限。根仓库提交中的 gitlink 是三个子仓库的检出依据。`workspace.lock.yaml` 仍包含早期部署快照，**尚未与当前版本同步，不应据此回退源码或 Lab**。本次只更新 README，不自动修改子模块指针或版本锁。
+
+克隆不会恢复数据库、凭据、systemd 服务或本机 Lab 内容。换机器部署先按子项目安装文档和 Lab 说明准备环境，不覆盖已有同名目录或符号链接。
+
+## 4. 评测数据与口径
+
+当前 [任务文件](eval_kit/dataset/tasks/tool_call_eval_v1.jsonl) 共 **273 题**，按有效的首次调用规则派生分组：
+
+| 分组 | 数量 |
+|---|---:|
+| Memory | 48 |
+| Skill | 130 |
+| Memory / Skill 双入口（Mixed） | 24 |
+| None | 71 |
+
+统计不按任务 ID 前缀或 `tool_family` 简单推断。`allowed_first_tools` 决定允许入口，`reason` 解释标签依据；审核理由和 Ground Truth 不应传入执行模型。
+
+每个 Agent 导入配置目录中的完整 Skill 库，当前默认 15 个 Skill，`candidate_skills` 不再限制导入。每题两组使用同一份初始 Memory、Skill 和 Assets；Memory 在独立准备环境提炼一次，再复制给两组，缓存只复用干净底稿。Agent、Task、Session 和工作区副本均独立，避免上一轮修改或新记忆污染下一次运行。
+
+**主比较只纳入双方观测有效、输入与评分规则一致的同题配对。** 无效的一侧不会被当作“未调用”，有效的另一侧仍保留原始记录。Mixed 不重复计入纯 Memory / Skill 组。
+
+| 指标 | 当前口径 |
+|---|---|
+| 有效调用率 | 已调用的正样本数 / 正样本数 |
+| 误调用率 | 发生调用的负样本数 / 负样本数 |
+| 工具选择正确率 | 首次选对的正样本数 / 本组已调用正样本数 |
+| 静态注入 Token | 工具相关固定提示词与 Native Schema，统一 Tokenizer 与统计范围；不计动态资产正文 |
+| 端到端延迟 | 正式输入提交至完整最终响应，单独运行与汇总，不将首次观测停止时间当作完整响应延迟 |
+
+调用统计使用 **Bridge 接收记录及其顺序**，不是所有模型刚生成的调用，也不代表业务执行成功。尚未到达 Bridge 的参数校验失败等可能不在记录中。Langfuse 用于核对实际提示词、工具定义、参数和上游链路，不作为当前主调用统计的唯一来源。
+
+标签审核必须考虑当前上下文是否已包含答案、工具真实用途及多条合理入口，不能为了匹配某组表现反向修改答案。只按工具名称评分也不能证明参数正确或读到了目标 Skill。
+
+详情见 [观测说明](eval_kit/docs/proxy-tool-observation.md)、[同题配对说明](eval_kit/docs/paired-valid-comparison.md)和[四类分组](eval_kit/docs/four-task-groups.md)。
+
+## 5. 常用入口
+
+### 本机服务与人工会话
+
+以下命令要求本机部署已完成，不会自动创建凭据或恢复数据：
 
 ```bash
-git clone https://github.com/177-Liukuan/TencentDB-Memory-Lab.git \
-  /storage1/liukuan/tencentdb-memory-lab
-git -C /storage1/liukuan/tencentdb-memory-lab checkout \
-  e0e0d74d8c3b2e52dd3509bf0e4fab5c13103b11
-if [ ! -e tencentdb-memory-lab ] && [ ! -L tencentdb-memory-lab ]; then
-  ln -s /storage1/liukuan/tencentdb-memory-lab tencentdb-memory-lab
-fi
-```
-
-真实 secrets、运行数据和 systemd 配置不属于 Git，需要通过安全渠道单独恢复。若 Lab 目标或根目录链接已经存在，应先检查其内容和指向，不要直接覆盖。
-
-### 4.2 日常版本更新
-
-1. 先在源码子仓库或 Lab 中提交并推送变更。
-2. 回到根仓库，更新对应 submodule gitlink；Lab 更新则同步修改 `workspace.lock.yaml` 中的 commit。
-3. 在根仓库提交并推送工作区版本变化。
-
-根仓库采用“默认跟踪、按风险排除”的 `.gitignore`。以后在根目录新增普通代码目录时，文件会自动出现在 `git status` 中；如果新目录自身包含 `.git`，必须明确决定将其注册为 submodule，不能把嵌套仓库意外加入工作区。
-
-## 5. 当前进展
-
-### 5.1 已完成
-
-- 在 Ubuntu 24.04 和 Node.js 22 环境完成源码部署与基础配置；
-- 打通 Claude Code、Anthropic 兼容上游与 TencentDB Agent Memory 的请求链路；
-- 隔离 Baseline 与 Native 两套运行环境，并准备统一 Seed 和独立 Session；
-- 部署 Langfuse，能够按 `baseline` / `native` 环境观察 Trace；
-- 阅读 Context Injection、协议 Adapter、各类 Injector、Bridge、Session Init 和响应处理代码；
-- 记录并向上游提交 Anthropic Server Tool 无损透传问题；
-- 记录 thinking 历史与 Claude Code Session Init 伪造表单的兼容问题；
-- 在 Native 分支完成相关回归测试、基础兼容修复和批量测试启动器；
-- 在 Baseline 同步与工具机制无关、保证 A/B 可比性的必要兼容修复，此后冻结 Baseline；
-- 复用服务器现有 ClickHouse，为 Native 开发环境创建独立数据库并完成 SDK CRUD、迁移、重启和健康检查验证。
-
-Native 分支上完成的基础提交（与工具机制无关的部分已同步到 Baseline，以保持实验可比）：
-
-| Commit | 内容 | 状态 |
-|---|---|---|
-| `6cb876d` | 保留 Anthropic Server Tool 的 `type`、`max_uses` 等原生字段，避免伪造空 `input_schema` | 自动化测试通过，真实 Claude Code Web Search 已验证 |
-| `e9b3758` | 保留供应商 thinking 历史，并在转发上游前剔除 Proxy 生成的 Session Init 表单伪历史 | 自动化测试通过，问题档案记录为待新 Session 完整复测 |
-| `b6414c7` | 加载项目 `undici` 时保留 Node 环境代理 Dispatcher，避免外部模型请求绕过环境代理 | 自动化测试覆盖 |
-| `2c89868` | 保留 Memory/Skill Bridge 的回环 URL，避免被外部代理地址覆盖 | 自动化测试覆盖 |
-| `6728810` | 增加可预选 Team、Agent、Task 的无头 Claude Code 批量启动器 | Shell 自动化测试覆盖 |
-
-问题详情：
-
-- [Anthropic Server Tool 注入往返字段丢失](issues/2026-08-22-memoryproxy-anthropic-server-tool-roundtrip.md)
-- [thinking 历史块与 Session Init 兼容问题](issues/2026-08-22-memoryproxy-thinking-history-990.md)
-- [问题状态总表](issues/README.md)
-
-### 5.2 待实现
-
-- 单个只读 Memory Native Proxy Tool 的 Anthropic 端到端闭环；
-- Tool Registry、Dispatcher、Tool Loop Coordinator 与集中配置；
-- 混合调用的消息骨架、有序槽位和 `call_id` 结果归并；
-- 可靠读写的 ClickHouse Tool Execution Storage Adapter；
-- 全量 Memory/Skill Tool、OpenAI-compatible 适配和 Context Compression 历史补全；
-- 完整 SSE 响应裁决，以及 Baseline/Native 数据集和 A/B 评测。
-
-## 6. 本地基础设施
-
-当前 Baseline/Native 两套运行环境、Langfuse 和 ClickHouse 已可用于后续开发与实验。Native 环境复用本机现有 ClickHouse `25.12.11.4` 服务进程，但使用独立数据库 `tdai_native_tools`，不读写 Langfuse 自身数据库和表。认证信息只保存在 `tencentdb-memory-lab/native/secrets/proxy.yaml`，不写入源码或本文档。
-
-现有 ClickHouse 配置、`@clickhouse/client` 连接、临时表 CRUD、MemoryProxy 启动迁移和服务健康检查均已验证。Native Proxy Tool 状态表尚未提前创建，将在数据结构确定后由 `ClickHouseToolExecutionStorageAdapter` 的初始化或迁移负责创建。
-
-当前复用方式仅用于本机开发和实验；正式部署或独立 CI 应使用独立 Endpoint 或受限账号，避免 Native Proxy Tool 的可用性与 Langfuse 生命周期绑定。Tool Loop 运行状态必须使用独立、可等待、可读取和可幂等更新的可靠路径，不能复用现有 ClickHouse 遥测模块允许丢弃的异步批量写入队列。
-
-## 7. 本地开发与 A/B 实验
-
-完整操作以 [`开发和日常使用.md`](开发和日常使用.md) 为准。下面只保留最短入口，不在 README 中复制密钥、账号和机器地址。
-
-### 7.1 健康检查
-
-```bash
-cd /home/liukuan/Tencent-DB-Memory-Project
 ./tencentdb-memory-lab/bin/health-check
-```
-
-运行环境包含 Baseline/Native 各五个服务：MemoryCore、MemoryKnowledge、MemoryPanel Backend、Panel Web 和 MemoryProxy。正常情况下十个健康检查均返回 `200`。
-
-### 7.2 Native 开发
-
-```bash
-cd /home/liukuan/Tencent-DB-Memory-Project/TencentDB-Agent-Memory-Native
-git branch --show-current
-git status --short
-git diff
-```
-
-源码修改只进入 Native。修改 TypeScript 后需要重启受影响的 Native 服务；不确定影响范围时：
-
-```bash
-systemctl --user restart 'tdam-native-*.service'
-/home/liukuan/Tencent-DB-Memory-Project/tencentdb-memory-lab/bin/health-check
-```
-
-### 7.3 人工与批量测试
-
-交互式人工测试直接启动 Claude Code，并在首次进入时选择 Team、Agent 和 Task：
-
-```bash
-cd /home/liukuan/Tencent-DB-Memory-Project
+./tencentdb-memory-lab/bin/claude-baseline
 ./tencentdb-memory-lab/bin/claude-native
 ```
 
-`-p/--print` 会禁用 Claude Code 的 `AskUserQuestion`，因此全新 Session 不能依赖交互表单完成资产绑定。Native 非交互与批量测试应使用专用启动器，通过 MemoryProxy 已有的请求头预选机制绑定 Team、Agent 和 Task：
+服务管理、SSH 转发及 Seed 恢复风险见 [Lab 运维说明](https://github.com/177-Liukuan/TencentDB-Memory-Lab/blob/main/OPERATIONS.md)。不要在正在评测时重启业务服务。
+
+### 评测和 Viewer
 
 ```bash
-export TDAI_TEAM_ID='<team-id>'
-export TDAI_AGENT_ID='<agent-id>'
-export TDAI_TASK_ID='<task-id>'
+cd eval_kit
+npm ci
 
-./tencentdb-memory-lab/bin/claude-native-batch \
-  --team-id "$TDAI_TEAM_ID" \
-  --agent-id "$TDAI_AGENT_ID" \
-  --task-id "$TDAI_TASK_ID" \
-  '请先调用 TDAI Memory 工具，查询我过去与健身相关的历史记忆，并根据实际查询结果回答。'
+# 先按当前机器调整配置；执行后会准备数据并调用真实模型
+bash run-pipeline.sh configs/pilot.example.yaml
+
+# 可视化页面（本机默认 4173）
+npm run viewer -- --results results --port 4173
+
+# 只重算已有运行记录，不重新调用模型
+npm run score -- --experiment results/EXPERIMENT_ID
 ```
 
-启动器默认每次生成独立 Session，并以 JSON 输出单次结果，适合在 Shell 循环中执行固定数据集：
+注意：当前是四类分组，`per_family: 3` 会选 **12 题**，`15` 会选 **60 题**；`all` 选全部有素材的 Main 任务。旧配置名中的“30”“45”不保证等于当前执行题量。`reuse_preparation` 有意复用旧冻结题目，不能作为“使用最新数据”的入口。
+
+结果保存在被忽略的 `eval_kit/results/`，包含配置、运行清单、逐次结果、原始事件与汇总。重新统计默认使用原运行记录中的标签，不会自动应用当前数据集的新标签。完整说明见 [Pipeline 使用说明](eval_kit/docs/pilot-pipeline.md)和[Viewer 使用说明](eval_kit/docs/viewer.md)。
+
+### 开发验证
 
 ```bash
-while IFS= read -r prompt; do
-  ./tencentdb-memory-lab/bin/claude-native-batch \
-    --team-id "$TDAI_TEAM_ID" \
-    --agent-id "$TDAI_AGENT_ID" \
-    --task-id "$TDAI_TASK_ID" \
-    "$prompt"
-done < prompts.txt
-```
-
-该启动器适合链路验证，但正式 A/B 还需要给 Baseline 与 Native 使用同一评测驱动和统一结果格式。每条主评测样本至少包含：
-
-```json
-{
-  "case_id": "memory-positive-001",
-  "query": "我之前和你约定的这个项目代码规范是什么？",
-  "should_call": true,
-  "expected_tool": "tdai_memory_search"
-}
-```
-
-主评测集同时包含应调用 Memory/Skill 的正样本和不应调用 MemoryProxy 工具的负样本；并发、混合调用、错误和恢复 Case 单独放入工程可靠性集。Knowledge 只有在两套环境能力对称时才进入主统计。
-
-前后对比必须固定模型、参数、上下文上限、输入、资产快照、身份权限、Claude Code 版本和启动参数；主动变量仅为 Fake Tool 与 Native Proxy Tool 机制。每个 Case 使用隔离工作目录和新 Session，冻结或重置会被写入的 Memory/Skill 数据，并交替或随机执行两套方案。Langfuse 通过 `environment=baseline` / `environment=native` 区分模型请求与工具链路；端到端延迟由 Agent 外部的评测启动器记录。
-
-正式结果至少报告有效调用率、误调用率、工具选择正确率、工具描述 Token、端到端延迟的均值/中位数/P95，以及失败和超时数量。每轮还需保存代码 Commit、数据集、模型、工具定义、配置摘要和 Tokenizer 版本，保证实验可复现。
-
-### 7.4 定向验证
-
-```bash
-cd TencentDB-Agent-Memory-Native/MemoryProxy
-npm test
+cd eval_kit
 npm run typecheck
+npm test
 
-cd ../MemoryCore
+# Native 工具相关改动在对应组件中验证
+cd ../TencentDB-Agent-Memory-Native/MemoryProxy
+npm run typecheck
 npm test
 ```
 
-先运行与改动相关的定向测试，再运行对应组件全量测试。真实协议、Session Init、Provider Server Tool、混合 Tool Call、重启恢复和 Context Compression 等行为仍需使用全新 Claude Code Session 做端到端验证。
+真实服务、ClickHouse、Hooks 和多协议会话验证需另外安排。不要把单元测试通过写成真实端到端全部通过。
 
-## 8. 研究资料索引
+## 6. 资料索引
 
-### 课题与方案
+- [任务一梳理](手稿/任务一梳理.md)：路线选择与课题边界。
+- [课题介绍](手稿/参与的课题.题目介绍.md)：目标、方向和交付要求。
+- [工程技术复盘](Claude-Code-Native-Proxy-Tool工程技术复盘.md)：主要实现与代码索引。
+- [Native 固定注入提示词](Native-TDAI固定注入提示词.md)、[Baseline 固定注入提示词](Baseline-TDAI固定注入提示词.md)：提示词与工具定义对照，具体内容以源码为准。
+- [9 题试跑](eval_kit/docs/pilot-9-task-report.md)、[30 题试跑](eval_kit/docs/pilot-30-task-report.md)、[45 题试跑](eval_kit/docs/pilot-45-20260906-report.md)：各轮环境、问题与结果，不合并为同一次实验。
+- [项目协作与代码开发规范](项目协作与代码开发规范.md)：模块边界、注释、测试与提交要求。
+- [Native 项目中文说明](TencentDB-Agent-Memory-Native/README_CN.md)、[安装指南](TencentDB-Agent-Memory-Native/INSTALL_CN.md)：产品使用与部署文档。
 
-- [`手稿/Native Tool课题目标与技术实施方案（内部）.md`](手稿/Native%20Tool课题目标与技术实施方案（内部）.md)：当前 Native Proxy Tool 的范围、架构、工程决策、实施顺序和评测基线；后续开发以此为准。
-- [`手稿/参与的课题.题目介绍.md`](手稿/参与的课题.题目介绍.md)：两个正式课题、指标、方向和交付物。
-- [`手稿/任务一梳理.md`](手稿/任务一梳理.md)：任务一的早期边界、Fake/Native 两条路线、评测方法和导师建议。
-- [`手稿/8.21_对齐课题背景_腾讯元宝会议纪要.md`](手稿/8.21_对齐课题背景_腾讯元宝会议纪要.md)：课题对齐会议的摘要与转写。
-- [`手稿/进展梳理.md`](手稿/进展梳理.md)：系统理解、路线选择和阶段性进度。
+## 7. 安全与实验纪律
 
-### 代码阅读与问题
+- 不提交密钥、真实运行配置、数据库、会话或未经脱敏的原始 Trace。
+- Baseline / Native 的业务源码、端口、数据和 Claude 配置分开管理；评测期间不改工具核心实现。
+- 工具描述或提示词优化、模型版本变更与调用机制变化分别记录，避免混淆因果。
+- 不把“后台存有 Memory”视为“模型必须再次调用工具”；先核对实际注入内容。
+- 数据集、代码、模型、配置、初始资产及评分规则均须留存版本依据。
+- 恢复 Seed 会替换活跃数据并中断服务，不能当成普通清理命令。
+- 区分已实现、已测试、真实实测、待确认与未提交工作，不将历史方案当成当前代码。
 
-- [`手稿/TencentDB Agent Memory：injection-types.ts 阅读笔记.md`](手稿/TencentDB%20Agent%20Memory：injection-types.ts%20阅读笔记.md)：Context Injection 领域模型和完整数据流解读。
-- [`手稿/读代码的过程发现的问题.md`](手稿/读代码的过程发现的问题.md)：源码阅读过程中发现的问题摘要。
-- [`issues/`](issues/)：可公开复现的问题、修复证据和上游协作状态。
-
-### 上游项目文档
-
-- [中文项目介绍](TencentDB-Agent-Memory-Native/README_CN.md)
-- [中文安装指南](TencentDB-Agent-Memory-Native/INSTALL_CN.md)
-- [源码部署说明](TencentDB-Agent-Memory-Native/README.deployment.md)
-- [路线图](TencentDB-Agent-Memory-Native/ROADMAP_CN.md)
-- [贡献指南](TencentDB-Agent-Memory-Native/CONTRIBUTING_CN.md)
-- [MemoryProxy 文档](TencentDB-Agent-Memory-Native/MemoryProxy/README.md)
-- [MemoryKnowledge 文档](TencentDB-Agent-Memory-Native/MemoryKnowledge/README.md)
-
-## 9. 安全与实验纪律
-
-- 不提交或展示 `*.key`、Secret、Token、密码、原始用户标识和未经脱敏的 Trace；
-- 运行配置、数据库、Seed 和日志不进入源码提交；
-- 日志可能包含 Prompt，只能保存完成复现所需的最小脱敏片段；
-- 不修改 Baseline 的 tracked 源码，不允许 Baseline 与 Native 串用端口或数据；
-- 不手工编辑运行中的 SQLite 数据库，使用 API 或 Seed 恢复；
-- 执行 Seed 恢复前先保存本轮实验结果；
-- 问题档案必须记录版本、最小复现、根因证据、验收条件和验证状态；
-- 文档中要区分“已自动化验证”“已人工验证”“待复测”和“规划中”，避免把阶段性方案写成已完成能力。
-
-## 10. AI Agent 协助运行程序的长期通用约定
+## 8. AI Agent 协助运行程序的长期通用约定
 
 当刘宽要求“运行、启动、部署、重启或帮我把程序跑起来”时，AI Agent 默认完成整个运行闭环，而不是只给一条命令。该约定适用于本工作区及后续其它项目，不限于 TencentDB Agent Memory。
 
@@ -461,6 +217,7 @@ npm test
 请帮我在 <项目路径> 运行 <程序或服务>：先给出带简要注释的命令，然后代为启动并验证，最后告诉我访问、日志、重启和停止方法。
 ```
 
+
 ---
 
-本 README 描述的是当前课题工作区，而非上游项目的替代文档。若要部署或使用 TencentDB Agent Memory 产品本身，请优先阅读子项目的 [`README_CN.md`](TencentDB-Agent-Memory-Native/README_CN.md) 与 [`INSTALL_CN.md`](TencentDB-Agent-Memory-Native/INSTALL_CN.md)。
+本 README 是研究工作区入口，不替代各子项目的产品文档。运行前以当前源码、配置与新鲜检查结果为准。

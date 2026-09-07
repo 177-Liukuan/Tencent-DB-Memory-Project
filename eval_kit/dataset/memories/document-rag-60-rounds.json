@@ -1,0 +1,205 @@
+{
+  "session_id": "document-rag-60-rounds",
+  "messages": [
+    {
+      "role": "user",
+      "content": "项目决定更新：受控摄入源由 ingest_roots.json 决定；默认项目只允许 docs/incoming 与 samples/contracts，禁止递归扫描用户目录。 后续涉及这部分时按该决定执行。",
+      "timestamp": "2026-07-09T09:00:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录：受控摄入源由 ingest_roots.json 决定；默认项目只允许 docs/incoming 与 samples/contracts，禁止递归扫描用户目录。",
+      "timestamp": "2026-07-09T09:01:00Z"
+    },
+    {
+      "role": "user",
+      "content": "今天复查了实现，补充一条注意事项：文档解析保留页码信息，检索结果需要能回到原文位置。",
+      "timestamp": "2026-07-09T09:07:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录：文档解析保留页码信息，检索结果需要能回到原文位置。",
+      "timestamp": "2026-07-09T09:08:00Z"
+    },
+    {
+      "role": "user",
+      "content": "关于测试安排，有个约定要记下来：表格标题与表格内容一起保存，不能把单元格拆成没有含义的数字。",
+      "timestamp": "2026-07-09T09:14:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录：表格标题与表格内容一起保存，不能把单元格拆成没有含义的数字。",
+      "timestamp": "2026-07-09T09:15:00Z"
+    },
+    {
+      "role": "user",
+      "content": "项目决定更新：解析产物保存在 build/parsed/<source-relative-path>，Markdown 与 JSON 必须使用相同 stem。 后续涉及这部分时按该决定执行。",
+      "timestamp": "2026-07-09T09:21:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录：解析产物保存在 build/parsed/<source-relative-path>，Markdown 与 JSON 必须使用相同 stem。",
+      "timestamp": "2026-07-09T09:22:00Z"
+    },
+    {
+      "role": "user",
+      "content": "这次评审还确认了：解析失败的文件记录原因后留待检查，不能静默生成空白文档。",
+      "timestamp": "2026-07-09T09:28:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录：解析失败的文件记录原因后留待检查，不能静默生成空白文档。",
+      "timestamp": "2026-07-09T09:29:00Z"
+    },
+    {
+      "role": "user",
+      "content": "后续维护时请保留这个处理方式：输入文档保留原始副本，后续更换解析参数时不需要重新收集素材。",
+      "timestamp": "2026-07-09T09:35:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录：输入文档保留原始副本，后续更换解析参数时不需要重新收集素材。",
+      "timestamp": "2026-07-09T09:36:00Z"
+    },
+    {
+      "role": "user",
+      "content": "今天复查了实现，补充一条注意事项：扫描件先检查是否已经有可用文字层，避免重复 OCR 造成字符变坏。",
+      "timestamp": "2026-07-09T09:42:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录：扫描件先检查是否已经有可用文字层，避免重复 OCR 造成字符变坏。",
+      "timestamp": "2026-07-09T09:43:00Z"
+    },
+    {
+      "role": "user",
+      "content": "项目决定更新：知识库 chunk 上限 512 token、overlap 64，并保留 heading breadcrumb；这些参数由检索评测固定。 后续涉及这部分时按该决定执行。",
+      "timestamp": "2026-07-09T09:49:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录：知识库 chunk 上限 512 token、overlap 64，并保留 heading breadcrumb；这些参数由检索评测固定。",
+      "timestamp": "2026-07-09T09:50:00Z"
+    },
+    {
+      "role": "user",
+      "content": "关于测试安排，有个约定要记下来：图片说明和正文分开标注来源，不能把推测的图片含义当成原文。",
+      "timestamp": "2026-07-09T09:56:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录：图片说明和正文分开标注来源，不能把推测的图片含义当成原文。",
+      "timestamp": "2026-07-09T09:57:00Z"
+    },
+    {
+      "role": "user",
+      "content": "这次评审还确认了：检索测试包含中文标题和英文术语，不能仅测试同语言的完全相同句子。",
+      "timestamp": "2026-07-09T10:03:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录：检索测试包含中文标题和英文术语，不能仅测试同语言的完全相同句子。",
+      "timestamp": "2026-07-09T10:04:00Z"
+    },
+    {
+      "role": "user",
+      "content": "后续维护时请保留这个处理方式：文档重新导入时识别内容是否变化，避免同一版本被重复索引。",
+      "timestamp": "2026-07-09T10:10:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录：文档重新导入时识别内容是否变化，避免同一版本被重复索引。",
+      "timestamp": "2026-07-09T10:11:00Z"
+    },
+    {
+      "role": "user",
+      "content": "项目决定更新：表格元数据必须包含 caption 与 source_page；不能只输出扁平化文本行。 后续涉及这部分时按该决定执行。",
+      "timestamp": "2026-07-09T10:17:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录：表格元数据必须包含 caption 与 source_page；不能只输出扁平化文本行。",
+      "timestamp": "2026-07-09T10:18:00Z"
+    },
+    {
+      "role": "user",
+      "content": "今天复查了实现，补充一条注意事项：测试材料中包含跨页表格，单页示例不足以验证结构恢复。",
+      "timestamp": "2026-07-09T10:24:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录：测试材料中包含跨页表格，单页示例不足以验证结构恢复。",
+      "timestamp": "2026-07-09T10:25:00Z"
+    },
+    {
+      "role": "user",
+      "content": "关于测试安排，有个约定要记下来：解析器版本写入处理记录，输出变化时才能区分素材变化和工具升级。",
+      "timestamp": "2026-07-09T10:31:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录：解析器版本写入处理记录，输出变化时才能区分素材变化和工具升级。",
+      "timestamp": "2026-07-09T10:32:00Z"
+    },
+    {
+      "role": "user",
+      "content": "这次评审还确认了：对外回答附带可访问的引用位置，不能返回仅在服务端磁盘有效的路径。",
+      "timestamp": "2026-07-09T10:38:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录：对外回答附带可访问的引用位置，不能返回仅在服务端磁盘有效的路径。",
+      "timestamp": "2026-07-09T10:39:00Z"
+    },
+    {
+      "role": "user",
+      "content": "复盘记录（2026-07-09）：2026-07-06 OCR 质量复盘：扫描件默认 VLM pipeline，born-digital PDF 默认 standard。 后续相关改动都按这条执行。",
+      "timestamp": "2026-07-09T10:45:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录：2026-07-06 OCR 质量复盘：扫描件默认 VLM pipeline，born-digital PDF 默认 standard。",
+      "timestamp": "2026-07-09T10:46:00Z"
+    },
+    {
+      "role": "user",
+      "content": "后续维护时请保留这个处理方式：敏感文件按访问范围建立索引，检索阶段仍需过滤当前用户无权读取的内容。",
+      "timestamp": "2026-07-09T10:52:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录：敏感文件按访问范围建立索引，检索阶段仍需过滤当前用户无权读取的内容。",
+      "timestamp": "2026-07-09T10:53:00Z"
+    },
+    {
+      "role": "user",
+      "content": "今天复查了实现，补充一条注意事项：切分测试检查标题不会单独变成没有正文的片段，也不会吞掉短段落。",
+      "timestamp": "2026-07-09T10:59:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录：切分测试检查标题不会单独变成没有正文的片段，也不会吞掉短段落。",
+      "timestamp": "2026-07-09T11:00:00Z"
+    },
+    {
+      "role": "user",
+      "content": "关于测试安排，有个约定要记下来：删除文档时同时删除其派生索引，不能让旧内容继续出现在检索结果中。",
+      "timestamp": "2026-07-09T11:06:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录：删除文档时同时删除其派生索引，不能让旧内容继续出现在检索结果中。",
+      "timestamp": "2026-07-09T11:07:00Z"
+    },
+    {
+      "role": "user",
+      "content": "复盘记录（2026-07-09）：2026-07-08 评审要求：每份高保真转换都保留 Docling JSON 作为质量追踪原件。 后续相关改动都按这条执行。",
+      "timestamp": "2026-07-09T11:13:00Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录：2026-07-08 评审要求：每份高保真转换都保留 Docling JSON 作为质量追踪原件。",
+      "timestamp": "2026-07-09T11:14:00Z"
+    }
+  ]
+}
