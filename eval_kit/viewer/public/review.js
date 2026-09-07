@@ -4,7 +4,7 @@ const textNode = (tag, cls, text) => {
   if (text !== undefined) el.textContent = text; // 任务和文档内容只作文本，不执行 HTML。
   return el;
 };
-const names = { memory: "Memory", skill: "Skill", none: "None", knowledge: "Knowledge" };
+const names = { memory: "Memory", skill: "Skill", mixed: "Memory／Skill 双入口", none: "None", knowledge: "Knowledge" };
 let data, draft, original, dirty = false, busy = false, rawDirty = false, previewBody;
 const mode = item => item.allowed_sequences ? "sequences" : item.expected_tool_sequence?.length ? "sequence" : item.allowed_first_tools ? "first" : "legacy";
 function notice(message = "") { $("review-notice").textContent = message; $("review-notice").hidden = !message; }
@@ -18,11 +18,22 @@ function setDirty() {
   $("review-dirty").classList.toggle("is-dirty", dirty);
 }
 function syncJson() { $("review-json").value = JSON.stringify(draft, null, 2); rawDirty = false; setDirty(); }
+async function previewGroup() {
+  const current = JSON.stringify(draft);
+  $("review-task-group").textContent = "正在计算…";
+  try {
+    const result = await api("/api/review/task-group", draft);
+    if (JSON.stringify(draft) !== current) return;
+    $("review-task-group").textContent = names[result.task_group];
+  } catch (error) {
+    if (JSON.stringify(draft) === current) $("review-task-group").textContent = error.message;
+  }
+}
 function canLeave() { return !busy && (!dirty || confirm("有未保存的修改，确定放弃并离开当前任务吗？")); }
 function filtered() {
   const query = $("review-search").value.trim().toLowerCase(), family = $("review-family-filter").value;
   const reason = $("review-reason-filter").value, scenario = $("review-scenario-filter").value;
-  return (data?.items ?? []).filter(t => (!family || t.tool_family === family) && (!scenario || t.scenario_id === scenario)
+  return (data?.items ?? []).filter(t => (!family || data.task_groups[t.case_id] === family) && (!scenario || t.scenario_id === scenario)
     && (!reason || (reason === "filled") === !!t.reason?.trim())
     && (!query || [t.case_id, t.query, t.reason ?? ""].join(" ").toLowerCase().includes(query)));
 }
@@ -33,7 +44,7 @@ function renderList() {
     const button = textNode("button", "review-task", undefined); button.type = "button";
     button.setAttribute("aria-pressed", String(item.case_id === draft?.case_id));
     button.append(textNode("strong", "", item.case_id), textNode("span", "review-task-query", item.query),
-      textNode("small", "muted", `${names[item.tool_family] ?? "未指定"} · ${item.reason?.trim() ? "已填理由" : "未填理由"}`));
+      textNode("small", "muted", `${names[data.task_groups[item.case_id]] ?? "未指定"} · ${item.reason?.trim() ? "已填理由" : "未填理由"}`));
     button.addEventListener("click", () => { if (item.case_id !== draft?.case_id && canLeave()) choose(item); }); return button;
   }));
   if (!items.length) $("review-list").append(textNode("p", "muted", "没有匹配任务，可调整筛选条件。"));
@@ -57,6 +68,7 @@ function clearRules() {
   for (const key of ["expected_tool", "expected_tools", "allowed_first_tools", "expected_tool_sequence", "allowed_sequences"]) delete draft[key];
 }
 function renderSelection() {
+  void previewGroup();
   const target = $("review-selected-tools"); target.replaceChildren();
   const selected = draft.allowed_first_tools ?? [];
   if (!draft.should_call) target.append(textNode("span", "muted", "不应调用任何资产工具"));
@@ -139,6 +151,7 @@ async function save(advance) {
   try {
     const saved = await api(`/api/review/tasks/${encodeURIComponent(draft.case_id)}`, { task: draft, revision: data.revision }, "PUT");
     data.revision = saved.revision; data.items[data.items.findIndex(t => t.case_id === draft.case_id)] = structuredClone(draft);
+    data.task_groups[draft.case_id] = (await api("/api/review/task-group", draft)).task_group;
     original = JSON.stringify(draft); setDirty(); renderList();
     if (advance && nextId) choose(data.items.find(t => t.case_id === nextId));
     notice(`已保存。原文件备份：${saved.backup}`); window.dispatchEvent(new Event("dataset-changed"));

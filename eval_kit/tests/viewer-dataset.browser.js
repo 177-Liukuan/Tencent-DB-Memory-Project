@@ -34,10 +34,10 @@
     check(await page.locator('#dataset-family').inputValue() === '', "再次点击类别条形图取消筛选");
     await familyBar.click();
     check(await page.locator('#dataset-family').inputValue() === family.name, "条形图支持点击筛选");
-    const sample = actual.items.find(i => (i.tool_family ?? "unknown") === family.name);
+    const sample = actual.items.find(i => i.task_group === family.name);
     const scenario = sample.scenario_id ?? "unknown";
     await page.locator(`.scenario-button[data-scenario="${scenario}"]`).click();
-    const filtered = actual.items.filter(i => (i.tool_family ?? "unknown") === family.name && (i.scenario_id ?? "unknown") === scenario);
+    const filtered = actual.items.filter(i => i.task_group === family.name && (i.scenario_id ?? "unknown") === scenario);
     check((await page.locator("#dataset-count").innerText()).startsWith(`${filtered.length} /`), "类别与场景筛选取交集");
     check(await page.locator('.dataset-row').first().locator('.dataset-row-tags .dataset-pill').count() === 1, "列表只保留类别标签");
     await page.locator(".dataset-row").first().click();

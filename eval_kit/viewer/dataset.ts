@@ -2,6 +2,7 @@ import { stat } from "node:fs/promises";
 import { basename } from "node:path";
 import { HTTPException } from "hono/http-exception";
 import { loadDataset } from "../runner/dataset-loader.js";
+import { taskGroup } from "../metrics/task-group.js";
 
 function distribution(values: string[]) {
   const counts = new Map<string, number>();
@@ -19,7 +20,7 @@ export async function readDatasetOverview(path: string) {
     if (["EACCES", "EPERM"].includes((error as NodeJS.ErrnoException).code ?? "")) throw error;
     throw new HTTPException(422, { message: "任务文件为空或格式不正确，请检查 JSONL、重复 case_id 和工具标签规则。" });
   }
-  const items = loaded.cases;
+  const items = loaded.cases.map(item => ({ ...item, task_group: taskGroup(item) }));
   const unique = (values: string[]) => new Set(values.filter(Boolean)).size;
   return {
     source: { name: basename(path), updated_at: (await stat(path)).mtime.toISOString() },
@@ -33,7 +34,7 @@ export async function readDatasetOverview(path: string) {
       skills: unique(items.flatMap(item => [...item.candidate_skills ?? [], ...item.expected_skills ?? []])),
     },
     distributions: {
-      families: distribution(items.map(item => item.tool_family ?? "unknown")),
+      families: distribution(items.map(item => item.task_group)),
       difficulties: distribution(items.map(item => item.difficulty ?? "unknown")),
       scenarios: distribution(items.map(item => item.scenario_id ?? "unknown")),
       // 同一案例需要两次 skill_view，仍只计一条涉及该工具的任务，不当作两次实测调用。

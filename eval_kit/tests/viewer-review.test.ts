@@ -24,6 +24,17 @@ async function fixture() {
 }
 
 describe("人工审查数据写回", () => {
+  it("预览允许列表变更的分组，不将派生字段写入数据", async () => {
+    const f = await fixture();
+    expect((await f.current()).task_groups).toEqual({ task_a: "memory" });
+    for (const [allowed, group] of [[["tdai_memory_search", "skill_view"], "mixed"], [["skill_view"], "skill"]] as const) {
+      const response = await f.request("/api/review/task-group", { ...task, allowed_first_tools: allowed });
+      expect(response.status).toBe(200);
+      expect(await response.json()).toEqual({ task_group: group });
+    }
+    expect((await f.request("/api/review/task-group", { ...task, allowed_first_tools: [] })).status).toBe(422);
+    expect(await readFile(f.datasetPath, "utf8")).toBe(f.original);
+  });
   it("说明来自文件内容而非代码常量，保留转义竖线", async () => {
     const f = await fixture(), path = join(f.root, "tools.md");
     await writeFile(path, "## 1. Memory Proxy Tool\n| `custom_read` | 完整描述 A \\| B | 简明用途 |\n");

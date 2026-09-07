@@ -51,6 +51,15 @@ function calls(...names: string[]): CaseRun["tool_calls"] {
 }
 
 describe("metric engine", () => {
+  it("旧评分入口同样将双入口独立统计，不改变总体选择正确率", () => {
+    const task = evalCase({ tool_family: "memory", allowed_first_tools: ["tdai_memory_search", "skill_view"] });
+    const results = ["tdai_memory_search", "skill_view", "skill_search"].map(name => scoreRun(task, run({ tool_calls: calls(name) })));
+    const summary = aggregateRuns(results);
+    expect(summary.tool_selection_accuracy).toBe(2 / 3);
+    expect(summary.by_task_group.mixed).toMatchObject({ positive_samples: 3, correct_tool_samples: 2 });
+    expect(summary.by_tool_family.memory.positive_cases).toBe(0);
+    expect(summary.by_tool_family.skill.positive_cases).toBe(0);
+  });
   it("accepts an allowed first tool without requiring every alternative", () => {
     const testCase = evalCase({ expected_tools: ["tdai_memory_search", "tdai_conversation_search"], allowed_first_tools: ["tdai_memory_search", "tdai_conversation_search"] });
     const good = scoreRun(testCase, run({ tool_calls: calls("tdai_conversation_search") }));

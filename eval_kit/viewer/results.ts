@@ -4,6 +4,7 @@ import { isDeepStrictEqual } from "node:util";
 import { validateRunManifest, type PreparedRun } from "../bridge-eval/config.js";
 import { summarizeObservationRuns } from "../bridge-eval/observations.js";
 import { selectionCorrect } from "../metrics/tool.js";
+import { taskGroup } from "../metrics/task-group.js";
 
 const suiteSchema = z.enum(["main", "smoke", "reliability", "probe"]);
 const strings = z.array(z.string());
@@ -19,6 +20,7 @@ const resultSchema = z.object({
     tool_family: z.enum(["memory", "skill"]), timestamp: z.string().datetime(), call_id: z.string().nullable() })).optional(),
   started_at: z.string().datetime().optional(), ended_at: z.string().datetime().optional(),
   final_answer: z.unknown().optional(), error: z.string().optional(),
+  stopped_on_observation: z.boolean().optional(), stop_reason: z.string().optional(),
 }).transform(({ allowed_first_tools, expected_tool_sequence, allowed_sequences, ...run }) => ({
   ...run,
   ...(allowed_first_tools ? { allowed_first_tools } : {}),
@@ -27,7 +29,8 @@ const resultSchema = z.object({
 }));
 type Run = z.infer<typeof resultSchema>;
 type ReadJson = (child: string) => Promise<unknown>;
-export const viewerConfigSchema = z.object({ version: z.literal(2), experiment_id: z.string(), model: z.string() });
+export const viewerConfigSchema = z.object({ version: z.literal(2), experiment_id: z.string(), model: z.string(),
+  measurement: z.enum(["tool_calls", "end_to_end"]).optional() });
 
 function outcome(run: Run) {
   if (!run.observation_valid) return "invalid";
@@ -51,7 +54,7 @@ export async function readRun(read: ReadJson, row: PreparedRun) {
       || (!run.completed && run.end_to_end_ms !== null)) throw new Error("Run mismatch");
     if (run.tool_calls && (run.tool_calls.length !== run.actual_tools.length
       || run.tool_calls.some((e, i) => e.session_id !== run.session_id || e.tool_name !== run.actual_tools[i]))) throw new Error("Event mismatch");
-    return { ...run, outcome: outcome(run) };
+    return { ...run, task_group: taskGroup(run), outcome: outcome(run) };
   } catch { throw new HTTPException(422, { message: `结果文件损坏或与运行清单不符：${row.run_id}` }); }
 }
 
@@ -87,6 +90,7 @@ export async function readOverview(read: ReadJson, requestedSuite?: string) {
     }
   }
   return { selected_suite: selected, suites: suites.length ? suites : [selected], summary, items,
+    planned_pairs: new Set(manifest.map(r => JSON.stringify([r.case_id, r.repeat]))).size,
     progress: { planned: manifest.length, recorded: runs.length, pending: loaded.filter(r => r.issue === "pending").length,
       damaged: loaded.filter(r => r.issue === "damaged").length, invalid: runs.filter(r => !r.observation_valid).length } };
 }

@@ -32,26 +32,29 @@ it("一键入口默认只观测工具，准备预算保留 4096 且拒绝 16384"
 });
 
 it("选择与文件顺序无关，各类覆盖不同场景且拒绝数量不足", () => {
-  const cases = ["none", "memory", "skill"].flatMap(family => ["b", "a", "c"].map(scenario => ({
-    schema_version: 1, case_id: family + "_" + scenario, suite: "main", tool_family: family,
-    should_call: family !== "none", query: "任务", expected_tools: [], asset_path: "assets/x", scenario_id: scenario,
+  const cases = ["none", "memory", "skill", "mixed"].flatMap(family => ["b", "a", "c"].map(scenario => ({
+    schema_version: 1, case_id: family + "_" + scenario, suite: "main", tool_family: family === "mixed" ? "memory" : family,
+    should_call: family !== "none", query: "任务", expected_tools: family === "none" ? [] : family === "mixed" ? ["tdai_memory_search", "skill_view"] : [family === "memory" ? "tdai_memory_search" : "skill_view"], asset_path: "assets/x", scenario_id: scenario,
   }))) as EvalCase[];
   expect(selectPilotCases(cases, 3).map(c => c.case_id)).toEqual([
-    "memory_a", "memory_b", "memory_c", "skill_a", "skill_b", "skill_c", "none_a", "none_b", "none_c",
+    "memory_a", "memory_b", "memory_c", "skill_a", "skill_b", "skill_c", "mixed_a", "mixed_b", "mixed_c", "none_a", "none_b", "none_c",
   ]);
   expect(() => selectPilotCases(cases, 4)).toThrow("不足");
 });
 
 it("抽样先覆盖场景，再从同场景选更多题；固定 seed 和 all 可复现", () => {
-  const cases = ["memory", "skill", "none"].flatMap(family => ["a", "b", "c"].flatMap(scenario => [1,2,3].map(n => ({
-    schema_version:1, case_id:`${family}_${scenario}_${n}`, suite:"main", tool_family:family,
-    should_call:family!=="none", query:"task", expected_tools:[], asset_path:"assets/x", scenario_id:scenario,
+  const cases = ["memory", "skill", "mixed", "none"].flatMap(family => ["a", "b", "c"].flatMap(scenario => [1,2,3].map(n => ({
+    schema_version:1, case_id:`${family}_${scenario}_${n}`, suite:"main", tool_family:family === "mixed" ? "memory" : family,
+    should_call:family!=="none", query:"task", expected_tools: family === "none" ? [] : family === "mixed" ? ["tdai_memory_search", "skill_view"] : [family === "memory" ? "tdai_memory_search" : "skill_view"], asset_path:"assets/x", scenario_id:scenario,
   })))) as EvalCase[];
   const sample = selectPilotCases(cases, 5, "pilot-30-20260905");
-  expect(sample).toHaveLength(15);
+  expect(sample).toHaveLength(20);
+  expect(new Set(sample.map(c => c.case_id)).size).toBe(20);
   expect(new Set(sample.slice(0,3).map(c => c.scenario_id)).size).toBe(3);
   expect(selectPilotCases([...cases].reverse(), 5, "pilot-30-20260905")).toEqual(sample);
-  expect(selectPilotCases(cases, "all", "pilot-30-20260905")).toHaveLength(27);
+  expect(selectPilotCases(cases, "all", "pilot-30-20260905")).toHaveLength(36);
+  expect(new Set(selectPilotCases(cases, "all").map(c => c.case_id))).toEqual(new Set(cases.map(c => c.case_id)));
+  expect(() => selectPilotCases(cases.filter(c => !c.case_id.startsWith("mixed_")), 1)).toThrow("mixed");
 });
 
 it("只复制指定 Agent 的 L0/L1/索引/画像，目标非空时拒绝重用", async () => {

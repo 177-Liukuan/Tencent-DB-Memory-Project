@@ -31,6 +31,47 @@ async function fixture() {
 }
 
 describe("Bridge viewer API", () => {
+  it("主对比整对排除初始化失败，保留另一组有效观测和原始统计", async () => {
+    const { app, save, result } = await fixture();
+    await save("runs/case-a-baseline-1.json", result("baseline", { observation_valid: false,
+      completed: false, end_to_end_ms: null, error: "Session initialization bypassed or incomplete" }));
+    const data = await (await app.request("/api/experiments/exp-a/overview")).json();
+    expect(data.planned_pairs).toBe(1);
+    expect(data.summary.paired_comparison).toMatchObject({ included_pairs: 0, excluded_pairs: 1 });
+    expect(data.summary.paired_comparison.items[0].exclusion_reason).toBe("Baseline 初始化失败");
+    expect(data.summary.native.valid_samples).toBe(1);
+    expect(data.items.find((r: any) => r.variant === "native")).toMatchObject({ observation_valid: true, outcome: "correct" });
+  });
+  it("列表、详情、汇总使用相同的双入口分组", async () => {
+    const { app, save, result } = await fixture();
+    await save("runs/case-a-native-1.json", result("native", { allowed_first_tools: ["tdai_memory_search", "skill_view"] }));
+    const data = await (await app.request("/api/experiments/exp-a/overview")).json();
+    expect(data.items.find((item: any) => item.variant === "native").task_group).toBe("mixed");
+    expect(data.summary.native.by_task_group.mixed).toMatchObject({ positive_samples: 1, correct_tool_samples: 1 });
+    expect(data.summary.native.by_tool_family.memory.positive_samples).toBe(0);
+    expect((await (await app.request("/api/experiments/exp-a/runs/case-a-native-1")).json()).task_group).toBe("mixed");
+  });
+  it("shows the frozen task reason without consulting the current dataset", async () => {
+    const { app, root } = await fixture();
+    const preparation = join(root, "preparation", "exp-a");
+    await mkdir(preparation, { recursive: true });
+    await writeFile(join(preparation, "cases.jsonl"), JSON.stringify({ case_id: "case-a", reason: "需要查询用户过去的偏好" }) + "\n");
+    const detail = await (await app.request("/api/experiments/exp-a/runs/case-a-native-1")).json();
+    expect(detail.reason).toBe("需要查询用户过去的偏好");
+  });
+
+  it("counts an observation-stopped run as recorded even without a final answer", async () => {
+    const { app, save, result } = await fixture();
+    await save("config.json", { version: 2, experiment_id: "exp-a", model: "test-model", measurement: "tool_calls" });
+    await save("runs/case-a-native-1.json", result("native", { completed: false, end_to_end_ms: null, stopped_on_observation: true }));
+    const data = await (await app.request("/api/experiments/exp-a/overview")).json();
+    expect(data.progress).toMatchObject({ planned: 2, recorded: 2, pending: 0 });
+    expect(data.measurement).toBe("tool_calls");
+    expect(data.summary.paired_comparison.included_pairs).toBe(1);
+    const detail = await (await app.request("/api/experiments/exp-a/runs/case-a-native-1")).json();
+    expect(detail.stopped_on_observation).toBe(true);
+  });
+
   it("reads manifest and runs without cases.jsonl or a precomputed summary", async () => {
     const { app } = await fixture();
     const response = await app.request("/api/experiments");
@@ -87,6 +128,9 @@ describe("Bridge viewer API", () => {
     expect(data.progress).toEqual({ planned: 3, recorded: 1, pending: 1, damaged: 1, invalid: 0 });
     expect(data.items.map((r: { outcome: string }) => r.outcome)).toEqual(["correct", "damaged", "pending"]);
     expect(data.summary.native.effective_call_rate).toBeNull();
+    expect(data.planned_pairs).toBe(2);
+    expect(data.summary.paired_comparison).toMatchObject({ total_pairs: 1, included_pairs: 0, excluded_pairs: 1 });
+    expect(data.summary.paired_comparison.baseline.effective_call_rate).toBeNull();
   });
 
   it("separates suites and computes paired latency only within the selected suite", async () => {

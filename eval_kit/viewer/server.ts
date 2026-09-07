@@ -7,6 +7,7 @@ import { HTTPException } from "hono/http-exception";
 import { readManifest, readOverview, readRun, viewerConfigSchema } from "./results.js";
 import { readDatasetOverview } from "./dataset.js";
 import { readReview, changeReview, parseImport } from "./review.js";
+import { taskGroup } from "../metrics/task-group.js";
 import { bodyLimit } from "hono/body-limit";
 import { z } from "zod";
 import type { EvalCase } from "../types.js";
@@ -97,6 +98,20 @@ export function createViewerApp(options: { resultsRoot: string; datasetPath?: st
     await next();
   });
   app.get("/api/review", async c => c.json(await readReview(datasetPath, catalogPath)));
+  // 仅预览派生分组，不写文件；审核界面和评分共享同一个判断。
+  app.post("/api/review/task-group", async c => {
+    const rules = z.object({ should_call: z.boolean(), expected_tools: z.array(z.string()).default([]),
+      expected_tool: z.string().optional(), allowed_first_tools: z.array(z.string()).optional(),
+      allowed_sequences: z.array(z.array(z.string())).optional(), expected_tool_sequence: z.array(z.string()).optional() });
+    try {
+      const value = rules.parse(await c.req.json());
+      return c.json({ task_group: taskGroup({ should_call: value.should_call,
+        expected_tools: value.expected_tools.length ? value.expected_tools : value.expected_tool ? [value.expected_tool] : [],
+        ...(value.allowed_first_tools ? { allowed_first_tools: value.allowed_first_tools } : {}),
+        ...(value.allowed_sequences ? { allowed_sequences: value.allowed_sequences } : {}),
+        ...(value.expected_tool_sequence ? { expected_tool_sequence: value.expected_tool_sequence } : {}) }) });
+    } catch { throw new HTTPException(422, { message: "请先设置有效的 Memory / Skill 入口规则。" }); }
+  });
   const editSchema = z.object({ revision: z.string().min(1), task: z.record(z.string(), z.unknown()) }).strict();
   const importSchema = z.object({ revision: z.string().min(1), content: z.string().min(1), replaceExisting: z.boolean(), preview: z.boolean() }).strict();
   app.put("/api/review/tasks/:id", async c => {
@@ -113,7 +128,8 @@ export function createViewerApp(options: { resultsRoot: string; datasetPath?: st
   app.get("/api/experiments/:experiment/overview", async (c) => {
     const experiment = c.req.param("experiment");
     const current = await config(experiment);
-    return c.json({ experiment_id: experiment, model: current.model, ...await readOverview(reader(experiment), c.req.query("suite")) });
+    return c.json({ experiment_id: experiment, model: current.model, measurement: current.measurement,
+      ...await readOverview(reader(experiment), c.req.query("suite")) });
   });
   app.get("/api/experiments/:experiment/runs/:run", async (c) => {
     const experiment = c.req.param("experiment");
@@ -123,7 +139,18 @@ export function createViewerApp(options: { resultsRoot: string; datasetPath?: st
     const read = reader(experiment);
     const row = (await readManifest(read)).find(r => r.run_id === run);
     if (!row) return c.json({ error: "该运行不在实验清单中。" }, 404);
-    return c.json(await readRun(read, row));
+    const result = await readRun(read, row);
+    // 标签依据取实验冻结的任务，不用当前数据集覆盖当时的判断理由。
+    let reason: string | null = null;
+    try {
+      const path = await resolveExistingWithin(options.resultsRoot, `preparation/${experiment}/cases.jsonl`);
+      const tasks = (await readFile(path, "utf8")).split(/\r?\n/u).filter(line => line.trim()).map(line => JSON.parse(line));
+      const task = tasks.find(item => item.case_id === row.case_id);
+      if (typeof task?.reason === "string") reason = task.reason;
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+    }
+    return c.json({ ...result, reason });
   });
   app.get("/assets/:name", async (c) => {
     const name = c.req.param("name");

@@ -4,6 +4,7 @@ import { randomUUID } from "node:crypto";
 import { HTTPException } from "hono/http-exception";
 import { parseDataset } from "../runner/dataset-loader.js";
 import type { EvalCase } from "../types.js";
+import { taskGroup } from "../metrics/task-group.js";
 
 export interface ReviewTool { name: string; description: string; summary: string; kind: "tool" | "skill"; enabled: boolean; group: string }
 export async function readReviewCatalog(path: string): Promise<ReviewTool[]> {
@@ -39,7 +40,9 @@ async function snapshot(path: string) {
 }
 export async function readReview(path: string, catalogPath: string) {
   const [data, catalog] = await Promise.all([snapshot(path), readReviewCatalog(catalogPath)]);
-  return { source: basename(path), revision: data.revision, items: data.items, catalog };
+  const normalized = checked(data.raw).cases;
+  return { source: basename(path), revision: data.revision, items: data.items, catalog,
+    task_groups: Object.fromEntries(normalized.map(item => [item.case_id, taskGroup(item)])) };
 }
 export function parseImport(content: string): EvalCase[] {
   try {

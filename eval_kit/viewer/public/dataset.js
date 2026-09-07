@@ -1,6 +1,6 @@
 const byId = id => document.getElementById(id);
-const familyNames = { memory: "Memory", skill: "Skill", none: "None · 无需工具", knowledge: "Knowledge", unknown: "未标注" };
-const familyDescriptions = { memory: "云端记忆", skill: "可复用技能", none: "无需 Proxy Tool", knowledge: "团队知识", unknown: "缺少类别标签" };
+const familyNames = { memory: "Memory", skill: "Skill", mixed: "Memory／Skill 双入口", none: "None · 无需工具", knowledge: "Knowledge", unknown: "未标注" };
+const familyDescriptions = { memory: "云端记忆", skill: "可复用技能", mixed: "两类均有合理入口", none: "无需 Proxy Tool", knowledge: "团队知识", unknown: "缺少类别标签" };
 const pageSize = 20;
 let data, page = 1;
 function node(tag, className = "", text) {
@@ -89,7 +89,7 @@ function renderCharts() {
 function renderList() {
   const search = byId("dataset-search").value.trim().toLocaleLowerCase();
   const family = byId("dataset-family").value, scenario = byId("dataset-scenario").value;
-  const items = data.items.filter(item => (!family || (item.tool_family ?? "unknown") === family)
+  const items = data.items.filter(item => (!family || (item.task_group ?? "unknown") === family)
     && (!scenario || (item.scenario_id ?? "unknown") === scenario)
     && (!search || [item.case_id, item.query, item.scenario_id, ...item.expected_tools,
       ...item.candidate_skills ?? [], ...item.expected_skills ?? [], ...item.tags ?? []].join(" ").toLocaleLowerCase().includes(search)));
@@ -105,7 +105,7 @@ function renderList() {
   for (const item of items.slice((page - 1) * pageSize, page * pageSize)) {
     const row = node("button", "dataset-row"); row.type = "button"; row.setAttribute("aria-label", `${item.case_id} · 查看任务详情`);
     const copy = node("span", "dataset-copy"); copy.append(node("strong", "", item.case_id), node("span", "dataset-query", item.query));
-    const tags = node("span", "dataset-row-tags"); tags.append(pill(familyNames[item.tool_family ?? "unknown"], familyClass(item.tool_family)));
+    const tags = node("span", "dataset-row-tags"); tags.append(pill(familyNames[item.task_group ?? "unknown"], familyClass(item.task_group)));
     const expected = node("span", "dataset-expected"); expected.append(node("span", "", item.scenario_id ?? "未标注场景"), node("small", "", item.should_call ? item.expected_tools.join(" · ") : "不应调用 Proxy Tool"));
     row.append(copy, tags, expected, node("span", "row-arrow", "↗"));
     row.addEventListener("click", () => showTask(item)); list.append(row);
@@ -117,7 +117,7 @@ function detailSection(title, value, folded = false) {
 }
 function showTask(item) {
   const body = byId("dataset-detail-body"); byId("dataset-detail-title").textContent = item.case_id;
-  const meta = node("div", "task-meta"); meta.append(pill(familyNames[item.tool_family ?? "unknown"], familyClass(item.tool_family)), pill(item.scenario_id ?? "未标注场景"), pill(item.should_call ? "预期：调用工具" : "预期：不调用工具"));
+  const meta = node("div", "task-meta"); meta.append(pill(familyNames[item.task_group ?? "unknown"], familyClass(item.task_group)), pill(item.scenario_id ?? "未标注场景"), pill(item.should_call ? "预期：调用工具" : "预期：不调用工具"));
   const query = node("section", "task-query"); query.append(node("h3", "", "用户输入"), node("p", "", item.query));
   body.replaceChildren(meta, query);
   if (item.reason?.trim()) {

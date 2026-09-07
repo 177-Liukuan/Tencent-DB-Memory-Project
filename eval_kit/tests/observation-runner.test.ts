@@ -47,6 +47,9 @@ it("无需 Langfuse：真实文件采集、独立身份、零调用和失败采�
     expect(result.runs[3]!.error).toContain("API Error: diagnostic");
     expect(result.runs[1]).toMatchObject({observation_valid:true,completed:false,end_to_end_ms:null});
     expect(result.runs[0]!.end_to_end_ms).toBe(100);
+    expect(result.summary.paired_comparison).toMatchObject({ total_pairs: 3, included_pairs: 1, excluded_pairs: 2 });
+    expect(result.summary.paired_comparison.baseline).toMatchObject({ positive_samples: 1, negative_samples: 0, effective_call_rate: 1 });
+    expect(result.summary.baseline.negative_samples).toBe(1);
     expect(await scoreObservationExperiment(result.experimentDirectory)).toEqual(result.summary);
     config.experiment_id="repeat"; unhealthy=false; await writeFile(join(d,"config.json"),JSON.stringify(config));
     const repeated=await runObservationExperiment(join(d,"config.json"),{runClient,fetcher});

@@ -3,6 +3,7 @@ import { distribution } from "./latency.js";
 import { scoreTask } from "./task.js";
 import { assertionsForCall, evaluateArgument, selectionCorrect, toolFamily } from "./tool.js";
 import { summarizeStaticDefinitions } from "./token.js";
+import { taskGroup, taskGroupMetrics } from "./task-group.js";
 
 function ratio(numerator: number, denominator: number): number | null {
   return denominator === 0 ? null : numerator / denominator;
@@ -94,7 +95,7 @@ function usableRun(run: CaseRun): boolean {
 function familyMetrics(runs: CaseRun[], family: "memory" | "skill"): ToolFamilyMetrics {
   // 按任务预期分正样本；两类误调用率共用全部负样本，不能只筛 tool_family。
   const positives = runs.filter((run) => run.metrics?.effective_call !== null && run.metrics?.effective_call !== undefined
-    && (run.tool_family === family || (!run.tool_family && run.metrics.expected_tools.every((name) => toolFamily(name) === family))));
+    && taskGroup(run.case) === family);
   const negatives = runs.filter((run) => run.metrics?.false_call !== null && run.metrics?.false_call !== undefined);
   const called = positives.filter((run) => run.metrics?.effective_call).length;
   const correct = positives.filter((run) => run.metrics?.selection_correct).length;
@@ -147,6 +148,8 @@ export function aggregateRuns(runs: CaseRun[]): AggregateMetrics {
     negative_cases: falseCallEvaluated.length,
     false_call_cases: falseCallEvaluated.filter((metric) => metric.false_call).length,
     by_tool_family: { memory: familyMetrics(usable, "memory"), skill: familyMetrics(usable, "skill") },
+    by_task_group: taskGroupMetrics(usable.filter(run => run.metrics).map(run => ({ ...run.case, metrics: run.metrics! })),
+      run => run.metrics.managed_tool_calls > 0, run => run.metrics.selection_correct === true),
     tool_micro_precision: ratio(tp, tp + fp),
     tool_micro_recall: ratio(tp, tp + fn),
     tool_selection_accuracy: ratio(selectionEvaluated.filter((metric) => metric.selection_correct).length, selectionEvaluated.length),

@@ -28,7 +28,7 @@ describe("dataset viewer API", () => {
     expect(response.status).toBe(200);
     const data = await response.json();
     expect(data.summary).toEqual({ tasks: 4, positive: 2, negative: 2, scenarios: 2, assets: 1, memory_sessions: 1, skills: 1 });
-    expect(data.distributions.families).toEqual([{ name: "memory", count: 1 }, { name: "none", count: 1 }, { name: "skill", count: 1 }, { name: "unknown", count: 1 }]);
+    expect(data.distributions.families).toEqual([{ name: "none", count: 2 }, { name: "memory", count: 1 }, { name: "skill", count: 1 }]);
     expect(data.distributions.tools).toContainEqual({ name: "skill_view", count: 1 });
     expect(data.distributions.scenarios).toContainEqual({ name: "api", count: 2 });
     expect(data.items.find((item: { case_id: string }) => item.case_id === "skill-a")).toMatchObject({
@@ -44,6 +44,15 @@ describe("dataset viewer API", () => {
     await app.request("/api/dataset");
     await save([samples[0]]);
     expect((await (await app.request("/api/dataset")).json()).summary.tasks).toBe(1);
+  });
+
+  it("双入口按列表派生，保留原主要需求元数据", async () => {
+    const { app, save } = await fixture();
+    await save([{ ...base, case_id: "memory_a", tool_family: "skill", should_call: true,
+      allowed_first_tools: ["tdai_memory_search", "skill_view"] }]);
+    const data = await (await app.request("/api/dataset")).json();
+    expect(data.distributions.families).toEqual([{ name: "mixed", count: 1 }]);
+    expect(data.items[0]).toMatchObject({ task_group: "mixed", tool_family: "skill" });
   });
 
   it("does not accept a filesystem path from the browser", async () => {

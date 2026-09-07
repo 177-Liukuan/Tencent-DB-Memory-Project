@@ -4,6 +4,7 @@ import { dirname, resolve } from "node:path";
 import yaml from "js-yaml";
 import { z } from "zod";
 import type { EvalCase } from "../types.js";
+import { TASK_GROUPS, taskGroup } from "../metrics/task-group.js";
 
 const endpoint = z.object({ project: z.string(), core_url: z.string().url(), proxy_url: z.string().url() }).strict();
 const schema = z.object({
@@ -44,9 +45,9 @@ export async function loadPilotConfig(path: string): Promise<PilotConfig> {
 
 // 先覆盖场景，再选同场景的下一题；固定 seed 后，文件顺序与模型表现都不影响抽样。
 export function selectPilotCases(cases: EvalCase[], count: number | "all", seed = ""): EvalCase[] {
-  return (["memory", "skill", "none"] as const).flatMap(family => {
+  return TASK_GROUPS.flatMap(family => {
     const rank = (id: string) => seed ? createHash("sha256").update(`${seed}:${family}:${id}`).digest("hex") : id;
-    const eligible = cases.filter(c => c.suite === "main" && c.tool_family === family && c.asset_path);
+    const eligible = cases.filter(c => c.suite === "main" && c.asset_path && taskGroup(c) === family);
     const groups = new Map<string, EvalCase[]>();
     for (const c of eligible.sort((a,b) => rank(a.case_id).localeCompare(rank(b.case_id)))) {
       const scenario = c.scenario_id ?? c.case_id;

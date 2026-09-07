@@ -18,7 +18,13 @@ Memory 缓存默认开启（`memory_cache: true`），底稿保存在 `results_d
 > Viewer 提供数据集概览、任务标注与人工审查、当前 Bridge 实验结果对比：`npm run viewer -- --results results --port 4173`。可用 `--dataset` 指定任务文件；标注保存会备份并更新此文件，见 [页面使用说明](docs/viewer.md)。
 > 下方旧实验中的 `npm run run` 现应使用 `npm run legacy:run`；dataset 与 data-preparation 用法不变。
 
-此前 30 题复查使用 `bash run-pipeline.sh configs/pilot-30.yaml`，每类 10 题，首次调用即停止。原300题改写、清理并核对剩余62题实际注入后，当前保留279条 Main：Memory 42、Skill 162、None 75；正式运行前请阅读[实际注入核对与适用条件](dataset/review/input-validation-62-report.md)。`sample_seed` 固定抽样，`per_family: all` 会选中当前全部 Main；历史数据说明见 [v2 修订记录](dataset/review/v2-revision.md)。
+任务现在按允许的首次入口派生为 Memory、Skill、Memory／Skill 双入口（Mixed）、None 四组；`tool_family` 仅保留为主要需求元数据。Mixed 不进入纯 Memory 或 Skill 的正样本统计，总体每题只计一次。
+
+**主对比使用同题有效配对**：任意一组观测无效，整对任务不进入主指标，另一组原始记录仍保留。`summary.json.paired_comparison` 为主对比；顶层 `baseline` / `native` 保留各组全部有效记录的参考统计，不应直接比较不同任务集合的百分比。Viewer 同时显示统计范围、分子/分母和全部记录的观测完整性，详见[同题配对说明](docs/paired-valid-comparison.md)。只更新汇总可执行 `npm run score -- --experiment results/<experiment_id>`，不会重新调用模型；覆盖前请备份原 `summary.json`。
+
+**配置题量已变化**：`per_family: 15` 现在选 60 题，`10` 选 40 题，默认 `3` 选 12 题；任一组不足都会报错，不从其他组补齐。`per_family: all` 选全部有素材的 Main 任务。旧配置文件名中的 30、45 是历史命名，不代表现在运行的题量；复用冻结准备数据时仍使用冻结任务清单。修改配置不会自动启动评测。
+
+当前分组数量、45题重新汇总和验证情况见[四类任务分组](docs/four-task-groups.md)。正式运行前仍需阅读[实际注入核对与适用条件](dataset/review/input-validation-62-report.md)。`sample_seed` 固定抽样；历史数据说明见 [v2 修订记录](dataset/review/v2-revision.md)。
 
 当前 Pipeline 给每个任务的两组独立 Agent 导入配置 `skills` 目录中的完整 Skill 库，不再按 `candidate_skills` 筛选。默认数据集有15个 Skill；旧字段仍可读取，但不影响导入和评分。`reuse_preparation` 只复用原任务、Memory 和工作区，Skill 始终取当前配置目录，因此从旧6个候选切换为完整库时不需要重新提炼 Memory，也不再属于原 Skill 环境的原样重跑。
 

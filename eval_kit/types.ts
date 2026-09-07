@@ -201,6 +201,7 @@ export type AggregateMetrics = {
   negative_cases: number;
   false_call_cases: number;
   by_tool_family: Record<"memory" | "skill", ToolFamilyMetrics>;
+  by_task_group: ReturnType<typeof import("./metrics/task-group.js").taskGroupMetrics>;
   tool_micro_precision: number | null;
   tool_micro_recall: number | null;
   tool_selection_accuracy: number | null;
