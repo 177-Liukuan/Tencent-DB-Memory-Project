@@ -29,4 +29,4 @@ lab:
   symlink_target: /storage1/liukuan/tencentdb-memory-lab
   repository: https://github.com/177-Liukuan/TencentDB-Memory-Lab.git
   branch: main
-  commit: e0e0d74d8c3b2e52dd3509bf0e4fab5c13103b11
+  commit: 086607abd4d05531ef3abb962056b3b18111b82b
