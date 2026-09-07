@@ -7,3 +7,6 @@
 [submodule "native"]
 	path = TencentDB-Agent-Memory-Native
 	url = https://github.com/177-Liukuan/TencentDB-Agent-Memory-Native.git
+[submodule "tencentdb-memory-lab"]
+	path = tencentdb-memory-lab
+	url = https://github.com/177-Liukuan/TencentDB-Memory-Lab.git

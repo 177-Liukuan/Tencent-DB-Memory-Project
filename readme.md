@@ -75,7 +75,7 @@ Claude Code 保存它能看到的对话，MemoryProxy 额外保存隐藏的 Nati
 | [手稿/](手稿/) | 课题材料、导师讨论、研究记录 |
 | [issues/](issues/) | 问题复现与修复证据 |
 | [docs/](docs/) | 配套工程资料 |
-| `tencentdb-memory-lab` | 指向本机 Lab 的符号链接，真实目录为 `/storage1/liukuan/tencentdb-memory-lab` |
+| [`tencentdb-memory-lab/`](tencentdb-memory-lab/) | 独立私有仓库的 Git submodule，版本见 `workspace.lock.yaml`；GitHub 可直接展开查看其运维脚本和文档 |
 
 Lab 是独立私有仓库：[TencentDB-Memory-Lab](https://github.com/177-Liukuan/TencentDB-Memory-Lab)。其 README 与 OPERATIONS 提供当前部署入口，旧报告已归档。数据库、密钥、会话、日志和恢复备份不入库。
 
@@ -87,9 +87,9 @@ cd Tencent-DB-Memory-Project
 git submodule status
 ```
 
-访问私有子仓库需要相应权限。根仓库提交中的 gitlink 是三个子仓库的检出依据。`workspace.lock.yaml` 仍包含早期部署快照，**尚未与当前版本同步，不应据此回退源码或 Lab**。本次只更新 README，不自动修改子模块指针或版本锁。
+访问私有子仓库需要相应权限。根仓库提交中的 gitlink 是四个子仓库的检出依据；`workspace.lock.yaml` 记录当前 Lab 提交。运行数据、凭据和 systemd 服务不属于 submodule，也不提交到 Git。
 
-克隆不会恢复数据库、凭据、systemd 服务或本机 Lab 内容。换机器部署先按子项目安装文档和 Lab 说明准备环境，不覆盖已有同名目录或符号链接。
+非递归克隆时执行 `git submodule update --init --recursive`。克隆不会恢复数据库、凭据、systemd 服务或 `/storage1/liukuan/tencentdb-memory-lab` 中的运行数据；换机器部署先按 Lab 说明准备运行环境，不覆盖已有数据目录。
 
 ## 4. 评测数据与口径
 
