@@ -1,0 +1,45 @@
+{
+  "session_id": "discussion-replay-approval",
+  "messages": [
+    {
+      "role": "user",
+      "content": "我们在核对重放审批范围。执行前有人提议将同一日期的所有失败通知一并补发。",
+      "timestamp": "2026-09-01T13:30:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录：我们在核对重放审批范围。执行前有人提议将同一日期的所有失败通知一并补发。",
+      "timestamp": "2026-09-01T13:31:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "补充审议结果：批准仅覆盖批次 R-17 的 billing.statement.ready，明确排除取消通知和退款结果通知。",
+      "timestamp": "2026-09-01T13:32:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录：补充审议结果：批准仅覆盖批次 R-17 的 billing.statement.ready，明确排除取消通知和退款结果通知。",
+      "timestamp": "2026-09-01T13:33:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "再明确一下边界：日期相同不是纳入条件；其他批次需要另外批准，不能套用 R-17 的授权。",
+      "timestamp": "2026-09-01T13:34:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录：再明确一下边界：日期相同不是纳入条件；其他批次需要另外批准，不能套用 R-17 的授权。",
+      "timestamp": "2026-09-01T13:35:00.000Z"
+    },
+    {
+      "role": "user",
+      "content": "复查重放审批范围时区分提案、确认结果和适用边界。",
+      "timestamp": "2026-09-01T13:36:00.000Z"
+    },
+    {
+      "role": "assistant",
+      "content": "已记录：复查重放审批范围时区分提案、确认结果和适用边界。",
+      "timestamp": "2026-09-01T13:37:00.000Z"
+    }
+  ]
+}

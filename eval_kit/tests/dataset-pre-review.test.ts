@@ -23,9 +23,12 @@ describe("逐题改写与独立预审交付", () => {
     const { cases } = await loadDataset(resolve(datasetRoot, "tasks/tool_call_eval_v1.jsonl"));
     const raw = await readFile(resolve(datasetRoot, "review/ai-pre-review.jsonl"), "utf8");
     const rows = raw.trim().split("\n").map(line => JSON.parse(line));
-    expect(rows).toHaveLength(300);
-    expect(new Set(rows.map(row => row.review_id)).size).toBe(300);
-    expect(new Set(rows.map(row => row.case_id)).size).toBe(300);
+    // 旧300题的独立预审原样保留；新增题明确采用本轮同会话编写/自审，不伪造盲审证据。
+    const authored = rows.filter(row => row.review_type === "authored_in_current_session");
+    expect(rows.length - authored.length).toBe(300);
+    expect(authored).toHaveLength(30);
+    expect(new Set(rows.map(row => row.review_id)).size).toBe(rows.length);
+    expect(new Set(rows.map(row => row.case_id)).size).toBe(rows.length);
     const removed = rows.filter(row => row.final.status === "removed");
     expect(cases.length + removed.length).toBe(rows.length);
     for (const row of removed) {
@@ -38,6 +41,16 @@ describe("逐题改写与独立预审交付", () => {
       expect(row, item.case_id).toBeDefined();
       expect(row.review_id).toMatch(/^review-\d{3}$/);
       expect(row.rewritten_query).toBe(item.query);
+      if (row.review_type === "authored_in_current_session") {
+        expect(row.independent_review).toBeUndefined();
+        // 后续真实输入复核不等于重新做过盲审；只解除有双组证据的待确认项。
+        expect(row.final.status).toBe(row.pilot45_review ? "reviewed" : "needs_confirmation");
+        expect(row.final.reason).toBe(item.reason);
+        expect(row.final.allowed_first_tools).toEqual(item.allowed_first_tools);
+        expect(row.source_design.decision.length).toBeGreaterThan(20);
+        expect(row.final.risks.some((risk: {kind:string}) => risk.kind === "l3_unverified")).toBe(!row.pilot45_review);
+        continue;
+      }
       expect(row.independent_review.reason.length).toBeGreaterThan(15);
       expect(row.independent_review.evidence.length).toBeGreaterThan(0);
       expect(row.review_input_sha256).toMatch(/^[a-f0-9]{64}$/);

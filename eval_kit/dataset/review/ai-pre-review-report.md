@@ -1,5 +1,7 @@
 # 300条任务改写与独立预审报告
 
+> 最新：45题双组实际输入复核后，正式数据为285题（Memory 69、Skill 141、None 75）；新增30题中7题已核对实际注入，23题仍待确认。见[45题标签复核与重算报告](pilot-45-label-review-report.md)。以下统计保留为历史记录。
+
 > 本文保留首次审核时的300题统计。后续清理保留279题，剩余62题现已完成双组实际注入核对，当前为 Memory 42、Skill 162、None 75；见[最新核对记录](input-validation-62-report.md)。删除与补素材记录见[清理报告](task-cleanup-report.md)。审核 JSONL 的 `independent_review` 未改写，后续处理分别记在 `cleanup`、`input_validation` 中；下文“待确认”是首次审核时的历史状态。
 
 日期：2026-09-06。此次只调整数据和审核展示，不运行评测，不修改 Baseline / Native 工具、提示词或指标公式。

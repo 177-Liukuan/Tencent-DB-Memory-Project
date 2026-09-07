@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { expect, it } from "vitest";
 import { runClaudeClient } from "../runner/client.js";
+import { taskGroup } from "../metrics/task-group.js";
 it("正式评测启用 Native Hooks，隔离设置，不使用会禁用 Hooks 的 bare", async () => {
   const d = await mkdtemp(join(tmpdir(), "eval-cli-"));
   try {
@@ -11,11 +12,14 @@ it("正式评测启用 Native Hooks，隔离设置，不使用会禁用 Hooks �
     await writeFile(binary, "#!" + process.execPath + "\nconst fs = require('node:fs'); console.log(JSON.stringify({type:'result',result:JSON.stringify({args:process.argv.slice(2),thinking:process.env.MAX_THINKING_TOKENS,settings:JSON.parse(fs.readFileSync(process.env.CLAUDE_CONFIG_DIR+'/settings.json','utf8'))})}));\n", { mode: 0o700 });
     await writeFile(join(d, "env"), "ANTHROPIC_MODEL=old-model\n");
     await writeFile(join(d, "key"), "test-key");
+    const testCase = { schema_version: 1 as const, case_id: "c", suite: "smoke" as const, query: "hi", reason: "PRIVATE_REVIEW_REASON",
+      should_call: true, expected_tools: ["tdai_memory_search", "skill_view"], allowed_first_tools: ["tdai_memory_search", "skill_view"] };
+    expect(taskGroup(testCase)).toBe("mixed");
     const result = await runClaudeClient({
       binary, variant: "native", sessionId: "test-session", workDirectory: d, claudeConfigDirectory: join(d,"settings"),
       envFile: join(d,"env"), authKeyFile: join(d,"key"), baseUrl: "http://localhost:18096/claude-code/space",
       identity: {service_id:"space",team_id:"team",agent_id:"agent",task_id:"task"}, timeoutMs: 5000,
-      streamPath: join(d,"stream.jsonl"), testCase: { schema_version:1,case_id:"c",suite:"smoke",query:"hi",reason:"PRIVATE_REVIEW_REASON",should_call:false,expected_tools:[] },
+      streamPath: join(d,"stream.jsonl"), testCase,
       evaluation: { model: "test-model", allowBash: true },
     });
     const output = JSON.parse(String(result.events[0]!.result));
@@ -23,6 +27,8 @@ it("正式评测启用 Native Hooks，隔离设置，不使用会禁用 Hooks �
     expect(output.args).toContain("test-model");
     expect(output.args.at(-1)).toBe("hi");
     expect(JSON.stringify(output)).not.toContain("PRIVATE_REVIEW_REASON");
+    expect(JSON.stringify(output)).not.toMatch(/task_group|mixed|allowed_first_tools/);
+    expect(testCase).not.toHaveProperty("task_group");
     expect(output.args[output.args.indexOf("--allowedTools") + 1]).toBe("Bash,Read,Write,Edit,Glob,Grep");
     expect(output.settings.hooks.UserPromptSubmit[0].hooks[0]).toMatchObject({type:"http",url:"http://localhost:18096/claude-code/space/hooks/claude-code/context"});
     expect(output.thinking).toBe("0");
