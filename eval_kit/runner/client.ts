@@ -10,7 +10,7 @@ import { join } from "node:path";
 
 export type ClientRunInput = {
   /** 新评测入口必须启用 Claude 的正常 Hooks；旧实验调用方式保持兼容。 */
-  evaluation?: { model: string; allowBash?: boolean; image?: string };
+  evaluation?: { model: string; allowBash?: boolean; image?: string; skipPermissions?: boolean };
   binary: string;
   variant: Variant;
   testCase: EvalCase;
@@ -77,6 +77,8 @@ function killProcessGroup(pid: number, signal: NodeJS.Signals): void {
 }
 
 export async function runClaudeClient(input: ClientRunInput): Promise<ClientRunResult> {
+  // 权限跳过只用于隔离评测容器，避免相同参数被误用于宿主机。
+  if (input.evaluation?.skipPermissions && !input.evaluation.image) throw new Error("skipPermissions requires an isolated client image");
   const sourceEnv = parseEnvFile(await readFile(input.envFile, "utf8"));
   const authToken = (await readFile(input.authKeyFile, "utf8")).trim();
   const customHeaders = [
@@ -111,6 +113,7 @@ export async function runClaudeClient(input: ClientRunInput): Promise<ClientRunR
   }
   const args = [
     ...(input.evaluation ? ["--setting-sources", "user", "--model", input.evaluation.model] : ["--bare"]),
+    ...(input.evaluation?.skipPermissions ? ["--dangerously-skip-permissions"] : []),
     "--no-session-persistence",
     "--output-format", "stream-json",
     "--verbose",

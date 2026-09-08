@@ -2,6 +2,7 @@ import { z } from "zod";
 import { isDeepStrictEqual } from "node:util";
 import { selectionCorrect, toolFamily } from "../metrics/tool.js";
 import { distribution } from "../metrics/latency.js";
+import { summarizeLatencyStudy } from "../metrics/latency-study.js";
 import { taskGroup, taskGroupMetrics } from "../metrics/task-group.js";
 import type { EvalCase, Variant } from "../types.js";
 
@@ -45,6 +46,10 @@ export type ObservationRun = {
   error?: string | undefined;
   query?: string;
   seed_version?: string;
+  measurement?: "tool_calls" | "end_to_end" | undefined;
+  latency_repeats?: number | undefined;
+  latency_excluded_reason?: string | undefined;
+  not_started?: boolean | undefined;
 };
 const rate = (n: number, d: number) => d === 0 ? null : n / d;
 
@@ -138,7 +143,10 @@ export function summarizeObservationRuns(runs: ObservationRun[]) {
   };
   // 主评测与探针/冒烟分开，不能为了凑样本把不同用途的数据混入主指标。
   const suite = runs.some(r => r.suite === "main") ? "main" : runs[0]?.suite ?? "main";
-  const selected = runs.filter(r => r.suite === suite);
+  // 延迟的重复样本只用于耗时和轨迹分析，不增加工具调用主指标的权重。
+  const toolRuns = runs.filter(r => r.measurement !== "end_to_end");
+  const selected = toolRuns.filter(r => r.suite === suite);
+  const latencyStudy = summarizeLatencyStudy(runs.filter(r => r.suite === suite));
   const complete = observationPairs(selected).filter(p => p.included && p.baseline!.completed && p.native!.completed
     && p.baseline!.end_to_end_ms !== null && p.native!.end_to_end_ms !== null);
   const pairedByCase = new Map<string, { baseline: number[]; native: number[] }>();
@@ -154,8 +162,9 @@ export function summarizeObservationRuns(runs: ObservationRun[]) {
     // 保留原有各组统计作为参考；主对比明确使用 paired_comparison，避免混淆两个统计范围。
     schema_version: 2, metric_suite: suite, primary_scope: "paired_valid", ...variants(selected),
     paired_comparison: compare(selected),
+    latency_study: latencyStudy,
     by_suite: Object.fromEntries([...new Set(runs.map(r => r.suite))].map(s => {
-      const items = runs.filter(r => r.suite === s);
+      const items = toolRuns.filter(r => r.suite === s);
       return [s, { ...variants(items), paired_comparison: compare(items) }];
     })),
     paired_latency: { pairs: complete.length, cases: pairedByCase.size, baseline_mean_ms: b, native_mean_ms: n,

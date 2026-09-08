@@ -2,7 +2,7 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { cp, mkdir, readFile } from "node:fs/promises";
 import { dirname, join, relative } from "node:path";
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { DatabaseSync, backup } from "node:sqlite";
 import yaml from "js-yaml";
@@ -17,13 +17,14 @@ import { captureInputReviews } from "./input-review.js";
 import { auditPilotResults } from "./audit.js";
 import { coreApi as api, createEvaluationTeam, createEvaluationTask, type Connection } from "./identity.js";
 import { snapshotWorkspace } from "./workspace.js";
+import { createLatencyPlan, orderLatencyRuns, DEFAULT_LATENCY } from "./latency-plan.js";
 import { parseEnvFile } from "../runner/config.js";
 import { loadDataset } from "../runner/dataset-loader.js";
 import { importSkillDirectory, type SkillPackage, type SkillImportTarget } from "../importers/skills/importer.js";
 import { secureWriteJson, secureWriteJsonl, secureWrite } from "../lib/fs.js";
 import { runObservationExperiment } from "../bridge-eval/runner.js";
 import type { PreparedRun } from "../bridge-eval/config.js";
-import type { Variant } from "../types.js";
+import type { EvalCase, Variant } from "../types.js";
 
 const exec = promisify(execFile);
 const variants: Variant[] = ["baseline", "native"];
@@ -66,7 +67,12 @@ export async function runPilotPipeline(configPath: string) {
   // 重跑复用冻结 Memory/Workspace；Skill 始终来自当前完整库，Agent 每次新建。
   const frozen = config.reuse_preparation;
   const dataset = await loadDataset(frozen ? join(frozen,"cases.jsonl") : config.dataset);
-  const selected = frozen ? dataset.cases : selectPilotCases(dataset.cases, config.per_family, config.sample_seed);
+  const latency = config.latency ?? DEFAULT_LATENCY;
+  if (config.measurement === "end_to_end" && !config.sample_seed) config.sample_seed = randomUUID();
+  const latencyPlan = config.measurement === "end_to_end" ? createLatencyPlan(dataset.cases, config.sample_seed, latency.tasks) : null;
+  const selected = latencyPlan ? [...latencyPlan.selected] : frozen ? dataset.cases : selectPilotCases(dataset.cases, config.per_family, config.sample_seed);
+  const repeats = latencyPlan ? latency.repeats : 1;
+  const plannedTaskCount = selected.length;
   const frozenChecks = frozen ? JSON.parse(await readFile(join(frozen,"pair-checks.json"),"utf8")) as Array<{
     case_id:string;seed_version:string;source:{digest:string};workspace_digest:string;skill_digest:string;
   }> : [];
@@ -97,22 +103,25 @@ export async function runPilotPipeline(configPath: string) {
     if (marker.started_at !== h.toolObservation.started_at) throw new Error(variant + " 观测目录不匹配");
     connections[variant] = connection; revisions[variant] = await revision(config.variants[variant].project);
   }
-  const id = "pilot-" + new Date().toISOString().replace(/[:.]/g,"-");
+  const id = (latencyPlan ? "latency-" : "pilot-") + new Date().toISOString().replace(/[:.]/g,"-");
   const preparation = join(config.results_dir,"preparation",id);
   await mkdir(preparation,{recursive:true,mode:0o700});
   await secureWriteJson(join(preparation,"pipeline-config.json"),config);
   await secureWriteJson(join(preparation,"revisions-before.json"),revisions);
   await secureWriteJsonl(join(preparation,"cases.jsonl"),selected);
+  if (latencyPlan) await secureWriteJson(join(preparation,"latency-plan.json"),{
+    seed:config.sample_seed,selected:selected.map(c=>c.case_id),replacement_order:latencyPlan.replacementOrder,...latency,
+  });
   // 保存本轮实际完整库，不能用任务标签或旧准备目录推断 Skill 范围。
   const skillNames = taskInputs[0]!.skills.map(skill=>skill.name);
   await secureWriteJson(join(preparation,"skill-library.json"),{directory:config.skills,names:skillNames});
   const teamIds = {} as Record<Variant,string>;
   const runs: PreparedRun[] = [];
-  const executionCases = [];
+  const executionCases: EvalCase[] = [];
   const imports: unknown[] = [];
   const pairChecks: unknown[] = [];
   const workspaces = new Map<string,Awaited<ReturnType<typeof snapshotWorkspace>>>();
-  process.stderr.write(`[pipeline] ${id}: ${selected.length} Tasks / ${selected.length*2} runs\n`);
+  process.stderr.write(`[pipeline] ${id}: ${selected.length} Tasks / ${selected.length*2*repeats} runs\n`);
   try {
     await secureWriteJson(join(preparation,"client-environment.json"),await prepareClientImage(config.client_image,config.uv_binary,config.claude_binary));
     // 一轮两组各建一个 Team；后续只增加任务与 Agent，不随题数增加 Team 或账号。
@@ -120,7 +129,8 @@ export async function runPilotPipeline(configPath: string) {
       teamIds[variant] = await createEvaluationTeam(connections[variant],id,config.team_member_user_ids);
       await secureWriteJson(join(preparation,"teams.json"),teamIds);
     }
-    for (const [index,c] of selected.entries()) {
+    // 初选与替补共用同一个准备过程；每题只提炼一次，重复运行只复制冻结种子。
+    const prepareTask = async (c: EvalCase, index: number) => {
       const label = "task-" + String(index+1).padStart(2,"0");
       const input = join(preparation,"inputs",label);
       const taskSkills = taskInputs[index]!.skills;
@@ -141,11 +151,11 @@ export async function runPilotPipeline(configPath: string) {
       // 两组共用相同执行 Query；原始数据不写死某次实验生成的会话 ID。
       const sessionMap = JSON.parse(await readFile(join(input,"memory-session-map.json"),"utf8"));
       executionCases.push({...c,query:resolveSessionQuery(c.query,sessionMap)});
-      for (const variant of variants) {
+      for (let repeat = 1; repeat <= repeats; repeat++) for (const variant of variants) {
         const connection = connections[variant];
         const keyFile = join(config.lab_root,variant,"secrets/memory-user.key");
-        const identity = await createEvaluationTask(connection,teamIds[variant],index+1);
-        const run: PreparedRun = {run_id:label+"-"+variant,case_id:c.case_id,variant,repeat:1,seed_version:"pending",
+        const identity = await createEvaluationTask(connection,teamIds[variant],index*repeats+repeat);
+        const run: PreparedRun = {run_id:label+(latencyPlan?`-r${repeat}`:"")+"-"+variant,case_id:c.case_id,variant,repeat,seed_version:"pending",
           auth_key_file:keyFile,
           ...(config.stop_after_tools[c.case_id] ? {stop_after_tools:config.stop_after_tools[c.case_id]} : {}),
           workspace:workspace.directory,identity};
@@ -156,11 +166,8 @@ export async function runPilotPipeline(configPath: string) {
         await secureWriteJson(join(preparation,"imports.json"),imports);
         process.stderr.write(`[pipeline] imported ${run.run_id}\n`);
       }
-    }
-    for (const [index,c] of selected.entries()) {
       const baseline = runs.find(r=>r.case_id === c.case_id && r.variant === "baseline")!;
       const native = runs.find(r=>r.case_id === c.case_id && r.variant === "native")!;
-      const label="task-"+String(index+1).padStart(2,"0");
       const directory=join(preparation,"builder",label);
       const inputFile=join(directory,"input.json");
       const builderSessions=JSON.parse(await readFile(join(preparation,"inputs",label,"memories/sessions.json"),"utf8"));
@@ -203,7 +210,6 @@ export async function runPilotPipeline(configPath: string) {
       const baselineCopied = await publishMemorySeed(source,baselineTarget,connections.baseline,baseline.identity.task_id,recordIdNamespace);
       const copied = await publishMemorySeed(source,target,connections.native,native.identity.task_id,recordIdNamespace);
       if (baselineCopied.digest !== copied.digest) throw new Error(c.case_id + " 两组复制后的 Memory 内容不同");
-      const taskSkills = taskInputs[index]!.skills;
       const skillDigests = await Promise.all([baseline,native].map(r=>verifySkills(connections[r.variant],r,taskSkills)));
       if (skillDigests[0] !== skillDigests[1]) throw new Error(c.case_id + " 两组 Skill 内容不同");
       const apiChecks = [
@@ -211,6 +217,18 @@ export async function runPilotPipeline(configPath: string) {
         {...copied.apiCheck,run_id:native.run_id,repeat:native.repeat},
       ];
       baseline.seed_version = native.seed_version = createHash("sha256").update(seed.digest + skillDigests[0] + workspaces.get(c.case_id)!.digest).digest("hex");
+      for (let repeat = 2; repeat <= repeats; repeat++) {
+        const pair = variants.map(v => runs.find(r=>r.case_id===c.case_id && r.variant===v && r.repeat===repeat)!);
+        // 不从已运行 Agent 复制；不同重复的内部记录 ID 隔离，内容来自同一离线种子。
+        const copies = await Promise.all(pair.map(r=>publishMemorySeed(source,endpoint(config,connections[r.variant],r),
+          connections[r.variant],r.identity.task_id,`${id}:${label}:r${repeat}`)));
+        if (copies[0]!.digest !== copies[1]!.digest) throw new Error(c.case_id+" 重复运行的配对 Memory 不一致");
+        for (const [i,r] of pair.entries()) {
+          apiChecks.push({...copies[i]!.apiCheck,run_id:r.run_id,repeat:r.repeat});
+          if (await verifySkills(connections[r.variant],r,taskSkills) !== skillDigests[0]) throw new Error(c.case_id+" 重复运行的 Skill 不一致");
+          r.seed_version = baseline.seed_version;
+        }
+      }
       // 完整 Skill 库可有意更新，但被冻结的 Memory 和 Workspace 仍必须与原实验一致。
       const original = frozenChecks.find(r=>r.case_id===c.case_id);
       if (frozen && (seed.digest !== original!.source.digest || workspaces.get(c.case_id)!.digest !== original!.workspace_digest)) {
@@ -221,22 +239,43 @@ export async function runPilotPipeline(configPath: string) {
         ...(frozen ? {reused_from:frozen,record_id_namespace:recordIdNamespace} : {})});
       await secureWriteJson(join(preparation,"pair-checks.json"),pairChecks);
       process.stderr.write(`[pipeline] verified pair ${c.case_id}: L0=${seed.counts.l0_conversations}, L1=${seed.counts.l1_records}, profiles=${seed.profileFiles.length}\n`);
-    }
+      return {testCase:executionCases.find(t=>t.case_id===c.case_id)!,runs:runs.filter(r=>r.case_id===c.case_id)};
+    };
+    for (const [index,c] of selected.entries()) await prepareTask(c,index);
     // 配对执行且交替谁先跑，避免始终让同一组承受冷启动或固定时段的负载。
-    const ordered = selected.flatMap((c,index)=>(index%2 ? ["native","baseline"] : ["baseline","native"]).map(v=>runs.find(r=>r.case_id===c.case_id && r.variant===v)!));
+    const ordered = latencyPlan ? orderLatencyRuns(runs,config.sample_seed)
+      : selected.flatMap((c,index)=>(index%2 ? ["native","baseline"] : ["baseline","native"]).map(v=>runs.find(r=>r.case_id===c.case_id && r.variant===v)!));
     await secureWriteJson(join(preparation,"manifest.json"),ordered);
     await secureWriteJsonl(join(preparation,"cases.jsonl"),executionCases);
     const observationConfig = {
       version:2,experiment_id:id,dataset:join(preparation,"cases.jsonl"),run_manifest:join(preparation,"manifest.json"),results_dir:config.results_dir,
       claude_binary:config.claude_binary,model:config.model,timeout_ms:config.timeout_ms,allow_bash:config.allow_bash,client_image:config.client_image,
       measurement:config.measurement,
+      ...(latencyPlan ? {latency_repeats:repeats} : {}),
       variants:Object.fromEntries(variants.map(v=>[v,{proxy_base_url:config.variants[v].proxy_url,
         session_state_db:join(config.lab_root,v,"data/proxy/proxy.db"),
         observation_dir:join(config.lab_root,v,"run/tool-observations"),env_file:join(config.lab_root,v,"secrets/claude.env"),auth_key_file:join(config.lab_root,v,"secrets/memory-user.key")}]))};
     const runConfig = join(preparation,"observation-config.json");
     await secureWriteJson(runConfig,observationConfig);
     await secureWriteJson(join(preparation,"ready.json"),{at:new Date().toISOString(),config:runConfig});
-    const result = await runObservationExperiment(runConfig);
+    const replacements: Array<{failed:string;replacement:string}> = [];
+    const result = await runObservationExperiment(runConfig,latencyPlan ? {
+      prepareReplacement: async failed => {
+        if (replacements.length >= latency.max_replacements) return null;
+        const replacement = latencyPlan.nextReplacement(selected.find(c=>c.case_id===failed.case_id)!);
+        if (!replacement) return null;
+        replacements.push({failed:failed.case_id,replacement:replacement.case_id});
+        await secureWriteJson(join(preparation,"replacements.json"),replacements);
+        taskInputs.push(...await loadTaskInputs(config,[replacement]));
+        selected.push(replacement);
+        const prepared = await prepareTask(replacement,selected.length-1);
+        prepared.runs = orderLatencyRuns(prepared.runs,config.sample_seed);
+        ordered.push(...prepared.runs);
+        await secureWriteJson(join(preparation,"manifest.json"),ordered);
+        await secureWriteJsonl(join(preparation,"cases.jsonl"),executionCases);
+        return prepared;
+      },
+    } : {});
     const audit = await auditPilotResults(result.experimentDirectory,config.lab_root);
     await secureWriteJson(join(result.experimentDirectory,"pipeline-audit.json"),audit);
     const staticTokens = await captureStaticTokenCheck(config.lab_root,result.runs).catch(error=>({status:"unavailable",reason:String(error)}));
@@ -250,13 +289,24 @@ export async function runPilotPipeline(configPath: string) {
     const unchanged = JSON.stringify(after) === JSON.stringify(revisions);
     const comparison = result.summary.paired_comparison;
     const comparisonNote = `主对比口径：双方观测均有效、任务输入与标签一致的同题配对。纳入 ${comparison.included_pairs} 对，未纳入 ${comparison.excluded_pairs} 对；正样本 ${comparison.baseline.positive_samples} 题，负样本 ${comparison.baseline.negative_samples} 题。\n\n观测完整性（全部记录）：Baseline ${result.summary.baseline.valid_samples}/${result.summary.baseline.total_runs} 有效、${result.summary.baseline.invalid_runs} 无效；Native ${result.summary.native.valid_samples}/${result.summary.native.total_runs} 有效、${result.summary.native.invalid_runs} 无效。\n\nsummary.json 的 paired_comparison 是主指标，顶层 baseline/native 保留各组全部有效记录的参考统计。选择正确率仍以本组已调用正样本为分母，两组分母可不同；未纳入的逐题原因见 paired_comparison.items。`;
+    const study = result.summary.latency_study;
+    const seconds = (ms:number|null) => ms === null ? "—" : (ms/1000).toFixed(3);
+    const variance = (ms:number|null) => ms === null ? "—" : (ms/1_000_000).toFixed(3);
+    const latencyReport = `# 独立端到端响应延迟\n\n实验：${id}\n\n计划 ${plannedTaskCount} 题，每题每组 ${repeats} 次。正式纳入 ${study.included_tasks} 题，排除 ${study.excluded_tasks} 题，待完成 ${study.pending_tasks} 题。不纳入工具调用主指标，不评价代码正确性；拒绝或说明无法继续的正常最终响应也计时。仅代表筛选后任务。\n\n| 范围 | Baseline 均值秒 | Native 均值秒 | Baseline 样本方差秒² | Native 样本方差秒² | Baseline 标准差秒 | Native 标准差秒 | 变化率 |\n|---|---|---|---|---|---|---|---|\n`
+      + [...study.tasks.filter(t=>t.included).map(t=>({name:t.case_id,...t})),{name:"整体（全部正式运行）",...study}]
+        .map(t=>`| ${t.name} | ${seconds(t.baseline.mean)} | ${seconds(t.native.mean)} | ${variance(t.baseline.sample_variance)} | ${variance(t.native.sample_variance)} | ${seconds(t.baseline.standard_deviation)} | ${seconds(t.native.standard_deviation)} | ${t.native_change_percent?.toFixed(2)??"—"}% |`).join("\n")
+      + `\n\n整体方差按全部正式运行计算，不取各题方差平均值。\n\n## 调用轨迹与异常\n\n`
+      + study.tasks.map(t=>`### ${t.case_id}\n\n${t.status}${t.exclusion_reason?"："+t.exclusion_reason:""}\n\n`
+        + variants.map(v=>`${v}：`+t.trajectories[v].map(p=>`${p.count} 次运行：${p.tools.join(" → ")||"无资产调用"}`).join("；")).join("\n\n")).join("\n\n")
+      + `\n\n原始对话：raw/<run_id>/client-stream.jsonl；Bridge 接收轨迹：raw/<run_id>/bridge-events.json；实际输入与 Langfuse 引用：input-review/。轨迹仅辅助解释耗时，不据此认定因果。替换清单见准备目录 replacements.json。\n`;
     const lines = result.runs.map(r=>`| ${r.case_id} | ${r.variant} | ${r.observation_valid ? "有效" : "无效"} | ${r.completed ? "已返回最终回答" : r.stopped_on_observation ? "到观测点停止" : "未完成，查看错误记录"} | ${r.actual_tools.join(" → ") || "无"} | ${r.end_to_end_ms === null ? "—" : (r.end_to_end_ms/1000).toFixed(2)} |`);
     await secureWrite(join(result.experimentDirectory,"report.md"),`# ${selected.length} Task Pipeline 实际运行\n\n实验：${id}\n\n准备记录：${relative(result.experimentDirectory,preparation)}\n\n两组工具代码是否保持不变：${unchanged}\n\n模式：${config.measurement}。工具观测有效不等于 Coding 成功；CLI 返回最终回答也没有经过代码正确性验收。\n\n每组每轮共用一个 Team 和资产拥有者账号，每个任务使用独立 Agent、Task、Session 和工作区。真实业务服务，不 Mock；tool_calls 模式在指定事件出现后停止客户端，end_to_end 模式等待最终回答。准备数据不计入延迟。统计只用于检查流程，不作为正式效果结论。\n\n${comparisonNote}\n\n| Task | 版本 | 工具观测 | CLI 状态 | 实际 Proxy 调用顺序 | 端到端秒 |\n|---|---|---|---|---|---|\n${lines.join("\n")}\n\n详细指标见 summary.json；原始 CLI 和 Bridge 事件见 raw/；初始数据核对见 data-preparation.json。\n`);
     process.stderr.write(`[pipeline] report: ${join(result.experimentDirectory,"report.md")}\n`);
+    if (latencyPlan) await secureWrite(join(result.experimentDirectory,"report.md"),latencyReport);
     if (!unchanged) throw new Error("实验中项目代码发生变化，请核对 revisions-before/after");
     if (audit.issues.length) throw new Error("运行记录核对未通过，请检查 pipeline-audit.json");
-    if (result.runs.some(r=>!r.observation_valid)) throw new Error("部分运行无效，结果已保存，不能当作无工具调用计分");
-    if (config.measurement==="end_to_end" && result.runs.some(r=>!r.completed)) throw new Error("工具调用已记录，但部分任务未完成，不能当作端到端全部通过");
+    if (!latencyPlan && result.runs.some(r=>!r.observation_valid)) throw new Error("部分运行无效，结果已保存，不能当作无工具调用计分");
+    if (latencyPlan && study.included_tasks !== plannedTaskCount) throw new Error("延迟正式样本未收齐，替补用尽或准备异常；已保留全部记录，不宣称完成");
     return result;
   } catch (error) {
     await secureWriteJson(join(preparation,"failure.json"),{at:new Date().toISOString(),message:error instanceof Error ? error.message : String(error)});

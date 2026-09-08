@@ -1,0 +1,38 @@
+# 与工具调用实验共用流水线，但结果单独保存为 latency-*。
+lab_root: /storage1/liukuan/tencentdb-memory-lab
+dataset: ../dataset/tasks/tool_call_eval_v1.jsonl
+asset_base: ..
+skills: ../dataset/skills
+memories: ../dataset/memories
+results_dir: ../results
+service_id: rhino-ab
+claude_binary: /storage1/liukuan/tencentdb-memory-lab/bin/claude-eval-pinned-20260907
+uv_binary: /home/liukuan/.local/bin/uv
+client_image: tdai-eval-cli:node22-py312
+model: deepseek-v4-flash[1m]
+measurement: end_to_end
+timeout_ms: 600000
+latency:
+  tasks: { memory: 2, skill: 2, none: 1 }
+  repeats: 5
+  # 防止环境持续故障时不断准备新任务；用尽后报告样本未收齐。
+  max_replacements: 5
+# 留空时生成并保存随机种子；指定字符串可复现抽题与组内先后顺序。
+sample_seed: ""
+processing_timeout_ms: 1800000
+preparation_max_tokens: 4096
+preparation_thinking: disabled
+memory_cache: true
+allow_bash: true
+# 不自动中断正在使用的业务服务；执行前须确保两组服务可用。
+start_services: false
+restart_proxies: false
+variants:
+  baseline:
+    project: ../../TencentDB-Agent-Memory-Baseline
+    core_url: http://127.0.0.1:8420
+    proxy_url: http://127.0.0.1:8096/claude-code/rhino-ab
+  native:
+    project: ../../TencentDB-Agent-Memory-Native
+    core_url: http://127.0.0.1:18420
+    proxy_url: http://127.0.0.1:18096/claude-code/rhino-ab

@@ -1,13 +1,15 @@
 import { cp, mkdir, readFile, writeFile, stat } from "node:fs/promises";
 import { join } from "node:path";
 import { randomUUID } from "node:crypto";
-import { loadObservationConfig, type PreparedRun } from "./config.js";
+import { loadObservationConfig, validateRunManifest, type PreparedRun } from "./config.js";
 import { normalizeBridgeEvents, summarizeObservationRuns, type ObservationRun } from "./observations.js";
 import { loadDataset } from "../runner/dataset-loader.js";
 import { runClaudeClient, type ClientRunInput, type ClientRunResult } from "../runner/client.js";
 import { secureWriteJson, secureWrite, readJsonl } from "../lib/fs.js";
 import { toolFamily } from "../metrics/tool.js";
 import { verifySessionInitialization } from "./session-initialization.js";
+import type { EvalCase } from "../types.js";
+import { taskGroup } from "../metrics/task-group.js";
 
 type Health = { enabled: boolean; healthy: boolean; started_at: string; error?: string };
 async function checkObserver(baseUrl: string, directory: string, fetcher: typeof fetch): Promise<Health> {
@@ -24,6 +26,7 @@ async function checkObserver(baseUrl: string, directory: string, fetcher: typeof
 export async function runObservationExperiment(path: string, deps: {
   runClient?: (input: ClientRunInput) => Promise<ClientRunResult>;
   fetcher?: typeof fetch;
+  prepareReplacement?: (failed: PreparedRun) => Promise<{ testCase: EvalCase; runs: PreparedRun[] } | null>;
 } = {}) {
   const { config, runs: prepared } = await loadObservationConfig(path);
   const dataset = await loadDataset(config.dataset);
@@ -48,6 +51,7 @@ export async function runObservationExperiment(path: string, deps: {
   await secureWriteJson(join(directory, "config.json"), config);
   await secureWriteJson(join(directory, "manifest.json"), prepared);
   const output: Array<ObservationRun & Record<string, unknown>> = [];
+  const excluded = new Map<string, string>();
   for (const preparedRun of prepared) {
     const testCase = cases.get(preparedRun.case_id)!;
     const target = config.variants[preparedRun.variant];
@@ -63,8 +67,14 @@ export async function runObservationExperiment(path: string, deps: {
       ...(testCase.allowed_sequences ? { allowed_sequences: testCase.allowed_sequences } : {}),
       observation_valid: false, completed: false, actual_tools: [], end_to_end_ms: null,
       measurement:config.measurement,
+      ...(config.latency_repeats ? {latency_repeats:config.latency_repeats} : {}),
     };
     try {
+      if (excluded.has(run.case_id)) {
+        run.latency_excluded_reason = excluded.get(run.case_id)!;
+        run.not_started = true;
+        throw new Error("同题已有异常，本次不再执行；两组共同换题");
+      }
       const before = await checkObserver(target.proxy_base_url, target.observation_dir, fetcher);
       const claims = join(target.observation_dir, ".used-agents", preparedRun.identity.service_id);
       await mkdir(claims, { recursive: true, mode: 0o700 });
@@ -79,11 +89,15 @@ export async function runObservationExperiment(path: string, deps: {
         workDirectory: work, claudeConfigDirectory: join(raw, "claude-config"),
         envFile: target.env_file, authKeyFile: preparedRun.auth_key_file ?? target.auth_key_file, baseUrl: target.proxy_base_url,
         identity: preparedRun.identity, timeoutMs: config.timeout_ms, streamPath: join(raw, "client-stream.jsonl"),
-        evaluation: { model: config.model, allowBash: config.allow_bash, ...(config.client_image ? {image:config.client_image} : {}) },
+        evaluation: { model: config.model, allowBash: config.allow_bash,
+          skipPermissions: config.measurement === "end_to_end" && !!config.client_image,
+          ...(config.client_image ? {image:config.client_image} : {}) },
         ...(config.measurement==="tool_calls" ? {observationStop:{file:join(target.observation_dir,sessionId+".jsonl"),tools:preparedRun.stop_after_tools??[]}} : {}),
       });
       await secureWrite(join(raw, "client-stderr.log"), client.stderr);
       run.started_at = client.startedAt; run.ended_at = client.endedAt;
+      run.elapsed_ms = Date.parse(client.endedAt) - Date.parse(client.startedAt);
+      run.timed_out = client.timedOut;
       const events = await readJsonl(join(target.observation_dir, sessionId + ".jsonl"));
       await secureWriteJson(join(raw, "bridge-events.json"), events);
       const calls = normalizeBridgeEvents(events, sessionId, preparedRun.variant)
@@ -94,6 +108,8 @@ export async function runObservationExperiment(path: string, deps: {
       run.tool_calls = calls;
       const final = client.events.findLast(e => e.type === "result");
       run.final_answer = final?.result ?? null;
+      // CLI 轮次不包含 Proxy 内隐藏的模型重入，不能冒充上游模型请求次数。
+      if (typeof final?.num_turns === "number") run.client_turns = final.num_turns;
       run.completed = client.exitCode === 0 && !client.timedOut && !!final
         && final.is_error !== true && !String(final.subtype ?? "").startsWith("error") && !!client.completedAt;
       const after = await checkObserver(target.proxy_base_url, target.observation_dir, fetcher);
@@ -115,6 +131,32 @@ export async function runObservationExperiment(path: string, deps: {
       run.error = error instanceof Error ? error.message : String(error);
     }
     output.push(run);
+    if (config.measurement === "end_to_end" && config.latency_repeats
+      && (!run.completed || !run.observation_valid) && !excluded.has(run.case_id)) {
+      const reason = `${run.run_id}: ${run.error ?? "没有完整最终响应"}`;
+      excluded.set(run.case_id, reason);
+      // 即使同题之前已有成功样本，也整题退出正式汇总；原耗时与对话照常保留。
+      for (const previous of output.filter(r => r.case_id === run.case_id)) {
+        previous.latency_excluded_reason = reason;
+        await secureWriteJson(join(directory, "runs", previous.run_id + ".json"), previous);
+      }
+      if (deps.prepareReplacement) {
+        try {
+          const replacement = await deps.prepareReplacement(preparedRun);
+          if (replacement) {
+            if (cases.has(replacement.testCase.case_id) || taskGroup(replacement.testCase) !== taskGroup(testCase)
+              || replacement.runs.some(r => r.case_id !== replacement.testCase.case_id)) throw new Error("替补必须是未执行的同类别任务");
+            validateRunManifest([...prepared, ...replacement.runs]);
+            for (const next of replacement.runs) if (!(await stat(next.workspace)).isDirectory()) throw new Error("替补缺少工作区");
+            cases.set(replacement.testCase.case_id, replacement.testCase);
+            prepared.push(...replacement.runs);
+            await secureWriteJson(join(directory, "manifest.json"), prepared);
+          } else await secureWriteJson(join(directory, "replacement-exhausted.json"), {case_id:run.case_id,reason});
+        } catch (error) {
+          await secureWriteJson(join(directory, "replacement-error.json"), {case_id:run.case_id,reason:String(error)});
+        }
+      }
+    }
     await secureWriteJson(join(directory, "runs", preparedRun.run_id + ".json"), run);
     await secureWriteJson(join(directory, "summary.json"), summarizeObservationRuns(output));
     process.stderr.write("[bridge-eval] " + run.run_id + ": " + (run.observation_valid ? run.actual_tools.join(", ") || "no tool" : "INVALID") + "\n");

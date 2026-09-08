@@ -77,7 +77,7 @@
       </section>
       <section id="results-view" hidden>
       <section class="page-heading">
-        <div><p class="eyebrow">PROXY TOOL EVALUATION</p><h1>工具调用评测</h1><p class="muted">同一个任务，比较两种工具调用方式。</p></div>
+        <div><p class="eyebrow">PROXY TOOL EVALUATION</p><h1 id="results-title">工具调用评测</h1><p class="muted">同一个任务，比较两种工具调用方式。</p></div>
         <div class="experiment-controls">
           <label><span>实验</span><select id="experiment" aria-label="选择实验"><option>正在读取…</option></select></label>
           <button id="refresh" type="button" class="secondary">刷新结果</button>
@@ -94,23 +94,28 @@
         <section class="comparison-heading" aria-labelledby="comparison-title">
           <h2 id="comparison-title">同题对比 · 双方观测均有效</h2>
           <p id="comparison-scope" class="muted"></p>
-          <p class="muted">正常无调用仍计入；到达工具观测点后停止不算失败。排除异常任务后，不代表全部任务上的效果。</p>
+          <p id="comparison-note" class="muted">正常无调用仍计入；到达工具观测点后停止不算失败。排除异常任务后，不代表全部任务上的效果。</p>
         </section>
         <div id="metrics" class="metrics-grid"></div>
         <div class="evaluation-progress">
+        <section id="latency-tasks" class="panel latency-panel" hidden aria-labelledby="latency-tasks-title">
+          <div class="section-heading"><div><h2 id="latency-tasks-title">逐任务延迟与调用轨迹</h2><p class="muted">均值、标准差单位为秒；样本方差单位为秒²。展开任务可查看调用轨迹和未纳入原因。</p></div></div>
+          <div class="table-scroll"><table id="latency-table"></table></div>
+          <div id="latency-trajectories"></div>
+        </section>
           <div><span>运行记录进度 · 不代表全部运行成功</span><strong id="progress-percent">0%</strong></div>
           <progress id="evaluation-progress" max="1" value="0" aria-label="评测运行进度" aria-describedby="progress"></progress>
         </div>
-        <details class="breakdown panel">
+        <details id="tool-breakdown" class="breakdown panel">
           <summary>Memory / Skill 分项与样本数量<span class="muted">同题配对范围</span></summary>
           <div class="table-scroll"><table id="breakdown"></table></div>
         </details>
-        <section class="panel health-panel" aria-labelledby="health-title">
+        <section id="tool-health" class="panel health-panel" aria-labelledby="health-title">
           <div class="section-heading"><div><h2 id="health-title">观测完整性 · 保留全部记录</h2><p class="muted">当前评测分组内分别统计，不做配对剔除。有效观测不等于后端执行成功或 Coding 完成。</p></div></div>
           <div id="observation-health" class="health-grid"></div>
           <details class="health-details"><summary>查看未纳入主对比的任务及原因</summary><div id="observation-issues"></div></details>
         </section>
-        <details class="breakdown panel">
+        <details id="tool-reference" class="breakdown panel">
           <summary>参考统计 · 各组全部有效记录<span class="muted">非同题对比</span></summary>
           <p class="reference-note muted">两组保留的任务可能不同，不直接据此判断哪组更优。主结论请使用上方同题对比。</p>
           <div class="table-scroll"><table id="reference-metrics"></table></div>
@@ -120,7 +125,7 @@
           <form id="filters" class="filters">
             <label class="search"><span class="sr-only">搜索任务</span><input id="search" type="search" placeholder="搜索任务、问题或工具名" autocomplete="off"></label>
             <label><span class="sr-only">工具类别</span><select id="family" aria-label="工具类别"><option value="">全部类别</option><option value="memory">Memory</option><option value="skill">Skill</option><option value="mixed">Memory／Skill 双入口</option><option value="none">None</option></select></label>
-            <label><span class="sr-only">调用情况</span><select id="outcome" aria-label="调用情况"><option value="">全部情况</option><option value="attention">需要关注</option><option value="correct">符合预期</option><option value="missed">未调用</option><option value="wrong_tool">选择不符</option><option value="false_call">误调用</option><option value="invalid">采集异常</option><option value="damaged">文件异常</option><option value="pending">待运行</option></select></label>
+            <label><span class="sr-only">调用情况</span><select id="outcome" aria-label="调用情况"><option value="">全部情况</option><option value="attention">需要关注</option><option value="correct">符合预期</option><option value="missed">未调用</option><option value="wrong_tool">选择不符</option><option value="false_call">误调用</option><option value="responded">已返回响应</option><option value="excluded">整题排除</option><option value="invalid">采集异常</option><option value="damaged">文件异常</option><option value="pending">待运行</option></select></label>
             <label><span class="sr-only">主对比范围</span><select id="comparison-filter" aria-label="主对比范围"><option value="">全部任务</option><option value="included">纳入主对比</option><option value="excluded">未纳入主对比</option></select></label>
             <button id="clear" type="button" class="text-button">清空筛选</button>
           </form>
@@ -133,7 +138,7 @@
           <p>调用记录来自 Memory / Skill Bridge 入口，表示请求已到达 Bridge，不代表后端执行成功。展示顺序为 Bridge 接收顺序；并发时不一定等于模型生成顺序。</p>
           <p>“符合预期”只评价是否调用及工具选择，不评价答案质量。主指标只比较双方观测均有效、输入与标签一致的任务；任意一边观测无效，整对排除。有效无调用、已记录工具后停止均保留。分母为零显示“—”，不是 0%。</p>
           <p>工具选择正确率 = 首次选对的正样本 / 本组已调用的正样本。因此即使使用同一批任务，两组分母也可能不同，应结合有效调用率理解。Memory／Skill 双入口单独统计，不进入纯 Memory 或 Skill 正样本组。</p>
-          <p>端到端延迟从 Claude Code 启动提交输入起，到成功返回最终回答为止。对比只使用同一任务、同一重复编号的有效配对；先对每个任务的重复运行取均值，再汇总。Memory / Skill 的误调用率均以全部负样本为分母。</p>
+          <p>延迟实验独立运行、独立汇总：从 Claude Code 启动提交输入到正常返回完整最终响应，不验收代码正确性。每题两组均跑满配置次数才纳入；一侧异常整题退出正式汇总。整体样本方差使用全部正式运行，不平均各题方差。Memory / Skill 的误调用率均以全部负样本为分母。</p>
           <p>本观测格式不采集工具参数、业务返回值或静态注入 Token，因此不在此展示这些指标。</p>
         </details>
       </section>

@@ -24,6 +24,7 @@ const configSchema = z.object({
   allow_bash: z.boolean().default(false),
   client_image: z.string().min(1).optional(),
   measurement:z.enum(["tool_calls","end_to_end"]).default("end_to_end"),
+  latency_repeats: z.number().int().positive().optional(),
   variants: z.object({ baseline: variant, native: variant }).strict(),
 }).strict();
 export type ObservationConfig = z.infer<typeof configSchema>;

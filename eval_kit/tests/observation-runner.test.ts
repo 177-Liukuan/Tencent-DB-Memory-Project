@@ -25,7 +25,7 @@ it("无需 Langfuse：真实文件采集、独立身份、零调用和失败采�
     rows.splice(3,0,{run_id:"e-baseline",case_id:"e",variant:"baseline",repeat:1,seed_version:"seed",workspace:"seed",auth_key_file:"keys/e-baseline.key",
       identity:{service_id:"space",team_id:"team-e",agent_id:"agent-e",task_id:"task-e"}});
     await writeFile(join(d,"manifest.json"),JSON.stringify(rows));
-    const config = {version:2,experiment_id:"test",dataset:"cases.jsonl",run_manifest:"manifest.json",results_dir:"results",claude_binary:"unused",model:"model",
+    const config = {version:2,experiment_id:"test",measurement:"tool_calls",dataset:"cases.jsonl",run_manifest:"manifest.json",results_dir:"results",claude_binary:"unused",model:"model",
       variants:Object.fromEntries(["baseline","native"].map(v=>[v,{proxy_base_url:"http://"+v+"/claude-code/space",observation_dir:v,env_file:"env",auth_key_file:"key"}]))};
     await writeFile(join(d,"config.json"),JSON.stringify(config));
     const identities: string[] = []; const sessions = new Set<string>(); let unhealthy = false;
@@ -46,7 +46,7 @@ it("无需 Langfuse：真实文件采集、独立身份、零调用和失败采�
     expect(result.runs.map(r=>[r.observation_valid,r.actual_tools])).toEqual([[true,["tdai_memory_search"]],[true,["tdai_memory_search"]],[true,[]],[false,[]],[false,[]]]);
     expect(result.runs[3]!.error).toContain("API Error: diagnostic");
     expect(result.runs[1]).toMatchObject({observation_valid:true,completed:false,end_to_end_ms:null});
-    expect(result.runs[0]!.end_to_end_ms).toBe(100);
+    expect(result.runs[0]!.end_to_end_ms).toBeNull();
     expect(result.summary.paired_comparison).toMatchObject({ total_pairs: 3, included_pairs: 1, excluded_pairs: 2 });
     expect(result.summary.paired_comparison.baseline).toMatchObject({ positive_samples: 1, negative_samples: 0, effective_call_rate: 1 });
     expect(result.summary.baseline.negative_samples).toBe(1);

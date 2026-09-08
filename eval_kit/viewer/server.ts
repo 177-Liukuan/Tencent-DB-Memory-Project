@@ -72,13 +72,13 @@ export function createViewerApp(options: { resultsRoot: string; datasetPath?: st
       if (error.code === "ENOENT") return [];
       throw error;
     });
-    const experiments: Array<{ experiment_id: string; model: string; updated_at: string }> = [];
+    const experiments: Array<{ experiment_id: string; model: string; updated_at: string; measurement: string }> = [];
     for (const entry of entries) {
       if (!entry.isDirectory() || entry.name.startsWith(".")) continue;
       try {
         const current = await config(entry.name);
         const info = await stat(await resolveExistingWithin(options.resultsRoot, `${entry.name}/config.json`));
-        experiments.push({ experiment_id: entry.name, model: current.model, updated_at: info.mtime.toISOString() });
+        experiments.push({ experiment_id: entry.name, model: current.model, measurement: current.measurement ?? "tool_calls", updated_at: info.mtime.toISOString() });
       } catch { /* 结果目录也存放准备材料和旧实验，只列出有效的新格式配置。 */ }
     }
     return c.json(experiments.sort((a, b) => b.updated_at.localeCompare(a.updated_at) || a.experiment_id.localeCompare(b.experiment_id)));

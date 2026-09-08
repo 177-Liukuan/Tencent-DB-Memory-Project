@@ -20,6 +20,10 @@ const schema = z.object({
   preparation_thinking: z.enum(["default","disabled"]).default("default"),
   memory_cache: z.boolean().default(true),
   measurement:z.enum(["tool_calls","end_to_end"]).default("tool_calls"),
+  latency: z.object({
+    tasks: z.object({ memory: z.number().int().nonnegative().default(2), skill: z.number().int().nonnegative().default(2), none: z.number().int().nonnegative().default(1) }).strict().default({memory:2,skill:2,none:1}),
+    repeats: z.number().int().positive().default(5), max_replacements: z.number().int().nonnegative().default(5),
+  }).strict().optional(),
   stop_after_tools:z.record(z.string(),z.array(z.string().min(1)).min(1)).default({}),
   allow_bash: z.boolean().default(false),
   start_services: z.boolean().default(false),
@@ -31,6 +35,12 @@ const schema = z.object({
 export type PilotConfig = z.infer<typeof schema>;
 export async function loadPilotConfig(path: string): Promise<PilotConfig> {
   const config = schema.parse(yaml.load(await readFile(path, "utf8")));
+  if (config.latency && config.measurement !== "end_to_end") throw new Error("latency 配置仅用于 end_to_end 模式");
+  if (config.measurement === "end_to_end") {
+    if (config.timeout_ms > 600_000) throw new Error("延迟评测单次上限为 600000 ms");
+    if (config.reuse_preparation) throw new Error("延迟模式请使用 memory_cache 冻结提炼结果，不使用旧实验的 reuse_preparation");
+    if (config.latency && Object.values(config.latency.tasks).every(n => n === 0)) throw new Error("延迟任务数量不能全为0");
+  }
   const base = dirname(resolve(path));
   if (config.reuse_preparation) config.reuse_preparation = resolve(base,config.reuse_preparation);
   for (const key of ["lab_root", "dataset", "asset_base", "skills", "memories", "results_dir", "claude_binary", "uv_binary"] as const) {

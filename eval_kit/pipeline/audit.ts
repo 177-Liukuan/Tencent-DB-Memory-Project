@@ -22,6 +22,10 @@ export async function auditPilotResults(directory:string,labRoot:string) {
   const agents = new Set<string>(); const tasks = new Set<string>();
   for (const prepared of manifest) {
     const run = JSON.parse(await readFile(join(directory,"runs",prepared.run_id+".json"),"utf8"));
+    if (run.measurement === "end_to_end" && run.latency_excluded_reason) {
+      rows.push({run_id:prepared.run_id,excluded:true,reason:run.latency_excluded_reason,not_started:run.not_started??false});
+      continue;
+    }
     const raw = join(directory,"raw",prepared.run_id);
     const recorded = JSON.parse(await readFile(join(raw,"bridge-events.json"),"utf8"));
     const calls = normalizeBridgeEvents(recorded,run.session_id,prepared.variant)

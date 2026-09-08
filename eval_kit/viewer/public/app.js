@@ -3,7 +3,7 @@ import { initReview } from "./review.js";
 
 const state = { experiment: "", suite: "", data: null, pairs: [], page: 1, load: 0, detail: 0, view: "dataset" };
 const PAGE_SIZE = 25;
-const labels = { correct: "符合预期", missed: "未调用", wrong_tool: "选择不符", false_call: "误调用", invalid: "采集异常", damaged: "文件异常", pending: "待运行" };
+const labels = { correct: "符合预期", missed: "未调用", wrong_tool: "选择不符", false_call: "误调用", invalid: "采集异常", damaged: "文件异常", pending: "待运行", responded: "已返回响应", excluded: "整题排除" };
 const suites = { main: "主评测", smoke: "冒烟测试", probe: "探针测试", reliability: "可靠性测试" };
 const byId = (id) => document.getElementById(id);
 function node(tag, className = "", text) {
@@ -49,6 +49,17 @@ function updateUrl(pair) {
 }
 
 function renderMetrics() {
+  const isLatency = state.data.measurement === "end_to_end";
+  byId("results-title").textContent = isLatency ? "端到端延迟评测" : "工具调用评测";
+  for (const id of ["tool-breakdown", "tool-health", "tool-reference"]) byId(id).hidden = isLatency;
+  byId("latency-tasks").hidden = !isLatency;
+  for (const option of byId("outcome").options) {
+    option.hidden = isLatency ? ["correct","missed","wrong_tool","false_call"].includes(option.value)
+      : ["responded","excluded"].includes(option.value);
+  }
+  if (isLatency) { renderLatency(); return; }
+  byId("comparison-title").textContent = "同题对比 · 双方观测均有效";
+  byId("comparison-note").textContent = "正常无调用仍计入；到达工具观测点后停止不算失败。排除异常任务后，不代表全部任务上的效果。";
   const { paired_comparison: comparison, paired_latency: p } = state.data.summary;
   const { baseline: b, native: n } = comparison;
   const unmeasured = state.data.measurement === "tool_calls";
@@ -71,7 +82,7 @@ function renderMetrics() {
     }
     const foot = node("div", "metric-foot");
     const change = latency ? p.native_change_percent : finite(base) && finite(native) ? (native - base) * 100 : null;
-    if (latency && unmeasured) foot.append(node("span", "", "工具调用观测模式，不等待完整 Coding 任务。"));
+    if (latency && unmeasured) foot.append(node("span", "", "本轮为工具观测模式。延迟另跑、另汇总，请从实验列表选择延迟实验。"));
     else foot.append(delta(change, latency ? "%" : " 个百分点", lower), node("span", "", " · Native 相对 Baseline"));
     card.append(title, values, foot);
     card.append(node("p", "metric-foot", latency ? unmeasured ? "未测量不等于 0 秒。" : `${p.cases} 个配对任务 · ${p.pairs} 对运行` : key === "effective_call_rate" ? "已调用正样本 / 同题正样本" : key === "false_call_rate" ? "误调用负样本 / 同题负样本" : "首次选对 / 本组已调用正样本；分母可不同，需结合有效调用率。"));
@@ -104,6 +115,43 @@ function renderMetrics() {
   }
   table.append(body);
   renderObservationHealth();
+}
+
+function renderLatency() {
+  const study = state.data.summary.latency_study;
+  byId("comparison-title").textContent = "独立延迟实验 · 不计入工具调用评分";
+  byId("comparison-scope").textContent = `正式纳入 ${study.included_tasks} 题 · 每组 ${study.baseline.count} 次运行｜整题排除 ${study.excluded_tasks} 题｜尚未跑满 ${study.pending_tasks} 题`;
+  byId("comparison-note").textContent = "收到完整最终响应即计时，不验收代码正确性。超时或异常时两组共同换题，原始记录保留；结果仅代表筛选后任务。";
+  const target = byId("metrics"); target.replaceChildren();
+  const valueText = (v, variance = false) => finite(v) ? `${(v / (variance ? 1000000 : 1000)).toFixed(3)} ${variance ? "s²" : "s"}` : "—";
+  for (const [label, field, variance] of [["平均响应延迟", "mean", false], ["样本方差", "sample_variance", true], ["标准差", "standard_deviation", false]]) {
+    const card = node("article", "metric-card"); card.append(node("div", "metric-label", label));
+    const values = node("div", "metric-values");
+    for (const v of ["baseline", "native"]) {
+      const cell = node("div", `${v}-label`); cell.append(node("small", "", v === "native" ? "Native" : "Baseline"),node("strong", "", valueText(study[v][field], variance))); values.append(cell);
+    }
+    card.append(values,node("p", "metric-foot", field === "mean" ? "全部正式运行的算术平均值" : field === "sample_variance" ? "全部正式运行的样本方差，不平均各题方差" : "以秒表示运行耗时的波动")); target.append(card);
+  }
+  const change = node("article", "metric-card"); change.append(node("div", "metric-label", "平均延迟变化率"),delta(study.native_change_percent, "%", true),node("p", "metric-foot", "Native 相对 Baseline；负值更快。未测量或样本未收齐时不显示为零。")); target.append(change);
+  const table = byId("latency-table"); table.replaceChildren();
+  const head = node("thead"), hr = node("tr");
+  for (const title of ["任务 / 状态", "运行数 B / N", "均值 B / N（s）", "方差 B / N（s²）", "标准差 B / N（s）", "变化率"]) hr.append(node("th", "", title)); head.append(hr); table.append(head);
+  const body = node("tbody"), tracks = byId("latency-trajectories"); tracks.replaceChildren();
+  const status = {included:"已纳入",excluded:"整题排除",pending:"尚未跑满"};
+  for (const task of study.tasks) {
+    const tr=node("tr"); tr.append(node("td", "", `${task.case_id} · ${status[task.status]}`),node("td", "", `${task.baseline.count} / ${task.native.count}（各需 ${task.expected_repeats}）`));
+    for (const field of ["mean","sample_variance","standard_deviation"]) tr.append(node("td", "latency-number", `${valueText(task.baseline[field],field==="sample_variance")} / ${valueText(task.native[field],field==="sample_variance")}`));
+    const d=node("td");d.append(delta(task.native_change_percent,"%",true));tr.append(d);body.append(tr);
+    const detail=node("details","latency-trajectory");detail.append(node("summary","",`${task.case_id} · ${status[task.status]} · 调用轨迹`));
+    detail.append(node("p","",task.query));
+    if(task.exclusion_reason) detail.append(node("p","error",task.exclusion_reason));
+    for(const v of ["baseline","native"]){
+      detail.append(node("h3",`${v}-label`,v==="native"?"Native":"Baseline"));
+      const list=node("ul");for(const trajectory of task.trajectories[v]) list.append(node("li","",`${trajectory.count} 次运行：${trajectory.tools.join(" → ")||"无资产工具调用"}`));detail.append(list);
+    }
+    detail.append(node("p","muted","顺序为 Bridge 接收顺序，重复工具名不代表参数相同。各次最终响应及事件见下方任务详情；对话原始文件保存在实验 raw/ 目录。"));tracks.append(detail);
+  }
+  table.append(body);
 }
 
 function metricFraction(metrics, key) {
@@ -154,7 +202,8 @@ function makePairs(items) {
   }
   const decisions = new Map(state.data.summary.paired_comparison.items.map(p => [JSON.stringify([p.case_id, p.repeat]), p]));
   return [...pairs.values()].map(pair => {
-    const decision = decisions.get(JSON.stringify([pair.case_id, pair.repeat]));
+    const latencyTask = state.data.measurement === "end_to_end" ? state.data.summary.latency_study.tasks.find(t=>t.case_id===pair.case_id) : null;
+    const decision = latencyTask ? {included:latencyTask.included,exclusion_reason:latencyTask.exclusion_reason??"本题尚未跑满重复次数"} : decisions.get(JSON.stringify([pair.case_id, pair.repeat]));
     const issues = ["baseline", "native"].flatMap(variant => {
       const run = pair[variant];
       return !run || ["damaged", "pending"].includes(run.outcome) ? [`${variant === "native" ? "Native" : "Baseline"} ${run?.outcome === "damaged" ? "结果文件异常" : "记录尚未就绪"}`] : [];
@@ -173,7 +222,7 @@ function filteredPairs() {
     const runs = [pair.baseline, pair.native].filter(Boolean);
     if (search && !runs.some(r => [r.case_id, r.run_id, r.query, ...r.actual_tools].join(" ").toLocaleLowerCase().includes(search))) return false;
     if (family && !runs.some(r => r.task_group === family)) return false;
-    if (outcome && !runs.some(r => outcome === "attention" ? ["missed", "wrong_tool", "false_call", "invalid", "damaged"].includes(r.outcome) : r.outcome === outcome)) return false;
+    if (outcome && !runs.some(r => outcome === "attention" ? ["missed", "wrong_tool", "false_call", "invalid", "damaged", "excluded"].includes(r.outcome) : r.outcome === outcome)) return false;
     return true;
   });
 }
@@ -222,7 +271,7 @@ function detailColumn(run, variant, error) {
   if (!run || ["pending", "damaged"].includes(run.outcome)) {
     el.append(node("p", "muted", run?.outcome === "damaged" ? "结果文件损坏或与清单不符，请检查后刷新。" : run ? "该运行尚未生成结果。" : "实验清单中未安排这一组。")); return el;
   }
-  const status = !run.observation_valid ? "观测无效" : run.stopped_on_observation ? "达到观测点，正常停止观察" : run.completed ? "已完成回答" : "已记录调用，后续运行未完成";
+  const status = run.not_started ? "同题已排除，本次未启动" : !run.observation_valid ? "观测无效" : run.stopped_on_observation ? "达到观测点，正常停止观察" : run.completed ? "已完成回答" : "已记录调用，后续运行未完成";
   const stats = node("div", "detail-stats"); stats.append(node("span", "", state.data.measurement === "tool_calls" ? "端到端：本轮未测量" : `端到端 ${format(run.end_to_end_ms, "time")}`), node("span", "", `${run.actual_tools.length} 次调用`), node("span", "", status)); el.append(stats);
   el.append(node("p", "muted", `任务分组：${({ memory: "Memory", skill: "Skill", mixed: "Memory／Skill 双入口", none: "None" })[run.task_group]}`));
   if (!run.observation_valid) el.append(node("p", "error", `本次采集无效，不计入指标。${run.error ?? ""}`));
@@ -235,6 +284,8 @@ function detailColumn(run, variant, error) {
     if (call) {
       item.append(node("small", "", `${new Date(call.timestamp).toISOString().slice(11, 23)} UTC · ${call.tool_family}`));
       item.append(node("small", "", `Call ID：${call.call_id ?? "Baseline 未提供"}`));
+  if (run.latency_excluded_reason) el.append(node("p", "error", `本题全部重复退出正式延迟汇总：${run.latency_excluded_reason}`));
+  if (finite(run.client_turns)) el.append(node("p", "muted", `CLI 报告 ${run.client_turns} 轮（不包含 Proxy 隐藏的模型重入）`));
     } else item.append(node("small", "", "此记录未包含事件明细"));
     calls.append(item);
   });
@@ -260,7 +311,9 @@ async function showPair(pair) {
   }));
   if (ticket !== state.detail || !dialog.open) return;
   body.replaceChildren();
-  body.append(node("p", pair.included ? "pair-notice included" : "pair-notice excluded", pair.included
+  body.append(node("p", pair.included ? "pair-notice included" : "pair-notice excluded", state.data.measurement === "end_to_end"
+    ? pair.included ? "本题全部重复纳入延迟汇总，不评价工具选择或代码正确性。" : `本题不纳入正式延迟汇总：${pair.exclusion_reason}。已发生的耗时与对话仅供分析。`
+    : pair.included
     ? "本题纳入主对比：双方观测均有效。"
     : `本题未纳入主对比：${pair.exclusion_reason}。两组原记录均保留；有效一侧仅供分析，不计入配对主指标。`));
   const sample = results.find(r => r.run?.query)?.run;
@@ -302,7 +355,7 @@ async function refresh() {
   byId("refresh").disabled = true;
   try {
     const experiments = await api("/api/experiments");
-    const picker = byId("experiment"); picker.replaceChildren(...experiments.map(e => new Option(e.experiment_id, e.experiment_id)));
+    const picker = byId("experiment"); picker.replaceChildren(...experiments.map(e => new Option(`${e.measurement === "end_to_end" ? "延迟" : "工具调用"} · ${e.experiment_id}`, e.experiment_id)));
     if (!experiments.length) {
       ++state.load; state.data = null; state.experiment = ""; state.suite = ""; byId("case-dialog").close();
       byId("dashboard").hidden = true; byId("empty").hidden = false; byId("loading").hidden = true; notice("");

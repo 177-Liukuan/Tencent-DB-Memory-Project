@@ -292,3 +292,13 @@ progress::-webkit-progress-bar { background: #edf6fc; border-radius: 4px; }progr
   .variant-detail + .variant-detail { border-top: 1px solid var(--line); padding-top: 20px; }
 }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+#latency-tasks { margin-bottom: 24px; }
+#latency-tasks .table-scroll { overflow-x: auto; padding: 0 24px 16px; }
+#latency-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+#latency-table th, #latency-table td { padding: 14px 12px; text-align: left; border-bottom: 1px solid var(--line); }
+#latency-table th { color: var(--muted); font-weight: 500; white-space: nowrap; }
+#latency-table .latency-number { white-space: nowrap; font-variant-numeric: tabular-nums; }
+#latency-trajectories { padding: 0 24px 24px; }
+.latency-trajectory { border-bottom: 1px solid var(--line); padding: 14px 0; overflow-wrap: anywhere; }
+.latency-trajectory summary { cursor: pointer; font-weight: 600; }
+.latency-trajectory p { margin: 10px 0 0; line-height: 1.7; }

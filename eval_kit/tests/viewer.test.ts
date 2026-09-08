@@ -31,6 +31,21 @@ async function fixture() {
 }
 
 describe("Bridge viewer API", () => {
+  it("延迟页保留模式和排除字段，按最终响应计时，不把重复样本混入工具分数", async () => {
+    const {app,save,result} = await fixture();
+    await save("config.json",{version:2,experiment_id:"exp-a",model:"test-model",measurement:"end_to_end"});
+    for(const variant of ["baseline","native"] as const) await save(`runs/case-a-${variant}-1.json`,result(variant,{
+      measurement:"end_to_end",latency_repeats:1,final_answer:"无法继续。",
+    }));
+    const data=await (await app.request("/api/experiments/exp-a/overview")).json();
+    expect(data.summary.baseline.total_runs).toBe(0);
+    expect(data.summary.latency_study).toMatchObject({included_tasks:1,baseline:{mean:2000},native:{mean:1000},native_change_percent:-50});
+    expect(data.items[0].outcome).toBe("responded");
+    await save("runs/case-a-native-1.json",result("native",{measurement:"end_to_end",latency_repeats:1,latency_excluded_reason:"同题另一次超时"}));
+    const excluded=await (await app.request("/api/experiments/exp-a/overview")).json();
+    expect(excluded.summary.latency_study.baseline.count).toBe(0);
+    expect(excluded.summary.latency_study.tasks[0].exclusion_reason).toBe("同题另一次超时");
+  });
   it("主对比整对排除初始化失败，保留另一组有效观测和原始统计", async () => {
     const { app, save, result } = await fixture();
     await save("runs/case-a-baseline-1.json", result("baseline", { observation_valid: false,

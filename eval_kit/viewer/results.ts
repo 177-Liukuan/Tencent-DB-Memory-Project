@@ -21,6 +21,10 @@ const resultSchema = z.object({
   started_at: z.string().datetime().optional(), ended_at: z.string().datetime().optional(),
   final_answer: z.unknown().optional(), error: z.string().optional(),
   stopped_on_observation: z.boolean().optional(), stop_reason: z.string().optional(),
+  measurement: z.enum(["tool_calls", "end_to_end"]).optional(),
+  latency_repeats: z.number().int().positive().optional(), latency_excluded_reason: z.string().optional(),
+  not_started: z.boolean().optional(), timed_out: z.boolean().optional(), elapsed_ms: z.number().nonnegative().optional(),
+  client_turns: z.number().nonnegative().optional(),
 }).transform(({ allowed_first_tools, expected_tool_sequence, allowed_sequences, ...run }) => ({
   ...run,
   ...(allowed_first_tools ? { allowed_first_tools } : {}),
@@ -33,6 +37,8 @@ export const viewerConfigSchema = z.object({ version: z.literal(2), experiment_i
   measurement: z.enum(["tool_calls", "end_to_end"]).optional() });
 
 function outcome(run: Run) {
+  if (run.measurement === "end_to_end") return run.latency_excluded_reason ? "excluded"
+    : run.completed && run.observation_valid ? "responded" : "invalid";
   if (!run.observation_valid) return "invalid";
   if (!run.should_call) return run.actual_tools.length ? "false_call" : "correct";
   if (!run.actual_tools.length) return "missed";

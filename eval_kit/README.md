@@ -16,6 +16,8 @@ Task 命名为 `task_n`（描述“完成用户请求”），Agent 命名为 `a
 
 Memory 缓存默认开启（`memory_cache: true`），底稿保存在 `results_dir/memory-cache/`。同一组 L0 会话内容、顺序、原始时间和提炼配置/源码相同时，只提炼一次；后续任务或实验复制已有 L0～L3，不调用 LLM。每个 Agent 仍得到独立副本，记录和会话编号随新任务改写；不会复制正式运行后新增的 Memory，也不会复用旧任务、标签或 Assets。`builder/task-XX/ready.json` 中的 `cache.status` 为 `hit` 或 `miss`，命中时旧提炼耗时单列为 `source_elapsed_ms`。需要重新提炼时设置 `memory_cache: false`。详情见 [Memory 复用说明](docs/pilot-pipeline.md#memory-自动复用)。
 > Viewer 提供数据集概览、任务标注与人工审查、当前 Bridge 实验结果对比：`npm run viewer -- --results results --port 4173`。可用 `--dataset` 指定任务文件；标注保存会备份并更新此文件，见 [页面使用说明](docs/viewer.md)。
+
+独立延迟实验使用 `configs/latency.example.yaml`：默认 5 题 × 每组 5 次，等待最终响应，单独展示均值、方差、变化率与调用轨迹。运行与统计口径见[延迟评测说明](docs/latency-evaluation.md)。
 > 下方旧实验中的 `npm run run` 现应使用 `npm run legacy:run`；dataset 与 data-preparation 用法不变。
 
 任务现在按允许的首次入口派生为 Memory、Skill、Memory／Skill 双入口（Mixed）、None 四组；`tool_family` 仅保留为主要需求元数据。Mixed 不进入纯 Memory 或 Skill 的正样本统计，总体每题只计一次。
