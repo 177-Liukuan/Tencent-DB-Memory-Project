@@ -1,6 +1,0 @@
-{
-  "scenario": "redis-concurrency",
-  "sample_order_id": "ord-103",
-  "customer": "customer-3",
-  "enabled": true
-}

@@ -1,9 +1,0 @@
-:root { font-family: system-ui, sans-serif; color: #1b1b1b; }
-body { margin: 2rem; background: #fafafa; }
-main { max-width: 48rem; margin: 0 auto; }
-form { display: grid; gap: .75rem; max-width: 24rem; }
-label { display: grid; gap: .25rem; }
-input { padding: .5rem; border: 1px solid #888; border-radius: .25rem; }
-button { width: fit-content; padding: .5rem .8rem; }
-table { border-collapse: collapse; width: 100%; }
-th, td { border: 1px solid #ccc; padding: .5rem; text-align: left; }

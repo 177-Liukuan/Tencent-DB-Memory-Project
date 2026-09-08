@@ -10,3 +10,6 @@
 [submodule "tencentdb-memory-lab"]
 	path = tencentdb-memory-lab
 	url = https://github.com/177-Liukuan/TencentDB-Memory-Lab.git
+[submodule "eval-kit"]
+	path = eval_kit
+	url = https://github.com/177-Liukuan/TencentDB-Agent-Memory-Eval-Kit.git

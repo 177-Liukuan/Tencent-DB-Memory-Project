@@ -1,6 +1,0 @@
-[
-  {"command":"curl -X POST http://proxy/memory-bridge/v3/atomic/query -d '{\"type\":\"rule\",\"limit\":10}'"},
-  {"command":"curl -X POST http://proxy/memory-bridge/v3/scenario/ls -d '{\"path_prefix\":\"projects/\"}'"},
-  {"command":"curl -X POST http://proxy/memory-bridge/v3/scenario/read -d '{\"path\":\"projects/service.md\"}'"},
-  {"command":"curl -X POST http://proxy/memory-bridge/v3/atomic/search -d '{\"query\":\"日志 格式\"}'"}
-]
