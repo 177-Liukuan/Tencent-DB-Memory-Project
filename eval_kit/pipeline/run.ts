@@ -7,7 +7,8 @@ import { fileURLToPath } from "node:url";
 import { DatabaseSync, backup } from "node:sqlite";
 import yaml from "js-yaml";
 import { loadPilotConfig, selectPilotCases, type PilotConfig } from "./config.js";
-import { copyMemorySeed, inspectMemorySeed, type SeedEndpoint } from "./memory-seed.js";
+import { inspectMemorySeed, type SeedEndpoint } from "./memory-seed.js";
+import { publishMemorySeed } from "./memory-publication.js";
 import { isolateSeedSessions, loadTaskInputs, resolveSessionQuery } from "./inputs.js";
 import { waitForHttp } from "./readiness.js";
 import { prepareClientImage } from "./container-image.js";
@@ -199,21 +200,16 @@ export async function runPilotPipeline(configPath: string) {
         throw new Error(c.case_id + " L0/L1/L2/L3 未准备完整: " + JSON.stringify(seed));
       }
       const recordIdNamespace = frozen ? id+":"+label : undefined;
-      const baselineCopied = await copyMemorySeed(source,baselineTarget,recordIdNamespace);
-      const copied = await copyMemorySeed(source,target,recordIdNamespace);
+      const baselineCopied = await publishMemorySeed(source,baselineTarget,connections.baseline,baseline.identity.task_id,recordIdNamespace);
+      const copied = await publishMemorySeed(source,target,connections.native,native.identity.task_id,recordIdNamespace);
       if (baselineCopied.digest !== copied.digest) throw new Error(c.case_id + " 两组复制后的 Memory 内容不同");
       const taskSkills = taskInputs[index]!.skills;
       const skillDigests = await Promise.all([baseline,native].map(r=>verifySkills(connections[r.variant],r,taskSkills)));
       if (skillDigests[0] !== skillDigests[1]) throw new Error(c.case_id + " 两组 Skill 内容不同");
-      const apiChecks = [];
-      for (const [v,r] of [["baseline",baseline],["native",native]] as const) {
-        const connection = connections[v];
-        const body = {user_id:connection.userId,team_id:r.identity.team_id,agent_id:r.identity.agent_id};
-        const l0 = await api<{total:number}>(connection,"/v3/conversation/count",body);
-        const l1 = await api<{total:number}>(connection,"/v3/atomic/count",body);
-        if (l0.total !== expectedMessages || l1.total !== seed.counts.l1_records) throw new Error(c.case_id + " API 与本地种子数量不同");
-        apiChecks.push({variant:v,l0:l0.total,l1:l1.total});
-      }
+      const apiChecks = [
+        {...baselineCopied.apiCheck,run_id:baseline.run_id,repeat:baseline.repeat},
+        {...copied.apiCheck,run_id:native.run_id,repeat:native.repeat},
+      ];
       baseline.seed_version = native.seed_version = createHash("sha256").update(seed.digest + skillDigests[0] + workspaces.get(c.case_id)!.digest).digest("hex");
       // 完整 Skill 库可有意更新，但被冻结的 Memory 和 Workspace 仍必须与原实验一致。
       const original = frozenChecks.find(r=>r.case_id===c.case_id);

@@ -66,7 +66,7 @@ npm run score -- --experiment results/pilot-2026-09-05T10-26-56-763Z
 2. 每个 Task × 版本新建普通用户、Team、Agent、Task。Agent 使用“通用Coding Agent”和“一个通用Coding Agent”；每个导入 Session 也独立。
 3. 每个 Task 的两组 Agent 都导入 `skills` 目录中的全部 Skill，含正文与 `references/`、`scripts/`、`assets/`、旧 `files/`；按名称排序、逐个读回核对。`candidate_skills` 不再筛选导入内容，`expected_skills` 和工具选择标签仍只用于核验和评分，不发送给模型。
 4. 先检查 Memory 缓存；未命中时，在独立进程/目录复用 Baseline Core 原有函数：L0 → 全部 L1 → L2 → L3，成功后保存底稿。命中时仅复制。不启动在线调度器、不修改生产等待规则，没有固定 90/95 秒空等。
-5. 检查实际记录和场景/画像，把唯一一份结果复制到两组空 Agent，核对正文、索引、文件和 API 数量。不整体替换 Core，不重复提炼两次。
+5. 检查实际记录和场景/画像，把唯一一份结果复制到两组空 Agent，核对正文、索引和文件；为副本中的 L0/L1 及 BM25 索引设置各自运行的 `task_id`，再按完整 Team/User/Agent/Task 身份调用真实查询接口，核对 L0/L1 总量及各来源会话是否可读。不整体替换 Core，不重复提炼两次。
 6. 固定 Task 的初始项目副本和校验值，每次运行再复制成自己的可写 Workspace；两组交替先运行，不共用已修改文件或缓存。
 7. 真正启动 CLI。Native 保留官方 Hooks；独立 Session、设置、鉴权；只挂载当前素材、设置和 CLI，不挂载 dataset/标签/结果根目录。
 8. 按指定点停止或等最终回答，保存 Bridge/CLI 原始记录，核对身份、事件归属及客户端 Native Tool 是否隐藏，再汇总指标和静态 Token。
@@ -79,6 +79,8 @@ npm run score -- --experiment results/pilot-2026-09-05T10-26-56-763Z
 同一 Task 两组共享同一初始 Memory、Skill 和素材内容，但不共用 Agent/Session；不同 Task、重复实验均不共用 Agent。原始素材只用于复制，Claude 改动的是单次运行副本。Memory 缓存命中时保持原底稿内容；重新提炼可能产生不同内容，准备记录中的版本需保留。
 
 ### Memory 自动复用
+
+离线底稿和缓存不绑定本轮 Task；Task 归属仅在分发给运行 Agent 的副本上设置。管理面的 Task-Agent 关联不能代替记忆记录中的 `task_id`。普通评测、延迟评测的每次重复和替补任务都执行同一发布检查；查询不到应有记录时停止准备，不启动模型。`pair-checks.json` 的 `apiChecks` 保留各次运行的 Task、L0/L1 及来源会话查询数量；Memory `digest` 仍表示绑定运行 Task 前已核对的内容指纹，两组各自不同的 Task 身份单独检查。该修复不改变原缓存键，也不回写历史实验数据。
 
 无需增加操作步骤，默认在 `results_dir/memory-cache/<校验值>/` 保存提炼完成的 SQLite 数据和画像文件。
 
