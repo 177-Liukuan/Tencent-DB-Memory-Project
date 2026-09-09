@@ -4,6 +4,7 @@
 
 | 日期 | 问题 | 组件 | 状态 | 上游链接 | 下一步 |
 |---|---|---|---|---|---|
+| 2026-09-08 | [已指定 Team 仍加载全部团队目录，超时后持续跳过资产注入](2026-09-08-memoryproxy-session-init-directory-timeout-1285.md) | MemoryProxy | 已提交（上游 Open） | [#1285](https://github.com/TencentCloud/TencentDB-Agent-Memory/issues/1285) | 跟踪目录读取范围与失败恢复的上游处理 |
 | 2026-08-22 | Anthropic Server Tool 在注入往返中字段丢失 | MemoryProxy | Native 人工验证通过 | [#1135](https://github.com/TencentCloud/TencentDB-Agent-Memory/issues/1135) | 跟踪上游反馈并准备 PR |
 | 2026-08-22 | thinking 历史块被代理清理及伪造表单缺块 | MemoryProxy | 第二轮修复已部署，待新会话复测 | [#990 评论](https://github.com/TencentCloud/TencentDB-Agent-Memory/issues/990#issuecomment-5380730741) | 新建 Session 完整走初始化流程 |
 
